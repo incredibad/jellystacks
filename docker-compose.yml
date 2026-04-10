@@ -3,7 +3,7 @@ services:
     build: .
     container_name: jellystacks
     ports:
-      - "7284:8000"
+      - "7284:7284"
     volumes:
       - jellystacks_data:/data
     environment:

@@ -22,5 +22,5 @@ RUN mkdir -p /data && chown appuser:appuser /data
 
 USER appuser
 
-EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 7284
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7284"]
