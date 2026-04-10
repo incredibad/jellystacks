@@ -1,6 +1,6 @@
 services:
   jellystacks:
-    build: .
+    image: incredibad/jellystacks:latest
     container_name: jellystacks
     ports:
       - "7284:7284"
