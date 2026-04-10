@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.1.1] — 2026-04-11
+
+### Changed
+- Default host port changed from 8000 to 7284
+
+---
+
 ## [0.1.0] — 2026-04-11
 
 ### Added
