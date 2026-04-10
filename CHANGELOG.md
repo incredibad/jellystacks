@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.1.2] — 2026-04-11
+
+### Changed
+- Internal container port aligned to 7284 (Dockerfile EXPOSE and uvicorn CMD)
+
+---
+
 ## [0.1.1] — 2026-04-11
 
 ### Changed
