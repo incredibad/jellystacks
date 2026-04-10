@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.1.3] — 2026-04-11
+
+### Fixed
+- docker-compose.yml now references the Docker Hub image instead of building locally
+
+---
+
 ## [0.1.2] — 2026-04-11
 
 ### Changed
