@@ -47,6 +47,8 @@ def _movie_to_response(m: models.Movie) -> schemas.MovieResponse:
 def list_movies(
     search: str = Query(default="", alias="q"),
     library: str = Query(default=""),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
@@ -55,7 +57,7 @@ def list_movies(
         query = query.filter(models.Movie.title.ilike(f"%{search}%"))
     if library:
         query = query.filter(models.Movie.library_name == library)
-    movies = query.order_by(models.Movie.sort_title, models.Movie.title).all()
+    movies = query.order_by(models.Movie.sort_title, models.Movie.title).offset(offset).limit(limit).all()
     return [_movie_to_response(m) for m in movies]
 
 

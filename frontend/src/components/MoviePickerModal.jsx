@@ -150,6 +150,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                       <img
                         src={`/api/movies/${movie.id}/poster`}
                         alt=""
+                        loading="lazy"
                         className="w-full h-full object-cover"
                         onError={e => { e.target.style.display = 'none' }}
                       />
