@@ -97,7 +97,6 @@ async def get_movie_images(
 @router.get("/proxy-image")
 async def proxy_image(
     url: str = Query(...),
-    _: models.User = Depends(get_current_user),
 ):
     decoded = unquote(url)
     # Only allow TMDB image CDN URLs

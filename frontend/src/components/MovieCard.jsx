@@ -47,6 +47,11 @@ export default function MovieCard({ movie, selected, onToggle, showCollections =
             <span className="text-xs text-amber-400">★ {movie.community_rating}</span>
           )}
         </div>
+        {movie.library_name && (
+          <span className="inline-block mt-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-700/70 text-slate-400 truncate max-w-full">
+            {movie.library_name}
+          </span>
+        )}
       </div>
     </div>
   )

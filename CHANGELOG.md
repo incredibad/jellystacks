@@ -4,6 +4,28 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.0] — 2026-04-11
+
+### Added
+- **Import from Jellyfin** — button on Collections page fetches all existing Jellyfin BoxSets and creates local collection records, so pre-existing collections are visible and manageable in JellyStacks
+- **Jellyfin-native badge** — collections imported from Jellyfin show a distinct blue "Jellyfin" badge; JellyStacks-created collections that have been synced show "Synced" in green
+- **Library filter on Movies page** — pill buttons let you filter the movie grid by Jellyfin library when multiple libraries are synced
+- **Library filter in Add Movies modal** — same library pills available when picking movies to add to a collection
+- **Library pill on movie cards** — each card shows the source Jellyfin library name below the title
+- **Movie posters now display** — removed auth requirement from the poster proxy endpoint so `<img>` tags load without needing a bearer token
+- **Artwork picker auto-searches** — opening "Change Artwork" now automatically runs a TMDB search using the collection name so results appear immediately without a manual submit
+- **TMDB image proxy no longer requires auth** — `<img src="/api/tmdb/proxy-image?url=...">` now works in the browser without a bearer token
+
+### Backend
+- `GET /api/movies/{id}/poster` — removed `get_current_user` dependency
+- `GET /api/tmdb/proxy-image` — removed `get_current_user` dependency
+- `POST /api/collections/import-from-jellyfin` — new endpoint, imports BoxSets from Jellyfin
+- `GET /api/movies/libraries` — new endpoint, returns distinct library names
+- Movie sync now records `library_name` and `library_id` per movie; inline DB migration adds these columns safely
+- Collection model and sync now track `is_jellyfin_native`; inline DB migration adds the column safely
+
+---
+
 ## [0.1.4] — 2026-04-11
 
 ### Fixed
