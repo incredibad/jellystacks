@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import (
     Column, Integer, String, Boolean, DateTime, Text,
-    ForeignKey, Table, UniqueConstraint,
+    ForeignKey, Table,
 )
 from sqlalchemy.orm import relationship
 from database import Base
@@ -36,10 +36,12 @@ class Movie(Base):
     overview = Column(Text, nullable=True)
     tmdb_id = Column(String, nullable=True)
     imdb_id = Column(String, nullable=True)
-    genres = Column(String, nullable=True)       # JSON array as string
-    runtime = Column(Integer, nullable=True)     # minutes
+    genres = Column(String, nullable=True)
+    runtime = Column(Integer, nullable=True)
     community_rating = Column(String, nullable=True)
-    primary_image_tag = Column(String, nullable=True)  # Jellyfin image tag
+    primary_image_tag = Column(String, nullable=True)
+    library_name = Column(String, nullable=True)
+    library_id = Column(String, nullable=True)
     last_synced = Column(DateTime, default=datetime.utcnow)
 
     collections = relationship("Collection", secondary=collection_movies, back_populates="movies")
@@ -51,9 +53,10 @@ class Collection(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=True)
-    artwork_url = Column(String, nullable=True)           # TMDB image URL
+    artwork_url = Column(String, nullable=True)
     jellyfin_collection_id = Column(String, nullable=True, index=True)
     in_jellyfin = Column(Boolean, default=False)
+    is_jellyfin_native = Column(Boolean, default=False)  # True = existed in Jellyfin before JellyStacks
     jellyfin_synced_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)

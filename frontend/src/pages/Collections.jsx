@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Layers, Upload, RefreshCw } from 'lucide-react'
+import { Plus, Layers, Upload, RefreshCw, Download } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import CollectionCard from '../components/CollectionCard'
@@ -76,6 +76,7 @@ export default function Collections() {
   const [showCreate, setShowCreate] = useState(false)
   const [pushingAll, setPushingAll] = useState(false)
   const [verifying, setVerifying] = useState(false)
+  const [importing, setImporting] = useState(false)
 
   const fetchCollections = async () => {
     try {
@@ -147,6 +148,24 @@ export default function Collections() {
     }
   }
 
+  const handleImport = async () => {
+    setImporting(true)
+    const tid = toast.loading('Importing from Jellyfin…')
+    try {
+      const { data } = await api.post('/collections/import-from-jellyfin')
+      let msg = ''
+      if (data.imported > 0) msg += `${data.imported} imported`
+      if (data.updated > 0) msg += `${msg ? ', ' : ''}${data.updated} updated`
+      if (!msg) msg = 'Nothing new to import'
+      toast.success(msg, { id: tid })
+      fetchCollections()
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Import failed.', { id: tid })
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const inJellyfin = collections.filter(c => c.in_jellyfin).length
 
   return (
@@ -161,6 +180,14 @@ export default function Collections() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleImport}
+            disabled={importing}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-40 transition-all border border-transparent hover:border-slate-700"
+          >
+            <Download size={14} className={importing ? 'animate-bounce' : ''} />
+            Import from Jellyfin
+          </button>
           <button
             onClick={handleVerifyAll}
             disabled={verifying || collections.length === 0}

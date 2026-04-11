@@ -50,6 +50,8 @@ class MovieResponse(BaseModel):
     runtime: Optional[int]
     community_rating: Optional[str]
     has_poster: bool
+    library_name: Optional[str]
+    library_id: Optional[str]
     last_synced: datetime
 
     model_config = {"from_attributes": True}
@@ -84,6 +86,7 @@ class CollectionResponse(BaseModel):
     artwork_url: Optional[str]
     jellyfin_collection_id: Optional[str]
     in_jellyfin: bool
+    is_jellyfin_native: bool
     jellyfin_synced_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
@@ -98,6 +101,11 @@ class PushResult(BaseModel):
     success: bool
     jellyfin_collection_id: Optional[str]
     message: str
+
+
+class ImportResult(BaseModel):
+    imported: int
+    updated: int
 
 
 # ── Settings ──────────────────────────────────────────────────────────────────

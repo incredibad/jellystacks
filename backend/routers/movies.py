@@ -37,6 +37,8 @@ def _movie_to_response(m: models.Movie) -> schemas.MovieResponse:
         runtime=m.runtime,
         community_rating=m.community_rating,
         has_poster=bool(m.primary_image_tag),
+        library_name=m.library_name,
+        library_id=m.library_id,
         last_synced=m.last_synced,
     )
 
@@ -44,12 +46,15 @@ def _movie_to_response(m: models.Movie) -> schemas.MovieResponse:
 @router.get("", response_model=list[schemas.MovieResponse])
 def list_movies(
     search: str = Query(default="", alias="q"),
+    library: str = Query(default=""),
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
     query = db.query(models.Movie)
     if search:
         query = query.filter(models.Movie.title.ilike(f"%{search}%"))
+    if library:
+        query = query.filter(models.Movie.library_name == library)
     movies = query.order_by(models.Movie.sort_title, models.Movie.title).all()
     return [_movie_to_response(m) for m in movies]
 
@@ -59,12 +64,22 @@ def movie_count(db: Session = Depends(get_db), _: models.User = Depends(get_curr
     return {"count": db.query(models.Movie).count()}
 
 
+@router.get("/libraries")
+def list_libraries(db: Session = Depends(get_db), _: models.User = Depends(get_current_user)):
+    """Return distinct library names present in the local movie cache."""
+    rows = (
+        db.query(models.Movie.library_name)
+        .filter(models.Movie.library_name.isnot(None))
+        .distinct()
+        .order_by(models.Movie.library_name)
+        .all()
+    )
+    return [r[0] for r in rows]
+
+
+# ── Poster proxy — no auth required (movie artwork is not sensitive) ──────────
 @router.get("/{movie_id}/poster")
-async def movie_poster(
-    movie_id: int,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_user),
-):
+async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
     movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
     if not movie:
         raise HTTPException(404, "Movie not found.")
@@ -74,7 +89,7 @@ async def movie_poster(
     api_key = s.get("jellyfin_api_key")
 
     if not jf_url or not api_key:
-        raise HTTPException(400, "Jellyfin not configured.")
+        raise HTTPException(503, "Jellyfin not configured.")
 
     try:
         async with httpx.AsyncClient(timeout=15) as client:
@@ -84,14 +99,11 @@ async def movie_poster(
             )
         if resp.status_code != 200:
             raise HTTPException(404, "Poster not available.")
-        return Response(
-            content=resp.content,
-            media_type=resp.headers.get("content-type", "image/jpeg"),
-        )
+        return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"))
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(502, f"Failed to fetch poster: {str(e)}")
+        raise HTTPException(502, f"Failed to fetch poster: {e}")
 
 
 @router.post("/sync", response_model=schemas.SyncResult)
@@ -108,55 +120,78 @@ async def sync_movies(
         raise HTTPException(400, "Jellyfin URL and API key are required. Configure them in Settings.")
 
     headers = _jellyfin_headers(api_key)
-    base_url = jf_url.rstrip("/")
-
-    all_items = []
-    start = 0
-    limit = 500
-
-    # Determine which endpoint to use
-    items_url = f"{base_url}/Items" if not user_id else f"{base_url}/Users/{user_id}/Items"
+    base = jf_url.rstrip("/")
+    items_url = f"{base}/Users/{user_id}/Items" if user_id else f"{base}/Items"
 
     async with httpx.AsyncClient(timeout=60) as client:
-        while True:
-            params = {
-                "IncludeItemTypes": "Movie",
-                "Recursive": "true",
-                "Fields": "ProviderIds,Overview,Genres,SortName,RunTimeTicks,CommunityRating",
-                "ImageTypeLimit": "1",
-                "EnableImageTypes": "Primary",
-                "Limit": limit,
-                "StartIndex": start,
-            }
-            resp = await client.get(items_url, headers=headers, params=params)
-            if resp.status_code != 200:
-                raise HTTPException(502, f"Jellyfin returned HTTP {resp.status_code}: {resp.text}")
+        # ── Step 1: fetch movie libraries ─────────────────────────────────────
+        libraries = []
+        try:
+            vf_resp = await client.get(f"{base}/Library/VirtualFolders", headers=headers)
+            if vf_resp.status_code == 200:
+                for vf in vf_resp.json():
+                    ctype = vf.get("CollectionType", "")
+                    if ctype in ("movies", "mixed"):
+                        libraries.append({
+                            "id": vf.get("ItemId"),
+                            "name": vf.get("Name", "Movies"),
+                        })
+        except Exception:
+            pass
 
-            data = resp.json()
-            items = data.get("Items", [])
-            all_items.extend(items)
-            total = data.get("TotalRecordCount", 0)
+        # Fall back to a single sweep with no library filter
+        if not libraries:
+            libraries = [{"id": None, "name": None}]
 
-            if start + limit >= total:
-                break
-            start += limit
+        # ── Step 2: fetch movies per library ──────────────────────────────────
+        all_items: list[tuple[dict, str | None, str | None]] = []
+        seen: set[str] = set()
 
-    # Upsert movies into local DB
+        for lib in libraries:
+            start = 0
+            while True:
+                params: dict = {
+                    "IncludeItemTypes": "Movie",
+                    "Recursive": "true",
+                    "Fields": "ProviderIds,Overview,Genres,SortName,RunTimeTicks,CommunityRating",
+                    "ImageTypeLimit": "1",
+                    "EnableImageTypes": "Primary",
+                    "Limit": 500,
+                    "StartIndex": start,
+                }
+                if lib["id"]:
+                    params["ParentId"] = lib["id"]
+
+                resp = await client.get(items_url, headers=headers, params=params)
+                if resp.status_code != 200:
+                    raise HTTPException(502, f"Jellyfin returned HTTP {resp.status_code}: {resp.text}")
+
+                data = resp.json()
+                items = data.get("Items", [])
+                total = data.get("TotalRecordCount", 0)
+
+                for item in items:
+                    jf_id = item.get("Id")
+                    if jf_id and jf_id not in seen:
+                        seen.add(jf_id)
+                        all_items.append((item, lib["name"], lib["id"]))
+
+                if start + 500 >= total:
+                    break
+                start += 500
+
+    # ── Step 3: upsert ────────────────────────────────────────────────────────
     synced = 0
-    for item in all_items:
+    for item, lib_name, lib_id in all_items:
         jf_id = item.get("Id")
         if not jf_id:
             continue
 
         runtime_ticks = item.get("RunTimeTicks")
         runtime_min = int(runtime_ticks / 600_000_000) if runtime_ticks else None
-
         genres = item.get("Genres", [])
         provider_ids = item.get("ProviderIds", {})
-
-        image_tags = item.get("ImageTags", {})
-        primary_tag = image_tags.get("Primary")
-
+        primary_tag = (item.get("ImageTags") or {}).get("Primary")
         rating = item.get("CommunityRating")
         rating_str = f"{rating:.1f}" if rating else None
 
@@ -172,6 +207,8 @@ async def sync_movies(
             existing.runtime = runtime_min
             existing.community_rating = rating_str
             existing.primary_image_tag = primary_tag
+            existing.library_name = lib_name
+            existing.library_id = lib_id
             existing.last_synced = datetime.utcnow()
         else:
             db.add(models.Movie(
@@ -186,6 +223,8 @@ async def sync_movies(
                 runtime=runtime_min,
                 community_rating=rating_str,
                 primary_image_tag=primary_tag,
+                library_name=lib_name,
+                library_id=lib_id,
                 last_synced=datetime.utcnow(),
             ))
         synced += 1

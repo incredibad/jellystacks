@@ -9,11 +9,15 @@ export default function Movies() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [libraries, setLibraries] = useState([])
+  const [activeLibrary, setActiveLibrary] = useState('')
 
-  const fetchMovies = async (q = search) => {
+  const fetchMovies = async (q = search, lib = activeLibrary) => {
     setLoading(true)
     try {
-      const { data } = await api.get('/movies', { params: { q } })
+      const params = { q }
+      if (lib) params.library = lib
+      const { data } = await api.get('/movies', { params })
       setMovies(data)
     } catch {
       toast.error('Failed to load movies.')
@@ -23,9 +27,13 @@ export default function Movies() {
   }
 
   useEffect(() => {
-    const t = setTimeout(() => fetchMovies(search), 250)
+    api.get('/movies/libraries').then(({ data }) => setLibraries(data)).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const t = setTimeout(() => fetchMovies(search, activeLibrary), 250)
     return () => clearTimeout(t)
-  }, [search])
+  }, [search, activeLibrary])
 
   const handleSync = async () => {
     setSyncing(true)
@@ -60,24 +68,53 @@ export default function Movies() {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-6 max-w-md">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-        <input
-          type="text"
-          placeholder="Search movies…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500 transition-all"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-        />
-        {search && (
-          <button
-            onClick={() => setSearch('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-          >
-            ×
-          </button>
+      {/* Search + library filter */}
+      <div className="mb-6 space-y-3">
+        <div className="relative max-w-md">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search movies…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500 transition-all"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        {libraries.length > 1 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setActiveLibrary('')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                activeLibrary === ''
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+              }`}
+            >
+              All Libraries
+            </button>
+            {libraries.map(lib => (
+              <button
+                key={lib}
+                onClick={() => setActiveLibrary(lib === activeLibrary ? '' : lib)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  activeLibrary === lib
+                    ? 'bg-violet-600 text-white'
+                    : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                }`}
+              >
+                {lib}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 

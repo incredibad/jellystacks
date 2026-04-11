@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, X, Image as ImageIcon, CheckCircle2 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -13,20 +13,31 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '' }) 
   const [imgLoading, setImgLoading] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null)
 
-  const handleSearch = async (e) => {
-    e.preventDefault()
-    if (!query.trim()) return
+  const runSearch = async (q) => {
+    if (!q.trim()) return
     setSearchLoading(true)
     setImages(null)
     setSelectedMovie(null)
     try {
-      const { data } = await api.get('/tmdb/search', { params: { q: query } })
+      const { data } = await api.get('/tmdb/search', { params: { q } })
       setResults(data)
     } catch (err) {
       toast.error(err.response?.data?.detail || 'TMDB search failed. Check your API key in Settings.')
     } finally {
       setSearchLoading(false)
     }
+  }
+
+  // Auto-search when opened with a pre-filled query (e.g. from collection name)
+  useEffect(() => {
+    if (initialQuery.trim()) {
+      runSearch(initialQuery)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSearch = async (e) => {
+    e.preventDefault()
+    runSearch(query)
   }
 
   const handleSelectMovie = async (movie) => {

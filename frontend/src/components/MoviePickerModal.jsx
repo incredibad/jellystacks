@@ -9,14 +9,22 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
   const [selected, setSelected] = useState(new Set())
   const [loading, setLoading] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [libraries, setLibraries] = useState([])
+  const [activeLibrary, setActiveLibrary] = useState('')
 
   const existingIds = new Set(collection.movies?.map(m => m.id) || [])
+
+  useEffect(() => {
+    api.get('/movies/libraries').then(({ data }) => setLibraries(data)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const fetchMovies = async () => {
       setLoading(true)
       try {
-        const { data } = await api.get('/movies', { params: { q: search } })
+        const params = { q: search }
+        if (activeLibrary) params.library = activeLibrary
+        const { data } = await api.get('/movies', { params })
         setMovies(data)
       } finally {
         setLoading(false)
@@ -24,7 +32,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
     }
     const t = setTimeout(fetchMovies, 200)
     return () => clearTimeout(t)
-  }, [search])
+  }, [search, activeLibrary])
 
   const toggle = (id) => {
     if (existingIds.has(id)) return
@@ -68,8 +76,8 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
           </button>
         </div>
 
-        {/* Search */}
-        <div className="p-4 border-b" style={{ borderColor: 'var(--border)' }}>
+        {/* Search + library filter */}
+        <div className="p-4 border-b space-y-2.5" style={{ borderColor: 'var(--border)' }}>
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
@@ -82,6 +90,33 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
               style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
             />
           </div>
+          {libraries.length > 1 && (
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setActiveLibrary('')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  activeLibrary === ''
+                    ? 'bg-violet-600 text-white'
+                    : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                }`}
+              >
+                All
+              </button>
+              {libraries.map(lib => (
+                <button
+                  key={lib}
+                  onClick={() => setActiveLibrary(lib === activeLibrary ? '' : lib)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                    activeLibrary === lib
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {lib}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Movie list */}
