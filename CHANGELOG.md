@@ -4,6 +4,18 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.2] — 2026-04-11
+
+### Fixed
+- Movies page was loading all 1200+ movies at once and firing a poster request for every single one simultaneously, saturating the browser's HTTP connection pool and starving other pages (e.g. Collections) of connections; added pagination (100 per page, "Load more" button) so only the first page of posters loads on arrival
+- Added `loading="lazy"` to all movie poster `<img>` tags so off-screen posters don't fire until the user scrolls to them
+
+### Changed
+- `GET /api/movies` now accepts `limit` (default 100, max 500) and `offset` query params
+- Movies page header now shows total library count from `/api/movies/count` independently of the current page
+
+---
+
 ## [0.2.1] — 2026-04-11
 
 ### Fixed

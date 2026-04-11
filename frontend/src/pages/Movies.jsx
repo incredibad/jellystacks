@@ -1,46 +1,64 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Search, RefreshCw, Film } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import MovieCard from '../components/MovieCard'
 
+const PAGE_SIZE = 100
+
 export default function Movies() {
   const [movies, setMovies] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [libraries, setLibraries] = useState([])
   const [activeLibrary, setActiveLibrary] = useState('')
+  const [totalCount, setTotalCount] = useState(0)
 
-  const fetchMovies = async (q = search, lib = activeLibrary) => {
-    setLoading(true)
+  const fetchMovies = useCallback(async ({ q = search, lib = activeLibrary, reset = true } = {}) => {
+    if (reset) setLoading(true)
     try {
-      const params = { q }
+      const params = { q, limit: PAGE_SIZE, offset: reset ? 0 : movies.length }
       if (lib) params.library = lib
       const { data } = await api.get('/movies', { params })
-      setMovies(data)
+      if (reset) {
+        setMovies(data)
+      } else {
+        setMovies(prev => [...prev, ...data])
+      }
+      setHasMore(data.length === PAGE_SIZE)
     } catch {
       toast.error('Failed to load movies.')
     } finally {
-      setLoading(false)
+      if (reset) setLoading(false)
+      else setLoadingMore(false)
     }
-  }
+  }, [search, activeLibrary, movies.length])
 
   useEffect(() => {
     api.get('/movies/libraries').then(({ data }) => setLibraries(data)).catch(() => {})
+    api.get('/movies/count').then(({ data }) => setTotalCount(data.count)).catch(() => {})
   }, [])
 
   useEffect(() => {
-    const t = setTimeout(() => fetchMovies(search, activeLibrary), 250)
+    const t = setTimeout(() => fetchMovies({ q: search, lib: activeLibrary, reset: true }), 250)
     return () => clearTimeout(t)
-  }, [search, activeLibrary])
+  }, [search, activeLibrary]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleLoadMore = () => {
+    setLoadingMore(true)
+    fetchMovies({ reset: false })
+  }
 
   const handleSync = async () => {
     setSyncing(true)
     try {
       const { data } = await api.post('/movies/sync')
       toast.success(`Synced ${data.synced} movies.`)
-      fetchMovies()
+      api.get('/movies/count').then(({ data }) => setTotalCount(data.count)).catch(() => {})
+      fetchMovies({ q: search, lib: activeLibrary, reset: true })
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Sync failed. Check Settings.')
     } finally {
@@ -55,7 +73,7 @@ export default function Movies() {
         <div>
           <h1 className="text-2xl font-bold text-white">Movies</h1>
           <p className="text-sm text-slate-400 mt-0.5">
-            {movies.length} {movies.length === 1 ? 'movie' : 'movies'} in your library
+            {totalCount > 0 ? `${totalCount} movies in your library` : 'No movies synced yet'}
           </p>
         </div>
         <button
@@ -136,11 +154,32 @@ export default function Movies() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
-          {movies.map(movie => (
-            <MovieCard key={movie.id} movie={movie} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
+            {movies.map(movie => (
+              <MovieCard key={movie.id} movie={movie} />
+            ))}
+          </div>
+
+          {hasMore && (
+            <div className="flex flex-col items-center mt-8 gap-2">
+              <p className="text-xs text-slate-500">
+                Showing {movies.length} of {totalCount > 0 ? totalCount : '?'}
+              </p>
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-50 transition-all border border-slate-700"
+              >
+                {loadingMore ? (
+                  <><div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> Loading…</>
+                ) : (
+                  'Load more'
+                )}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
