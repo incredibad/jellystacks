@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.1.4] — 2026-04-11
+
+### Fixed
+- Replaced `passlib[bcrypt]` with direct `bcrypt` calls — passlib 1.7.4 is incompatible with bcrypt 4.x and raised a `ValueError` during password hashing, breaking registration and login
+
+---
+
 ## [0.1.3] — 2026-04-11
 
 ### Fixed
