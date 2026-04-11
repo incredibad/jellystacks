@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { Film } from 'lucide-react'
 
-export default function MovieCard({ movie, selected, onToggle, showCollections = false }) {
+export default function MovieCard({ movie, selected, onToggle }) {
+  const [imgFailed, setImgFailed] = useState(false)
+
   return (
     <div
       onClick={onToggle ? () => onToggle(movie) : undefined}
@@ -11,17 +14,21 @@ export default function MovieCard({ movie, selected, onToggle, showCollections =
     >
       {/* Poster */}
       <div className="aspect-[2/3] relative overflow-hidden bg-slate-800">
-        <img
-          src={`/api/movies/${movie.id}/poster`}
-          alt={movie.title}
-          loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-          onError={(e) => { e.target.style.display = 'none' }}
-        />
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
-          <Film size={32} className="text-slate-600" />
-        </div>
-        {/* Overlay on hover */}
+        {imgFailed ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <Film size={32} className="text-slate-600" />
+          </div>
+        ) : (
+          <img
+            src={`/api/movies/${movie.id}/poster`}
+            alt={movie.title}
+            loading="lazy"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={() => setImgFailed(true)}
+          />
+        )}
+
+        {/* Overlay on hover / selection */}
         {onToggle && (
           <div className={`absolute inset-0 transition-all ${
             selected ? 'bg-violet-600/40' : 'bg-black/0 group-hover:bg-black/30'

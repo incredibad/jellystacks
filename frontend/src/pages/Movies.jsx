@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, RefreshCw, Film } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -17,25 +17,35 @@ export default function Movies() {
   const [activeLibrary, setActiveLibrary] = useState('')
   const [totalCount, setTotalCount] = useState(0)
 
-  const fetchMovies = useCallback(async ({ q = search, lib = activeLibrary, reset = true } = {}) => {
-    if (reset) setLoading(true)
+  const offsetRef = useRef(0)
+  const sentinelRef = useRef(null)
+
+  const fetchPage = useCallback(async ({ q, lib, offset, append }) => {
+    const params = { q, limit: PAGE_SIZE, offset }
+    if (lib) params.library = lib
+    const { data } = await api.get('/movies', { params })
+    if (append) {
+      setMovies(prev => [...prev, ...data])
+    } else {
+      setMovies(data)
+    }
+    offsetRef.current = offset + data.length
+    setHasMore(data.length === PAGE_SIZE)
+    return data
+  }, [])
+
+  // Initial / filter-changed load
+  const reload = useCallback(async (q, lib) => {
+    setLoading(true)
+    offsetRef.current = 0
     try {
-      const params = { q, limit: PAGE_SIZE, offset: reset ? 0 : movies.length }
-      if (lib) params.library = lib
-      const { data } = await api.get('/movies', { params })
-      if (reset) {
-        setMovies(data)
-      } else {
-        setMovies(prev => [...prev, ...data])
-      }
-      setHasMore(data.length === PAGE_SIZE)
+      await fetchPage({ q, lib, offset: 0, append: false })
     } catch {
       toast.error('Failed to load movies.')
     } finally {
-      if (reset) setLoading(false)
-      else setLoadingMore(false)
+      setLoading(false)
     }
-  }, [search, activeLibrary, movies.length])
+  }, [fetchPage])
 
   useEffect(() => {
     api.get('/movies/libraries').then(({ data }) => setLibraries(data)).catch(() => {})
@@ -43,14 +53,29 @@ export default function Movies() {
   }, [])
 
   useEffect(() => {
-    const t = setTimeout(() => fetchMovies({ q: search, lib: activeLibrary, reset: true }), 250)
+    const t = setTimeout(() => reload(search, activeLibrary), 250)
     return () => clearTimeout(t)
   }, [search, activeLibrary]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleLoadMore = () => {
-    setLoadingMore(true)
-    fetchMovies({ reset: false })
-  }
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore && !loading) {
+          setLoadingMore(true)
+          fetchPage({ q: search, lib: activeLibrary, offset: offsetRef.current, append: true })
+            .catch(() => toast.error('Failed to load more movies.'))
+            .finally(() => setLoadingMore(false))
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [search, activeLibrary, loading, loadingMore, fetchPage])
 
   const handleSync = async () => {
     setSyncing(true)
@@ -58,7 +83,7 @@ export default function Movies() {
       const { data } = await api.post('/movies/sync')
       toast.success(`Synced ${data.synced} movies.`)
       api.get('/movies/count').then(({ data }) => setTotalCount(data.count)).catch(() => {})
-      fetchMovies({ q: search, lib: activeLibrary, reset: true })
+      reload(search, activeLibrary)
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Sync failed. Check Settings.')
     } finally {
@@ -161,23 +186,19 @@ export default function Movies() {
             ))}
           </div>
 
+          {/* Sentinel — triggers next page load when scrolled into view */}
           {hasMore && (
-            <div className="flex flex-col items-center mt-8 gap-2">
-              <p className="text-xs text-slate-500">
-                Showing {movies.length} of {totalCount > 0 ? totalCount : '?'}
-              </p>
-              <button
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-50 transition-all border border-slate-700"
-              >
-                {loadingMore ? (
-                  <><div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> Loading…</>
-                ) : (
-                  'Load more'
-                )}
-              </button>
+            <div ref={sentinelRef} className="flex justify-center py-8">
+              {loadingMore && (
+                <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+              )}
             </div>
+          )}
+
+          {!hasMore && movies.length > 0 && (
+            <p className="text-center text-xs text-slate-600 py-8">
+              {movies.length} of {totalCount} movies
+            </p>
           )}
         </>
       )}
