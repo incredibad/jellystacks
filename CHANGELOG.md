@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.4] — 2026-04-11
+
+### Changed
+- App logo replaced with VHS tape stack artwork; favicon and Apple touch icon generated from the same asset
+- Sidebar wordmark updated to Oswald Bold, uppercase, with a left-to-right gradient (purple → teal → blue) matching the logo colours
+
+---
+
 ## [0.2.3] — 2026-04-11
 
 ### Fixed
