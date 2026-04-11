@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Layers, CheckCircle2, Circle, MoreVertical, Upload, Trash2 } from 'lucide-react'
+import { Layers, CheckCircle2, Circle, MoreVertical, Upload, Trash2, Import } from 'lucide-react'
 import { useState } from 'react'
 
 export default function CollectionCard({ collection, onPush, onDelete }) {
@@ -34,11 +34,16 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
           {/* Jellyfin badge */}
-          <div className="absolute top-2 left-2">
-            {collection.in_jellyfin ? (
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {collection.is_jellyfin_native ? (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                <Import size={11} />
+                Jellyfin
+              </span>
+            ) : collection.in_jellyfin ? (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                 <CheckCircle2 size={11} />
-                In Jellyfin
+                Synced
               </span>
             ) : (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800/80 text-slate-400 border border-slate-600/30">
