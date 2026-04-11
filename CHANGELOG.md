@@ -4,6 +4,16 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.3] — 2026-04-11
+
+### Fixed
+- Movie poster images were completely invisible — the fallback `<Film>` icon div was `absolute inset-0` and painted on top of the `<img>` tag, hiding it even when the image loaded successfully; now shows the image unless it actually errors, then falls back
+
+### Changed
+- Movies page now uses infinite scroll instead of a "Load more" button — next page loads automatically when you scroll within 200px of the bottom
+
+---
+
 ## [0.2.2] — 2026-04-11
 
 ### Fixed
