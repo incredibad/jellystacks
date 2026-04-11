@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Film, Layers, Settings, LogOut, Layers3 } from 'lucide-react'
+import { LayoutDashboard, Film, Layers, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
@@ -23,11 +23,20 @@ export default function Sidebar() {
       style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
 
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0">
-          <Layers3 size={16} className="text-white" />
-        </div>
-        <span className="font-bold text-white text-lg tracking-tight">JellyStacks</span>
+      <div className="flex items-center gap-3 px-4 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+        <img src="/logo.png" alt="JellyStacks" className="h-9 w-auto flex-shrink-0" />
+        <span
+          className="text-xl font-bold uppercase tracking-wide select-none"
+          style={{
+            fontFamily: "'Oswald', sans-serif",
+            background: 'linear-gradient(to right, #9333ea, #14b8a6, #3b82f6)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}
+        >
+          JellyStacks
+        </span>
       </div>
 
       {/* Nav */}
