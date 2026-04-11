@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.1] — 2026-04-11
+
+### Fixed
+- Collections page (and other pages) hung for 30 seconds then failed with a SQLAlchemy `QueuePool` timeout — loading ~20 movie posters in parallel saturated the default connection pool (size 5 + overflow 10 = 15 max) because each `async` poster endpoint held its DB connection open while awaiting the Jellyfin HTTP response; switched SQLite engine to `NullPool` so connections are never pooled and exhaustion is impossible
+
+---
+
 ## [0.2.0] — 2026-04-11
 
 ### Added
