@@ -2,13 +2,17 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon,
-  CheckCircle2, Circle, Pencil, X, Check, RefreshCw
+  CheckCircle2, Circle, Pencil, X, Check, RefreshCw,
+  LayoutGrid, LayoutList
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import MovieCard from '../components/MovieCard'
+import MovieListRow from '../components/MovieListRow'
 import MoviePickerModal from '../components/MoviePickerModal'
 import ArtworkPicker from '../components/ArtworkPicker'
+
+const VIEW_KEY = 'jellystacks:collection-view'
 
 function EditableField({ label, value, onSave, multiline = false }) {
   const [editing, setEditing] = useState(false)
@@ -74,6 +78,12 @@ export default function CollectionDetail() {
   const [verifying, setVerifying] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [showArtwork, setShowArtwork] = useState(false)
+  const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
+
+  const switchView = (v) => {
+    setView(v)
+    localStorage.setItem(VIEW_KEY, v)
+  }
 
   const fetchCollection = async () => {
     try {
@@ -308,13 +318,32 @@ export default function CollectionDetail() {
           <h2 className="text-lg font-semibold text-white">
             Movies <span className="text-slate-500 font-normal text-base">({collection.movie_count})</span>
           </h2>
-          <button
-            onClick={() => setShowPicker(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 transition-all border border-violet-500/20 hover:border-violet-500/40"
-          >
-            <Plus size={15} />
-            Add Movies
-          </button>
+          <div className="flex items-center gap-2">
+            {/* View toggle */}
+            <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+              <button
+                onClick={() => switchView('grid')}
+                title="Grid view"
+                className={`p-2 transition-colors ${view === 'grid' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                onClick={() => switchView('list')}
+                title="List view"
+                className={`p-2 transition-colors ${view === 'list' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              >
+                <LayoutList size={15} />
+              </button>
+            </div>
+            <button
+              onClick={() => setShowPicker(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 transition-all border border-violet-500/20 hover:border-violet-500/40"
+            >
+              <Plus size={15} />
+              Add Movies
+            </button>
+          </div>
         </div>
 
         {collection.movies.length === 0 ? (
@@ -331,7 +360,7 @@ export default function CollectionDetail() {
               Add Movies
             </button>
           </div>
-        ) : (
+        ) : view === 'grid' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
             {collection.movies.map(movie => (
               <div key={movie.id} className="relative group">
@@ -343,6 +372,14 @@ export default function CollectionDetail() {
                 >
                   <X size={12} />
                 </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+            {collection.movies.map((movie, i) => (
+              <div key={movie.id} style={i > 0 ? { borderTop: '1px solid var(--border)' } : {}}>
+                <MovieListRow movie={movie} onRemove={handleRemoveMovie} />
               </div>
             ))}
           </div>
@@ -359,7 +396,7 @@ export default function CollectionDetail() {
       )}
       {showArtwork && (
         <ArtworkPicker
-          initialQuery={collection.name}
+          movies={collection.movies}
           onClose={() => setShowArtwork(false)}
           onSelect={handleArtworkSelect}
         />

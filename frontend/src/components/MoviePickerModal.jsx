@@ -160,7 +160,15 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-200 truncate">{movie.title}</p>
-                      <p className="text-xs text-slate-500">{movie.year}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        {movie.year && <span className="text-xs text-slate-500">{movie.year}</span>}
+                        {movie.library_name && (
+                          <>
+                            {movie.year && <span className="text-slate-700 text-xs">·</span>}
+                            <span className="text-xs text-slate-500 truncate">{movie.library_name}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     {isIn && <span className="text-xs text-slate-500 flex-shrink-0">Already added</span>}
                     {isSel && (

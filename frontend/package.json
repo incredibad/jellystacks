@@ -2,7 +2,7 @@
   "name": "jellystacks",
   "description": "A web-based app for managing your Jellyfin collections library",
   "private": true,
-  "version": "0.2.4",
+  "version": "0.2.7",
   "type": "module",
   "scripts": {
     "dev": "vite",

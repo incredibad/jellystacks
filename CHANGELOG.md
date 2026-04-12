@@ -4,6 +4,29 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.7] — 2026-04-13
+
+### Added
+- Grid/list view toggle on the Movies page and Collection detail movies section; preference persisted to `localStorage` separately for each page (`jellystacks:movies-view`, `jellystacks:collection-view`)
+- New `MovieListRow` component: horizontal row with mini poster, title, and `year · library · rating` metadata; collection detail list view includes a hover-reveal remove button
+
+---
+
+## [0.2.6] — 2026-04-13
+
+### Changed
+- Library name now shown on every movie reference: as a semi-transparent pill overlay (top-right of poster) in card/grid views, and inline as `year · library` in row-based lists (movie picker modal, artwork picker)
+- Removed the duplicate library pill that was previously in the info section below the poster on `MovieCard`
+
+---
+
+## [0.2.5] — 2026-04-13
+
+### Changed
+- Collection artwork picker: left panel now shows the movies already in the collection instead of a TMDB search box; clicking a movie fetches its artwork from TMDB via the stored `tmdb_id`
+
+---
+
 ## [0.2.4] — 2026-04-11
 
 ### Changed
