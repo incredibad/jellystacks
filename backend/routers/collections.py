@@ -1,9 +1,7 @@
-import io
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, selectinload
 import httpx
-from PIL import Image
 
 from database import get_db
 import models
@@ -146,7 +144,7 @@ def remove_movie(
 
 
 async def _upload_artwork(jf_client: httpx.AsyncClient, jf_url: str, api_key: str, jf_col_id: str, artwork_url: str) -> str | None:
-    """Download artwork from TMDB, convert to PNG, upload to Jellyfin.
+    """Download artwork from TMDB and upload it to Jellyfin as-is.
 
     Returns None on success or an error string on failure.
     Uses a separate HTTP client for the TMDB fetch so redirects are followed
@@ -158,19 +156,17 @@ async def _upload_artwork(jf_client: httpx.AsyncClient, jf_url: str, api_key: st
         if img_resp.status_code != 200:
             return f"artwork fetch returned HTTP {img_resp.status_code}"
 
-        img = Image.open(io.BytesIO(img_resp.content)).convert("RGB")
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
+        # Use the content-type from the TMDB response; default to image/jpeg.
+        # TMDB serves JPEGs — upload them directly rather than re-encoding to
+        # PNG, which was causing Jellyfin to return HTTP 500.
+        content_type = img_resp.headers.get("content-type", "image/jpeg").split(";")[0].strip()
 
         headers = _jellyfin_headers(api_key)
-        headers["Content-Type"] = "image/png"
+        headers["Content-Type"] = content_type
         upload_resp = await jf_client.post(
             f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary",
             headers=headers,
-            # Include api_key as a query param too — some Jellyfin setups require
-            # it for write endpoints in addition to the Authorization header.
-            params={"api_key": api_key},
-            content=buf.getvalue(),
+            content=img_resp.content,
             timeout=30,
         )
         if upload_resp.status_code not in (200, 204):
@@ -200,62 +196,69 @@ async def push_collection(
     headers = _jellyfin_headers(api_key)
     base = jf_url.rstrip("/")
     movie_jf_ids = [m.jellyfin_id for m in col.movies]
+    user_id = s.get("jellyfin_user_id")
 
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
         if col.jellyfin_collection_id:
-            check = await client.get(f"{base}/Items/{col.jellyfin_collection_id}", headers=headers)
+            check_params = {"UserId": user_id} if user_id else {}
+            check = await client.get(
+                f"{base}/Items/{col.jellyfin_collection_id}",
+                headers=headers,
+                params=check_params,
+            )
             if check.status_code == 200:
                 item_data = check.json()
+                jf_name = item_data.get("Name", "")
 
-                # Rename in Jellyfin if the name has changed
-                if item_data.get("Name") != col.name:
-                    item_data["Name"] = col.name
-                    await client.post(
+                if jf_name != col.name:
+                    # Jellyfin BoxSet rename via the update API is unreliable.
+                    # Delete the old collection and recreate with the new name below.
+                    await client.delete(
                         f"{base}/Items/{col.jellyfin_collection_id}",
                         headers=headers,
-                        json=item_data,
                     )
-
-                # Sync movie membership
-                items_resp = await client.get(
-                    f"{base}/Items",
-                    headers=headers,
-                    params={"ParentId": col.jellyfin_collection_id, "IncludeItemTypes": "Movie",
-                            "Recursive": "true", "Fields": "Id", "Limit": 1000},
-                )
-                current_ids = set()
-                if items_resp.status_code == 200:
-                    current_ids = {item["Id"] for item in items_resp.json().get("Items", [])}
-
-                wanted = set(movie_jf_ids)
-                to_remove = current_ids - wanted
-                to_add = wanted - current_ids
-
-                if to_remove:
-                    await client.delete(
-                        f"{base}/Collections/{col.jellyfin_collection_id}/Items",
+                    col.jellyfin_collection_id = None
+                else:
+                    # Name matches — sync movie membership in place.
+                    items_resp = await client.get(
+                        f"{base}/Items",
                         headers=headers,
-                        params={"ids": ",".join(to_remove)},
+                        params={"ParentId": col.jellyfin_collection_id, "IncludeItemTypes": "Movie",
+                                "Recursive": "true", "Fields": "Id", "Limit": 1000},
                     )
-                if to_add:
-                    await client.post(
-                        f"{base}/Collections/{col.jellyfin_collection_id}/Items",
-                        headers=headers,
-                        params={"ids": ",".join(to_add)},
-                    )
+                    current_ids = set()
+                    if items_resp.status_code == 200:
+                        current_ids = {item["Id"] for item in items_resp.json().get("Items", [])}
 
-                artwork_err = None
-                if col.artwork_url:
-                    artwork_err = await _upload_artwork(client, base, api_key, col.jellyfin_collection_id, col.artwork_url)
+                    wanted = set(movie_jf_ids)
+                    to_remove = current_ids - wanted
+                    to_add = wanted - current_ids
 
-                col.in_jellyfin = True
-                col.jellyfin_synced_at = datetime.utcnow()
-                db.commit()
-                msg = "Collection updated in Jellyfin."
-                if artwork_err:
-                    msg += f" (artwork upload failed: {artwork_err})"
-                return schemas.PushResult(success=True, jellyfin_collection_id=col.jellyfin_collection_id,
-                                          message=msg)
+                    if to_remove:
+                        await client.delete(
+                            f"{base}/Collections/{col.jellyfin_collection_id}/Items",
+                            headers=headers,
+                            params={"ids": ",".join(to_remove)},
+                        )
+                    if to_add:
+                        await client.post(
+                            f"{base}/Collections/{col.jellyfin_collection_id}/Items",
+                            headers=headers,
+                            params={"ids": ",".join(to_add)},
+                        )
+
+                    artwork_err = None
+                    if col.artwork_url:
+                        artwork_err = await _upload_artwork(client, base, api_key, col.jellyfin_collection_id, col.artwork_url)
+
+                    col.in_jellyfin = True
+                    col.jellyfin_synced_at = datetime.utcnow()
+                    db.commit()
+                    msg = "Collection updated in Jellyfin."
+                    if artwork_err:
+                        msg += f" (artwork upload failed: {artwork_err})"
+                    return schemas.PushResult(success=True, jellyfin_collection_id=col.jellyfin_collection_id,
+                                              message=msg)
             else:
                 col.jellyfin_collection_id = None  # stale — fall through to create
 

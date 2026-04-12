@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.12] — 2026-04-13
+
+### Fixed
+- Artwork upload HTTP 500: removed Pillow PNG re-encoding and the redundant `api_key` query param; image is now uploaded directly from TMDB using its original content-type (JPEG), which Jellyfin accepts without error
+- Rename still created a duplicate collection: push endpoint's existence check was missing `UserId` (causing non-200 responses on some Jellyfin setups, which cleared the stored ID and triggered a fresh create); also replaced unreliable `POST /Items/{id}` rename with a delete-then-recreate strategy — the old Jellyfin collection is deleted and a new one is created with the updated name
+
+---
+
 ## [0.2.11] — 2026-04-13
 
 ### Fixed
