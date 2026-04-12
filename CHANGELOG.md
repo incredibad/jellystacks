@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.11] — 2026-04-13
+
+### Fixed
+- Renaming a collection in JellyStacks then syncing created a duplicate Jellyfin collection instead of updating the existing one — caused by two separate bugs:
+  1. The Jellyfin existence check used an `httpx` client without `follow_redirects=True`, so a redirect response was misread as "collection gone" and a new one was created
+  2. The sync path never updated the collection name in Jellyfin — now sends `POST /Items/{id}` with the updated name when it differs from what Jellyfin has
+
+---
+
 ## [0.2.10] — 2026-04-13
 
 ### Changed
