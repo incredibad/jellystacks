@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon,
-  CheckCircle2, Circle, Pencil, X, Check, RefreshCw,
+  CheckCircle2, Circle, AlertCircle, Pencil, X, Check, RefreshCw,
   LayoutGrid, LayoutList
 } from 'lucide-react'
 import api from '../api/client'
@@ -187,6 +187,11 @@ export default function CollectionDetail() {
     ? `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
     : null
 
+  // True when the collection is in Jellyfin but has been modified locally since the last sync.
+  const needsSync = collection.in_jellyfin &&
+    collection.jellyfin_synced_at &&
+    new Date(collection.updated_at) > new Date(collection.jellyfin_synced_at)
+
   return (
     <div className="p-8 max-w-7xl">
       {/* Back */}
@@ -224,7 +229,12 @@ export default function CollectionDetail() {
         {/* Info */}
         <div className="flex-1 min-w-0 py-1">
           <div className="flex items-center gap-3 mb-1 flex-wrap">
-            {collection.in_jellyfin ? (
+            {needsSync ? (
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                <AlertCircle size={12} />
+                Needs Sync
+              </span>
+            ) : collection.in_jellyfin ? (
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
                 <CheckCircle2 size={12} />
                 In Jellyfin
@@ -260,10 +270,14 @@ export default function CollectionDetail() {
             <button
               onClick={handlePush}
               disabled={pushing || collection.movie_count === 0}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-50 transition-all"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-all ${
+                needsSync
+                  ? 'bg-amber-500 hover:bg-amber-400'
+                  : 'bg-violet-600 hover:bg-violet-500'
+              }`}
             >
               <Upload size={15} />
-              {pushing ? 'Pushing…' : collection.in_jellyfin ? 'Sync to Jellyfin' : 'Push to Jellyfin'}
+              {pushing ? 'Pushing…' : needsSync ? 'Update in Jellyfin' : collection.in_jellyfin ? 'Sync to Jellyfin' : 'Push to Jellyfin'}
             </button>
 
             {collection.jellyfin_collection_id && (
