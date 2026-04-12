@@ -28,6 +28,13 @@ export default function MovieCard({ movie, selected, onToggle }) {
           />
         )}
 
+        {/* Library pill — top-right */}
+        {movie.library_name && (
+          <span className="absolute top-1.5 right-1.5 z-10 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-tight bg-black/60 text-slate-300 backdrop-blur-sm truncate max-w-[80%]">
+            {movie.library_name}
+          </span>
+        )}
+
         {/* Overlay on hover / selection */}
         {onToggle && (
           <div className={`absolute inset-0 transition-all ${
@@ -55,11 +62,6 @@ export default function MovieCard({ movie, selected, onToggle }) {
             <span className="text-xs text-amber-400">★ {movie.community_rating}</span>
           )}
         </div>
-        {movie.library_name && (
-          <span className="inline-block mt-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-700/70 text-slate-400 truncate max-w-full">
-            {movie.library_name}
-          </span>
-        )}
       </div>
     </div>
   )
