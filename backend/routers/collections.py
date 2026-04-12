@@ -145,10 +145,15 @@ def remove_movie(
     return _collection_to_detail(col)
 
 
-async def _upload_artwork(client: httpx.AsyncClient, jf_url: str, api_key: str, jf_col_id: str, artwork_url: str):
-    """Download artwork, convert to PNG, upload to Jellyfin."""
+async def _upload_artwork(jf_client: httpx.AsyncClient, jf_url: str, api_key: str, jf_col_id: str, artwork_url: str):
+    """Download artwork from TMDB, convert to PNG, upload to Jellyfin.
+
+    Uses a separate HTTP client for the TMDB fetch so redirects are followed
+    independently of the long-lived Jellyfin client session.
+    """
     try:
-        img_resp = await client.get(artwork_url, timeout=30)
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as img_client:
+            img_resp = await img_client.get(artwork_url)
         if img_resp.status_code != 200:
             return
         img = Image.open(io.BytesIO(img_resp.content)).convert("RGB")
@@ -156,7 +161,7 @@ async def _upload_artwork(client: httpx.AsyncClient, jf_url: str, api_key: str, 
         img.save(buf, format="PNG")
         headers = _jellyfin_headers(api_key)
         headers["Content-Type"] = "image/png"
-        await client.post(
+        await jf_client.post(
             f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary",
             headers=headers,
             content=buf.getvalue(),
