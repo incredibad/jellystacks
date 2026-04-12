@@ -4,6 +4,18 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.10] — 2026-04-13
+
+### Changed
+- Push button now shows **Synced** (greyed out, disabled) when the collection is up to date in Jellyfin; only active when there is actually work to do (needs sync or not yet pushed)
+
+### Fixed
+- Artwork upload now also passes `api_key` as a query parameter to Jellyfin (some instances require it for write endpoints in addition to the `Authorization` header)
+- Artwork upload failures are no longer silently swallowed — any error is appended to the push result toast message so the cause is visible
+- `_upload_artwork` now returns an error string on failure instead of `pass`-ing exceptions
+
+---
+
 ## [0.2.9] — 2026-04-13
 
 ### Fixed
