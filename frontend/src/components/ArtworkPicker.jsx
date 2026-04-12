@@ -3,7 +3,9 @@ import { Search, X, Image as ImageIcon, CheckCircle2 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
-export default function ArtworkPicker({ onSelect, onClose, initialQuery = '' }) {
+// movies: optional array of collection movies — when provided, shows them in the left panel
+//         instead of a TMDB search box.
+export default function ArtworkPicker({ onSelect, onClose, initialQuery = '', movies = null }) {
   const [query, setQuery] = useState(initialQuery)
   const [results, setResults] = useState([])
   const [images, setImages] = useState(null)
@@ -12,6 +14,20 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '' }) 
   const [searchLoading, setSearchLoading] = useState(false)
   const [imgLoading, setImgLoading] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null)
+
+  const fetchImages = async (tmdbId) => {
+    setImgLoading(true)
+    setImages(null)
+    setSelectedImage(null)
+    try {
+      const { data } = await api.get(`/tmdb/movie/${tmdbId}/images`)
+      setImages(data)
+    } catch {
+      toast.error('Failed to load images.')
+    } finally {
+      setImgLoading(false)
+    }
+  }
 
   const runSearch = async (q) => {
     if (!q.trim()) return
@@ -30,7 +46,7 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '' }) 
 
   // Auto-search when opened with a pre-filled query (e.g. from collection name)
   useEffect(() => {
-    if (initialQuery.trim()) {
+    if (!movies && initialQuery.trim()) {
       runSearch(initialQuery)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -42,17 +58,16 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '' }) 
 
   const handleSelectMovie = async (movie) => {
     setSelectedMovie(movie)
-    setImgLoading(true)
-    setImages(null)
-    setSelectedImage(null)
-    try {
-      const { data } = await api.get(`/tmdb/movie/${movie.id}/images`)
-      setImages(data)
-    } catch (err) {
-      toast.error('Failed to load images.')
-    } finally {
-      setImgLoading(false)
+    await fetchImages(movie.id)
+  }
+
+  const handleSelectCollectionMovie = async (movie) => {
+    if (!movie.tmdb_id) {
+      toast.error('This movie has no TMDB ID — artwork unavailable.')
+      return
     }
+    setSelectedMovie(movie)
+    await fetchImages(movie.tmdb_id)
   }
 
   const handleSelectImage = (img) => {
@@ -87,66 +102,113 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '' }) 
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Left: search + results */}
+          {/* Left: collection movie list OR search + results */}
           <div className="w-72 flex-shrink-0 border-r flex flex-col" style={{ borderColor: 'var(--border)' }}>
-            <form onSubmit={handleSearch} className="p-4 border-b" style={{ borderColor: 'var(--border)' }}>
-              <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  autoFocus
-                  type="text"
-                  placeholder="Search TMDB…"
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  className="w-full pl-8 pr-10 py-2 rounded-lg text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
-                  style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
-                />
-                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded text-xs bg-violet-600 text-white hover:bg-violet-500 transition-colors">
-                  Go
-                </button>
-              </div>
-            </form>
-
-            <div className="flex-1 overflow-y-auto p-2">
-              {searchLoading && (
-                <div className="flex justify-center py-8">
-                  <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+            {movies ? (
+              <>
+                <div className="p-4 border-b" style={{ borderColor: 'var(--border)' }}>
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Movies in collection</p>
                 </div>
-              )}
-              {!searchLoading && results.map(movie => (
-                <button
-                  key={movie.id}
-                  onClick={() => handleSelectMovie(movie)}
-                  className={`w-full flex items-center gap-2.5 p-2 rounded-lg text-left transition-all mb-1 ${
-                    selectedMovie?.id === movie.id
-                      ? 'bg-violet-600/20 border border-violet-500/40'
-                      : 'hover:bg-white/5 border border-transparent'
-                  }`}
-                >
-                  {movie.poster_thumb ? (
-                    <img
-                      src={movie.poster_thumb}
-                      alt=""
-                      className="w-9 h-12 object-cover rounded flex-shrink-0"
+                <div className="flex-1 overflow-y-auto p-2">
+                  {movies.map(movie => (
+                    <button
+                      key={movie.id}
+                      onClick={() => handleSelectCollectionMovie(movie)}
+                      className={`w-full flex items-center gap-2.5 p-2 rounded-lg text-left transition-all mb-1 ${
+                        selectedMovie?.id === movie.id
+                          ? 'bg-violet-600/20 border border-violet-500/40'
+                          : movie.tmdb_id
+                            ? 'hover:bg-white/5 border border-transparent'
+                            : 'opacity-40 cursor-not-allowed border border-transparent'
+                      }`}
+                    >
+                      <img
+                        src={`/api/movies/${movie.id}/poster`}
+                        alt=""
+                        className="w-9 h-12 object-cover rounded flex-shrink-0 bg-slate-700"
+                        onError={e => { e.target.style.display = 'none' }}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-slate-200 truncate">{movie.title}</p>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {movie.year && <span className="text-xs text-slate-500">{movie.year}</span>}
+                          {movie.library_name && (
+                            <>
+                              {movie.year && <span className="text-slate-700 text-xs">·</span>}
+                              <span className="text-xs text-slate-500 truncate">{movie.library_name}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  {movies.length === 0 && (
+                    <p className="text-center text-xs text-slate-500 py-8">No movies in this collection.</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <form onSubmit={handleSearch} className="p-4 border-b" style={{ borderColor: 'var(--border)' }}>
+                  <div className="relative">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Search TMDB…"
+                      value={query}
+                      onChange={e => setQuery(e.target.value)}
+                      className="w-full pl-8 pr-10 py-2 rounded-lg text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
+                      style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
                     />
-                  ) : (
-                    <div className="w-9 h-12 bg-slate-700 rounded flex-shrink-0 flex items-center justify-center">
-                      <ImageIcon size={14} className="text-slate-500" />
+                    <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded text-xs bg-violet-600 text-white hover:bg-violet-500 transition-colors">
+                      Go
+                    </button>
+                  </div>
+                </form>
+
+                <div className="flex-1 overflow-y-auto p-2">
+                  {searchLoading && (
+                    <div className="flex justify-center py-8">
+                      <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
                     </div>
                   )}
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-200 truncate">{movie.title}</p>
-                    <p className="text-xs text-slate-500">{movie.year}</p>
-                  </div>
-                </button>
-              ))}
-              {!searchLoading && results.length === 0 && query && (
-                <p className="text-center text-xs text-slate-500 py-8">No results. Try a different search.</p>
-              )}
-              {!searchLoading && results.length === 0 && !query && (
-                <p className="text-center text-xs text-slate-500 py-8">Search to find artwork</p>
-              )}
-            </div>
+                  {!searchLoading && results.map(movie => (
+                    <button
+                      key={movie.id}
+                      onClick={() => handleSelectMovie(movie)}
+                      className={`w-full flex items-center gap-2.5 p-2 rounded-lg text-left transition-all mb-1 ${
+                        selectedMovie?.id === movie.id
+                          ? 'bg-violet-600/20 border border-violet-500/40'
+                          : 'hover:bg-white/5 border border-transparent'
+                      }`}
+                    >
+                      {movie.poster_thumb ? (
+                        <img
+                          src={movie.poster_thumb}
+                          alt=""
+                          className="w-9 h-12 object-cover rounded flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-9 h-12 bg-slate-700 rounded flex-shrink-0 flex items-center justify-center">
+                          <ImageIcon size={14} className="text-slate-500" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-slate-200 truncate">{movie.title}</p>
+                        <p className="text-xs text-slate-500">{movie.year}</p>
+                      </div>
+                    </button>
+                  ))}
+                  {!searchLoading && results.length === 0 && query && (
+                    <p className="text-center text-xs text-slate-500 py-8">No results. Try a different search.</p>
+                  )}
+                  {!searchLoading && results.length === 0 && !query && (
+                    <p className="text-center text-xs text-slate-500 py-8">Search to find artwork</p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Right: image grid */}
