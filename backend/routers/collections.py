@@ -369,16 +369,32 @@ async def verify_jellyfin_status(
     if not jf_url or not api_key:
         raise HTTPException(400, "Jellyfin not configured.")
 
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
-                f"{jf_url.rstrip('/')}/Items/{col.jellyfin_collection_id}",
-                headers=_jellyfin_headers(api_key),
-            )
-        col.in_jellyfin = resp.status_code == 200
-    except Exception:
+    # Use a dedicated client with redirects enabled. Include UserId if configured —
+    # some Jellyfin setups require it for item lookups.
+    params = {}
+    user_id = s.get("jellyfin_user_id")
+    if user_id:
+        params["UserId"] = user_id
+
+    async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+        resp = await client.get(
+            f"{jf_url.rstrip('/')}/Items/{col.jellyfin_collection_id}",
+            headers=_jellyfin_headers(api_key),
+            params=params,
+        )
+
+    # Only update the DB if we got a definitive answer (200 = exists, 404 = gone).
+    # Any other status (401, 502, etc.) means the check was inconclusive — leave
+    # in_jellyfin unchanged so a transient error doesn't wipe the known state.
+    if resp.status_code == 200:
+        col.in_jellyfin = True
+        db.commit()
+    elif resp.status_code == 404:
         col.in_jellyfin = False
-    db.commit()
+        col.jellyfin_collection_id = None
+        db.commit()
+    # else: inconclusive — don't touch the DB
+
     return _collection_to_response(col)
 
 

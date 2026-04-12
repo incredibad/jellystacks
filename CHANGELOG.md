@@ -4,6 +4,19 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.9] — 2026-04-13
+
+### Fixed
+- Verify button was resetting `in_jellyfin` to false on any non-200 response (including redirects and transient errors); now only 200 → confirmed in Jellyfin, 404 → confirmed gone, anything else leaves state unchanged
+- Verify now follows HTTP redirects (`follow_redirects=True`) and includes `UserId` if configured, matching how other Jellyfin calls are authenticated
+
+### Added
+- Three-way Jellyfin status badge on collection detail: **In Jellyfin** (green), **Needs Sync** (amber), **Local Only** (grey)
+- "Needs Sync" state is derived from `updated_at > jellyfin_synced_at` — any local change after the last push (movies added/removed, name, description, artwork) triggers it automatically
+- Push button turns amber and reads "Update in Jellyfin" when the collection needs syncing
+
+---
+
 ## [0.2.8] — 2026-04-13
 
 ### Fixed
