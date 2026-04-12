@@ -201,11 +201,22 @@ async def push_collection(
     base = jf_url.rstrip("/")
     movie_jf_ids = [m.jellyfin_id for m in col.movies]
 
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
         if col.jellyfin_collection_id:
             check = await client.get(f"{base}/Items/{col.jellyfin_collection_id}", headers=headers)
             if check.status_code == 200:
-                # Sync items in existing collection
+                item_data = check.json()
+
+                # Rename in Jellyfin if the name has changed
+                if item_data.get("Name") != col.name:
+                    item_data["Name"] = col.name
+                    await client.post(
+                        f"{base}/Items/{col.jellyfin_collection_id}",
+                        headers=headers,
+                        json=item_data,
+                    )
+
+                # Sync movie membership
                 items_resp = await client.get(
                     f"{base}/Items",
                     headers=headers,
