@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.8] — 2026-04-13
+
+### Fixed
+- Collection artwork was silently not uploaded to Jellyfin because `httpx` does not follow redirects by default; the TMDB image CDN can issue redirects that caused the fetch to receive a 3xx response, which the `status_code != 200` guard then bailed on without raising an error — fixed by fetching artwork via a dedicated client with `follow_redirects=True`
+
+---
+
 ## [0.2.7] — 2026-04-13
 
 ### Added
