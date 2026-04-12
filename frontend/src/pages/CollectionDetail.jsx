@@ -269,15 +269,19 @@ export default function CollectionDetail() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={handlePush}
-              disabled={pushing || collection.movie_count === 0}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-all ${
-                needsSync
-                  ? 'bg-amber-500 hover:bg-amber-400'
-                  : 'bg-violet-600 hover:bg-violet-500'
+              disabled={pushing || collection.movie_count === 0 || (collection.in_jellyfin && !needsSync)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                pushing || collection.movie_count === 0
+                  ? 'bg-violet-600 text-white opacity-50 cursor-not-allowed'
+                  : needsSync
+                    ? 'bg-amber-500 hover:bg-amber-400 text-white'
+                    : collection.in_jellyfin
+                      ? 'bg-slate-700 text-slate-400 cursor-default'
+                      : 'bg-violet-600 hover:bg-violet-500 text-white'
               }`}
             >
               <Upload size={15} />
-              {pushing ? 'Pushing…' : needsSync ? 'Update in Jellyfin' : collection.in_jellyfin ? 'Sync to Jellyfin' : 'Push to Jellyfin'}
+              {pushing ? 'Pushing…' : needsSync ? 'Update in Jellyfin' : collection.in_jellyfin ? 'Synced' : 'Push to Jellyfin'}
             </button>
 
             {collection.jellyfin_collection_id && (

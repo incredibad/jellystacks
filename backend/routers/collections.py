@@ -145,9 +145,10 @@ def remove_movie(
     return _collection_to_detail(col)
 
 
-async def _upload_artwork(jf_client: httpx.AsyncClient, jf_url: str, api_key: str, jf_col_id: str, artwork_url: str):
+async def _upload_artwork(jf_client: httpx.AsyncClient, jf_url: str, api_key: str, jf_col_id: str, artwork_url: str) -> str | None:
     """Download artwork from TMDB, convert to PNG, upload to Jellyfin.
 
+    Returns None on success or an error string on failure.
     Uses a separate HTTP client for the TMDB fetch so redirects are followed
     independently of the long-lived Jellyfin client session.
     """
@@ -155,20 +156,28 @@ async def _upload_artwork(jf_client: httpx.AsyncClient, jf_url: str, api_key: st
         async with httpx.AsyncClient(timeout=30, follow_redirects=True) as img_client:
             img_resp = await img_client.get(artwork_url)
         if img_resp.status_code != 200:
-            return
+            return f"artwork fetch returned HTTP {img_resp.status_code}"
+
         img = Image.open(io.BytesIO(img_resp.content)).convert("RGB")
         buf = io.BytesIO()
         img.save(buf, format="PNG")
+
         headers = _jellyfin_headers(api_key)
         headers["Content-Type"] = "image/png"
-        await jf_client.post(
+        upload_resp = await jf_client.post(
             f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary",
             headers=headers,
+            # Include api_key as a query param too — some Jellyfin setups require
+            # it for write endpoints in addition to the Authorization header.
+            params={"api_key": api_key},
             content=buf.getvalue(),
             timeout=30,
         )
-    except Exception:
-        pass
+        if upload_resp.status_code not in (200, 204):
+            return f"Jellyfin image upload returned HTTP {upload_resp.status_code}: {upload_resp.text[:200]}"
+        return None
+    except Exception as exc:
+        return str(exc)
 
 
 @router.post("/{collection_id}/push", response_model=schemas.PushResult)
@@ -224,14 +233,18 @@ async def push_collection(
                         params={"ids": ",".join(to_add)},
                     )
 
+                artwork_err = None
                 if col.artwork_url:
-                    await _upload_artwork(client, base, api_key, col.jellyfin_collection_id, col.artwork_url)
+                    artwork_err = await _upload_artwork(client, base, api_key, col.jellyfin_collection_id, col.artwork_url)
 
                 col.in_jellyfin = True
                 col.jellyfin_synced_at = datetime.utcnow()
                 db.commit()
+                msg = "Collection updated in Jellyfin."
+                if artwork_err:
+                    msg += f" (artwork upload failed: {artwork_err})"
                 return schemas.PushResult(success=True, jellyfin_collection_id=col.jellyfin_collection_id,
-                                          message="Collection updated in Jellyfin.")
+                                          message=msg)
             else:
                 col.jellyfin_collection_id = None  # stale — fall through to create
 
@@ -247,15 +260,18 @@ async def push_collection(
         if not jf_col_id:
             raise HTTPException(502, "Jellyfin returned no collection ID.")
 
+        artwork_err = None
         if col.artwork_url:
-            await _upload_artwork(client, base, api_key, jf_col_id, col.artwork_url)
+            artwork_err = await _upload_artwork(client, base, api_key, jf_col_id, col.artwork_url)
 
         col.jellyfin_collection_id = jf_col_id
         col.in_jellyfin = True
         col.jellyfin_synced_at = datetime.utcnow()
         db.commit()
-        return schemas.PushResult(success=True, jellyfin_collection_id=jf_col_id,
-                                  message="Collection created in Jellyfin.")
+        msg = "Collection created in Jellyfin."
+        if artwork_err:
+            msg += f" (artwork upload failed: {artwork_err})"
+        return schemas.PushResult(success=True, jellyfin_collection_id=jf_col_id, message=msg)
 
 
 @router.post("/push-all")
