@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.16] — 2026-04-13
+
+### Fixed
+- Artwork upload HTTP 500: replaced raw byte upload (`POST /Items/{id}/Images/Primary/0`) with Jellyfin's `POST /Items/{id}/RemoteImages/Download` — Jellyfin fetches the image from TMDB itself using its own image pipeline, avoiding the upload endpoint that returns 500 on this configuration
+
+---
+
 ## [0.2.15] — 2026-04-13
 
 ### Fixed

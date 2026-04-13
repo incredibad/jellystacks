@@ -145,33 +145,26 @@ def remove_movie(
 
 
 async def _upload_artwork(jf_url: str, api_key: str, jf_col_id: str, artwork_url: str) -> str | None:
-    """Download artwork from TMDB and upload it to Jellyfin.
+    """Tell Jellyfin to fetch the artwork directly from TMDB via RemoteImages/Download.
+
+    This avoids raw-byte uploads (which return HTTP 500 on some Jellyfin
+    configurations) by letting Jellyfin's own image pipeline fetch and store
+    the image — the same mechanism it uses for metadata providers.
 
     Returns None on success or an error string on failure.
-    Uses w500 size from TMDB (smaller than /original/, avoids server-side
-    processing errors in Jellyfin). Uses a dedicated client for both the
-    TMDB fetch and the Jellyfin upload so there is no shared session state.
     """
     try:
-        fetch_url = artwork_url.replace('/original/', '/w500/')
-
-        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as img_client:
-            img_resp = await img_client.get(fetch_url)
-        if img_resp.status_code != 200:
-            return f"artwork fetch returned HTTP {img_resp.status_code}"
-
+        image_url = artwork_url.replace('/original/', '/w500/')
         headers = _jellyfin_headers(api_key)
-        headers["Content-Type"] = "image/jpeg"
 
-        async with httpx.AsyncClient(timeout=30) as upload_client:
-            upload_resp = await upload_client.post(
-                f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary/0",
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{jf_url.rstrip('/')}/Items/{jf_col_id}/RemoteImages/Download",
                 headers=headers,
-                content=img_resp.content,
-                timeout=30,
+                params={"Type": "Primary", "ImageUrl": image_url},
             )
-        if upload_resp.status_code not in (200, 204):
-            return f"Jellyfin image upload returned HTTP {upload_resp.status_code}: {upload_resp.text[:200]}"
+        if resp.status_code not in (200, 204):
+            return f"Jellyfin RemoteImages/Download returned HTTP {resp.status_code}: {resp.text[:200]}"
         return None
     except Exception as exc:
         return str(exc)
