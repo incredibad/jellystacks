@@ -17,4 +17,4 @@ This is non-negotiable — no commit should go out without a changelog entry.
 
 ## Pushing
 
-**Never push to the remote repository.** Always commit locally and let the user push manually.
+**Do not push proactively.** Only push to the remote repository when the user explicitly asks you to.
