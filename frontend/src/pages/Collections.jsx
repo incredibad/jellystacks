@@ -115,7 +115,7 @@ export default function Collections() {
   }
 
   const handleDelete = async (collection) => {
-    if (!confirm(`Delete "${collection.name}"? This won't remove it from Jellyfin.`)) return
+    if (!confirm(`Delete "${collection.name}"? This will also remove it from Jellyfin if it has been synced.`)) return
     try {
       await api.delete(`/collections/${collection.id}`)
       setCollections(prev => prev.filter(c => c.id !== collection.id))

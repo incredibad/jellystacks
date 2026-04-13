@@ -21,12 +21,12 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
 
   return (
     <div
-      className="relative rounded-xl overflow-hidden group"
+      className="relative rounded-xl group"
       style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
     >
       {/* Artwork */}
       <Link to={`/collections/${collection.id}`}>
-        <div className="aspect-[2/3] relative overflow-hidden bg-slate-800">
+        <div className="aspect-[2/3] relative overflow-hidden bg-slate-800 rounded-t-xl">
           {artworkSrc ? (
             <img
               src={artworkSrc}

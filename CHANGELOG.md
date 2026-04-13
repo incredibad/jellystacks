@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.0.1] — 2026-04-13
+
+### Fixed
+- Deleting a collection now also removes it from Jellyfin (best-effort — local delete always succeeds even if Jellyfin is unreachable); updated confirm dialog text to reflect this
+- Context menu (three-dot) on collection cards was being clipped by `overflow-hidden` on the card root; moved `overflow-hidden` to the artwork div only and added `rounded-t-xl` to preserve the corner rounding
+
+---
+
 ## [1.0.0] — 2026-04-13
 
 ### Changed

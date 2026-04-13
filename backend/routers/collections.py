@@ -116,12 +116,31 @@ def clear_jellyfin_native(
 
 
 @router.delete("/{collection_id}")
-def delete_collection(collection_id: int, db: Session = Depends(get_db), _: models.User = Depends(get_current_user)):
+async def delete_collection(collection_id: int, db: Session = Depends(get_db), _: models.User = Depends(get_current_user)):
     col = db.query(models.Collection).filter(models.Collection.id == collection_id).first()
     if not col:
         raise HTTPException(404, "Collection not found.")
+
+    jf_id = col.jellyfin_collection_id if col.in_jellyfin else None
+
     db.delete(col)
     db.commit()
+
+    # Best-effort: remove from Jellyfin too (don't fail the local delete if JF is unreachable)
+    if jf_id:
+        s = _get_settings_dict(db)
+        jf_url = s.get("jellyfin_url")
+        api_key = s.get("jellyfin_api_key")
+        if jf_url and api_key:
+            try:
+                async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+                    await client.delete(
+                        f"{jf_url.rstrip('/')}/Items/{jf_id}",
+                        headers=_jellyfin_headers(api_key),
+                    )
+            except Exception:
+                pass
+
     return {"ok": True}
 
 
