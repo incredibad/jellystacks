@@ -51,7 +51,6 @@ services:
       - jellystacks_data:/data
     environment:
       - SECRET_KEY=change-this-to-a-random-secret
-      - DATABASE_URL=sqlite:////data/jellystacks.db
     restart: unless-stopped
 
 volumes:
@@ -73,7 +72,6 @@ docker run -d \
   -p 7284:7284 \
   -v jellystacks_data:/data \
   -e SECRET_KEY=change-this-to-a-random-secret \
-  -e DATABASE_URL=sqlite:////data/jellystacks.db \
   incredibad/jellystacks:latest
 ```
 
