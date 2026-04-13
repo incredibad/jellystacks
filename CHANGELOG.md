@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.0.0] — 2026-04-13
+
+### Changed
+- Version bump to 1.0.0 — first stable public release
+
+---
+
 ## [0.2.27] — 2026-04-13
 
 ### Added
