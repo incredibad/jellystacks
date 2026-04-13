@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.27] — 2026-04-13
+
+### Added
+- `README.md` with project description, features, Docker Compose and Docker Run install instructions, first-run setup table, data persistence notes, and tech stack
+
+---
+
 ## [0.2.26] — 2026-04-13
 
 ### Added
