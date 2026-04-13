@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.23] — 2026-04-13
+
+### Fixed
+- Add Movies modal only showed movies up to the default page limit (100) — with 1200+ movies the list stopped mid-alphabet; replaced the single bulk fetch with infinite scroll using an `IntersectionObserver` sentinel, loading 75 movies at a time as the user scrolls; search and library filter reset the list and restart from page 1
+
+---
+
 ## [0.2.22] — 2026-04-13
 
 ### Fixed
