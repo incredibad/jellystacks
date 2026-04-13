@@ -1,16 +1,25 @@
-import { useState, useEffect } from 'react'
-import { Search, X, Plus } from 'lucide-react'
-import { Film } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Search, X, Plus, Film } from 'lucide-react'
 import api from '../api/client'
+
+const PAGE_SIZE = 75
 
 export default function MoviePickerModal({ collection, onClose, onAdded }) {
   const [movies, setMovies] = useState([])
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(new Set())
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [offset, setOffset] = useState(0)
   const [adding, setAdding] = useState(false)
   const [libraries, setLibraries] = useState([])
   const [activeLibrary, setActiveLibrary] = useState('')
+
+  const sentinelRef = useRef(null)
+  const offsetRef = useRef(0)   // kept in sync with offset state for use inside callbacks
+  const searchRef = useRef('')
+  const libraryRef = useRef('')
 
   const existingIds = new Set(collection.movies?.map(m => m.id) || [])
 
@@ -18,21 +27,52 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
     api.get('/movies/libraries').then(({ data }) => setLibraries(data)).catch(() => {})
   }, [])
 
-  useEffect(() => {
-    const fetchMovies = async () => {
-      setLoading(true)
-      try {
-        const params = { q: search }
-        if (activeLibrary) params.library = activeLibrary
-        const { data } = await api.get('/movies', { params })
-        setMovies(data)
-      } finally {
-        setLoading(false)
-      }
+  const fetchPage = useCallback(async (newOffset, resetList) => {
+    if (newOffset === 0) setLoading(true)
+    else setLoadingMore(true)
+    try {
+      const params = { q: searchRef.current, limit: PAGE_SIZE, offset: newOffset }
+      if (libraryRef.current) params.library = libraryRef.current
+      const { data } = await api.get('/movies', { params })
+      const items = Array.isArray(data) ? data : (data.movies ?? [])
+      setMovies(prev => newOffset === 0 ? items : [...prev, ...items])
+      setHasMore(items.length === PAGE_SIZE)
+      offsetRef.current = newOffset + items.length
+      setOffset(newOffset + items.length)
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
     }
-    const t = setTimeout(fetchMovies, 200)
+  }, [])
+
+  // Reset and reload when search or library changes
+  useEffect(() => {
+    searchRef.current = search
+    libraryRef.current = activeLibrary
+    offsetRef.current = 0
+    setOffset(0)
+    setHasMore(true)
+    const t = setTimeout(() => fetchPage(0, true), search ? 200 : 0)
     return () => clearTimeout(t)
-  }, [search, activeLibrary])
+  }, [search, activeLibrary, fetchPage])
+
+  // Infinite scroll sentinel
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !loadingMore && !loading) {
+          if (offsetRef.current > 0 && hasMore) {
+            fetchPage(offsetRef.current, false)
+          }
+        }
+      },
+      { threshold: 0.1 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loading, loadingMore, fetchPage])
 
   const toggle = (id) => {
     if (existingIds.has(id)) return
@@ -95,9 +135,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
               <button
                 onClick={() => setActiveLibrary('')}
                 className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                  activeLibrary === ''
-                    ? 'bg-violet-600 text-white'
-                    : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                  activeLibrary === '' ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
                 }`}
               >
                 All
@@ -107,9 +145,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                   key={lib}
                   onClick={() => setActiveLibrary(lib === activeLibrary ? '' : lib)}
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                    activeLibrary === lib
-                      ? 'bg-violet-600 text-white'
-                      : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                    activeLibrary === lib ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
                   }`}
                 >
                   {lib}
@@ -145,7 +181,6 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                         : 'hover:bg-white/5 border border-transparent'
                     }`}
                   >
-                    {/* Mini poster */}
                     <div className="w-9 h-12 rounded overflow-hidden flex-shrink-0 bg-slate-800 relative">
                       <img
                         src={`/api/movies/${movie.id}/poster`}
@@ -181,6 +216,13 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                   </button>
                 )
               })}
+
+              {/* Infinite scroll sentinel */}
+              <div ref={sentinelRef} className="py-2 flex items-center justify-center">
+                {loadingMore && (
+                  <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                )}
+              </div>
             </div>
           )}
         </div>
