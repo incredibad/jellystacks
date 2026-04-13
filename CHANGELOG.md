@@ -4,13 +4,6 @@ All notable changes are documented here, newest first.
 
 ---
 
-## [1.0.2] — 2026-04-13
-
-### Changed
-- Removed redundant `DATABASE_URL` env var from `docker-compose.yml` and README — the default in `config.py` is already `sqlite:////data/jellystacks.db`
-
----
-
 ## [1.0.1] — 2026-04-13
 
 ### Fixed
