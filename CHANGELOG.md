@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.19] — 2026-04-13
+
+### Fixed
+- Imported Jellyfin collections incorrectly showed "Needs Sync" immediately after import — `updated_at` was being set by SQLAlchemy's INSERT-time default (a few microseconds after `jellyfin_synced_at` was captured), making the timestamp comparison always true; import now uses the same `datetime.utcnow()` value for both fields so a freshly imported collection reads as "In Jellyfin" unless the user explicitly modifies it
+
+---
+
 ## [0.2.18] — 2026-04-13
 
 ### Changed

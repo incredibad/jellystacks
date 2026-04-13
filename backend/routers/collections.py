@@ -377,13 +377,15 @@ async def import_from_jellyfin(
                     models.Movie.jellyfin_id.in_(movie_jf_ids)
                 ).all()
 
+            now = datetime.utcnow()
             col = models.Collection(
                 name=name,
                 description=bs.get("Overview"),
                 jellyfin_collection_id=jf_id,
                 in_jellyfin=True,
                 is_jellyfin_native=True,
-                jellyfin_synced_at=datetime.utcnow(),
+                jellyfin_synced_at=now,
+                updated_at=now,
             )
             col.movies = movies
             db.add(col)
