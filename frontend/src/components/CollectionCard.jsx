@@ -1,13 +1,23 @@
 import { Link } from 'react-router-dom'
-import { Layers, CheckCircle2, Circle, MoreVertical, Upload, Trash2, Import } from 'lucide-react'
+import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2, Import } from 'lucide-react'
 import { useState } from 'react'
 
 export default function CollectionCard({ collection, onPush, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [jfImgError, setJfImgError] = useState(false)
 
-  const artworkSrc = collection.artwork_url
+  const needsSync = collection.in_jellyfin &&
+    collection.jellyfin_synced_at &&
+    new Date(collection.updated_at) > new Date(collection.jellyfin_synced_at)
+
+  // Prefer Jellyfin poster; fall back to TMDB artwork_url
+  const jfPoster = collection.jellyfin_collection_id && !jfImgError
+    ? `/api/collections/${collection.id}/poster`
+    : null
+  const tmdbPoster = collection.artwork_url
     ? `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
     : null
+  const artworkSrc = jfPoster || tmdbPoster
 
   return (
     <div
@@ -22,7 +32,13 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
               src={artworkSrc}
               alt={collection.name}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              onError={(e) => { e.target.style.display = 'none' }}
+              onError={(e) => {
+                if (jfPoster && !jfImgError) {
+                  setJfImgError(true)
+                } else {
+                  e.target.style.display = 'none'
+                }
+              }}
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center gap-2">
@@ -33,9 +49,14 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
           {/* Dark overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
-          {/* Jellyfin badge */}
+          {/* Status badge */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
-            {collection.is_jellyfin_native ? (
+            {needsSync ? (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <AlertCircle size={11} />
+                Needs Sync
+              </span>
+            ) : collection.is_jellyfin_native ? (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
                 <Import size={11} />
                 Jellyfin

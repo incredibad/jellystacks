@@ -14,3 +14,7 @@ This is non-negotiable — no commit should go out without a version increment i
 **Always update `CHANGELOG.md` before every commit.** Add an entry under the correct version heading (create one if it doesn't exist, using the format `## [x.y.z] — YYYY-MM-DD`) that describes the change concisely. Use `### Added`, `### Changed`, or `### Fixed` sub-sections to match the existing style.
 
 This is non-negotiable — no commit should go out without a changelog entry.
+
+## Pushing
+
+**Never push to the remote repository.** Always commit locally and let the user push manually.
