@@ -358,6 +358,17 @@ async def import_from_jellyfin(
                 if existing.name != name:
                     existing.name = name
                     updated += 1
+                # Repair timestamp drift on existing native collections: if updated_at
+                # is only microseconds ahead of jellyfin_synced_at it's SQLAlchemy
+                # insert-time drift, not a real local change — pin them equal so the
+                # collection doesn't falsely show "Needs Sync".
+                if (
+                    existing.is_jellyfin_native
+                    and existing.jellyfin_synced_at
+                    and existing.updated_at
+                    and 0 < (existing.updated_at - existing.jellyfin_synced_at).total_seconds() < 1
+                ):
+                    existing.jellyfin_synced_at = existing.updated_at
                 continue
 
             # Fetch movies in this BoxSet
@@ -377,18 +388,17 @@ async def import_from_jellyfin(
                     models.Movie.jellyfin_id.in_(movie_jf_ids)
                 ).all()
 
-            now = datetime.utcnow()
             col = models.Collection(
                 name=name,
                 description=bs.get("Overview"),
                 jellyfin_collection_id=jf_id,
                 in_jellyfin=True,
                 is_jellyfin_native=True,
-                jellyfin_synced_at=now,
-                updated_at=now,
             )
             col.movies = movies
             db.add(col)
+            db.flush()  # Triggers INSERT so SQLAlchemy populates updated_at via its default
+            col.jellyfin_synced_at = col.updated_at  # Pin to exact same value — no drift possible
             imported += 1
 
     db.commit()
