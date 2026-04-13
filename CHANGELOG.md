@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.20] — 2026-04-13
+
+### Fixed
+- Collection detail page showed "No artwork" for Jellyfin-imported collections — the detail view only checked `artwork_url` (null for imports); now tries the Jellyfin poster proxy first and falls back to the TMDB URL, matching the behaviour of the collections grid
+
+---
+
 ## [0.2.19] — 2026-04-13
 
 ### Fixed

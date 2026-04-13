@@ -79,6 +79,7 @@ export default function CollectionDetail() {
   const [showPicker, setShowPicker] = useState(false)
   const [showArtwork, setShowArtwork] = useState(false)
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
+  const [jfImgError, setJfImgError] = useState(false)
 
   const switchView = (v) => {
     setView(v)
@@ -183,9 +184,13 @@ export default function CollectionDetail() {
 
   if (!collection) return null
 
-  const artworkSrc = collection.artwork_url
+  const jfPoster = collection.jellyfin_collection_id
+    ? `/api/collections/${collection.id}/poster`
+    : null
+  const tmdbPoster = collection.artwork_url
     ? `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
     : null
+  const artworkSrc = (!jfImgError && jfPoster) ? jfPoster : tmdbPoster
 
   // True when the collection is in Jellyfin but has been modified locally since the last sync.
   const needsSync = collection.in_jellyfin &&
@@ -210,7 +215,14 @@ export default function CollectionDetail() {
             style={{ border: '1px solid var(--border)' }}
           >
             {artworkSrc ? (
-              <img src={artworkSrc} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none' }} />
+              <img
+                src={artworkSrc}
+                alt=""
+                className="w-full h-full object-cover"
+                onError={() => {
+                  if (jfPoster && !jfImgError) setJfImgError(true)
+                }}
+              />
             ) : (
               <div className="flex flex-col items-center gap-2 text-slate-600">
                 <ImageIcon size={28} />
