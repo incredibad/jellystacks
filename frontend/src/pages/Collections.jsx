@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react'
-import { Plus, Layers, Upload, RefreshCw, Download } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Layers, Upload, RefreshCw, Download, LayoutGrid, LayoutList } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import CollectionCard from '../components/CollectionCard'
+import CollectionListRow from '../components/CollectionListRow'
+
+const VIEW_KEY = 'jellystacks:collections-view'
 
 function CreateModal({ onClose, onCreate }) {
   const [name, setName] = useState('')
@@ -71,12 +75,20 @@ function CreateModal({ onClose, onCreate }) {
 }
 
 export default function Collections() {
+  const navigate = useNavigate()
   const [collections, setCollections] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [pushingAll, setPushingAll] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [filter, setFilter] = useState('all') // 'all' | 'local' | 'jellyfin'
+  const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
+
+  const switchView = (v) => {
+    setView(v)
+    localStorage.setItem(VIEW_KEY, v)
+  }
 
   const fetchCollections = async () => {
     try {
@@ -166,12 +178,19 @@ export default function Collections() {
     }
   }
 
+  const filtered = useMemo(() => {
+    if (filter === 'local') return collections.filter(c => !c.in_jellyfin)
+    if (filter === 'jellyfin') return collections.filter(c => c.in_jellyfin)
+    return collections
+  }, [collections, filter])
+
   const inJellyfin = collections.filter(c => c.in_jellyfin).length
+  const localOnly = collections.filter(c => !c.in_jellyfin).length
 
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
+      <div className="flex items-start justify-between mb-5 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-white">Collections</h1>
           <p className="text-sm text-slate-400 mt-0.5">
@@ -179,7 +198,7 @@ export default function Collections() {
             {inJellyfin > 0 && ` · ${inJellyfin} in Jellyfin`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleImport}
             disabled={importing}
@@ -214,7 +233,51 @@ export default function Collections() {
         </div>
       </div>
 
-      {/* Grid */}
+      {/* Filter + view toggle bar */}
+      {!loading && collections.length > 0 && (
+        <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+          {/* Filter pills */}
+          <div className="flex items-center gap-1.5">
+            {[
+              { key: 'all', label: `All (${collections.length})` },
+              { key: 'jellyfin', label: `In Jellyfin (${inJellyfin})` },
+              { key: 'local', label: `Local (${localOnly})` },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  filter === key
+                    ? 'bg-violet-600 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5 border border-slate-700'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* View toggle */}
+          <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+            <button
+              onClick={() => switchView('grid')}
+              title="Grid view"
+              className={`p-2 transition-colors ${view === 'grid' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              onClick={() => switchView('list')}
+              title="List view"
+              className={`p-2 transition-colors ${view === 'list' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              <LayoutList size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-24">
           <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
@@ -232,10 +295,25 @@ export default function Collections() {
             Create First Collection
           </button>
         </div>
-      ) : (
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+          <p className="text-sm">No collections match this filter.</p>
+        </div>
+      ) : view === 'grid' ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {collections.map(col => (
+          {filtered.map(col => (
             <CollectionCard
+              key={col.id}
+              collection={col}
+              onPush={handlePush}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+          {filtered.map(col => (
+            <CollectionListRow
               key={col.id}
               collection={col}
               onPush={handlePush}
@@ -248,7 +326,7 @@ export default function Collections() {
       {showCreate && (
         <CreateModal
           onClose={() => setShowCreate(false)}
-          onCreate={(col) => setCollections(prev => [col, ...prev])}
+          onCreate={(col) => navigate(`/collections/${col.id}`)}
         />
       )}
     </div>

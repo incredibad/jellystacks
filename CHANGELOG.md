@@ -4,6 +4,25 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.18] — 2026-04-13
+
+### Changed
+- Creating a new collection now navigates directly to its detail/edit page instead of returning to the collections grid
+
+---
+
+## [0.2.17] — 2026-04-13
+
+### Added
+- Collections screen filter pills: **All / In Jellyfin / Local** — narrows the visible list without leaving the page
+- Grid/list view toggle on Collections page (preference persisted to `localStorage` as `jellystacks:collections-view`)
+- New `CollectionListRow` component: horizontal row with mini poster, name, description, movie count, and status badge
+- `GET /api/collections/{id}/poster` — backend proxy that fetches the collection image directly from Jellyfin, so the browser never needs an API key
+- `CollectionCard` and `CollectionListRow` now prefer the Jellyfin poster (via the new proxy) and fall back to the TMDB `artwork_url`; if the Jellyfin fetch fails the TMDB image is used instead
+- **Needs Sync** amber badge now appears on `CollectionCard` (grid view) as well as the detail page, matching the same `updated_at > jellyfin_synced_at` logic
+
+---
+
 ## [0.2.16] — 2026-04-13
 
 ### Fixed
