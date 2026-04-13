@@ -179,13 +179,14 @@ export default function Collections() {
   }
 
   const filtered = useMemo(() => {
-    if (filter === 'local') return collections.filter(c => !c.in_jellyfin)
-    if (filter === 'jellyfin') return collections.filter(c => c.in_jellyfin)
+    if (filter === 'local') return collections.filter(c => !c.is_jellyfin_native)
+    if (filter === 'jellyfin') return collections.filter(c => c.is_jellyfin_native)
     return collections
   }, [collections, filter])
 
+  const jellyfinNative = collections.filter(c => c.is_jellyfin_native).length
+  const localCount = collections.filter(c => !c.is_jellyfin_native).length
   const inJellyfin = collections.filter(c => c.in_jellyfin).length
-  const localOnly = collections.filter(c => !c.in_jellyfin).length
 
   return (
     <div className="p-8">
@@ -240,8 +241,8 @@ export default function Collections() {
           <div className="flex items-center gap-1.5">
             {[
               { key: 'all', label: `All (${collections.length})` },
-              { key: 'jellyfin', label: `In Jellyfin (${inJellyfin})` },
-              { key: 'local', label: `Local (${localOnly})` },
+              { key: 'jellyfin', label: `From Jellyfin (${jellyfinNative})` },
+              { key: 'local', label: `Local (${localCount})` },
             ].map(({ key, label }) => (
               <button
                 key={key}
