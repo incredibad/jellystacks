@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.15] — 2026-04-13
+
+### Fixed
+- Artwork upload HTTP 500 (continued): switched from `/original/` to `/w500/` TMDB image size to reduce payload size; use a dedicated `httpx` client for the upload rather than the shared Jellyfin session client; added a 1-second delay after collection creation before uploading artwork, as Jellyfin's BoxSet creation is partially asynchronous and an immediate image POST can hit internal state that isn't ready
+
+---
+
 ## [0.2.14] — 2026-04-13
 
 ### Changed
