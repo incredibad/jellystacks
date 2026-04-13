@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, selectinload
@@ -143,33 +144,32 @@ def remove_movie(
     return _collection_to_detail(col)
 
 
-async def _upload_artwork(jf_client: httpx.AsyncClient, jf_url: str, api_key: str, jf_col_id: str, artwork_url: str) -> str | None:
-    """Download artwork from TMDB and upload it to Jellyfin as-is.
+async def _upload_artwork(jf_url: str, api_key: str, jf_col_id: str, artwork_url: str) -> str | None:
+    """Download artwork from TMDB and upload it to Jellyfin.
 
     Returns None on success or an error string on failure.
-    Uses a separate HTTP client for the TMDB fetch so redirects are followed
-    independently of the long-lived Jellyfin client session.
+    Uses w500 size from TMDB (smaller than /original/, avoids server-side
+    processing errors in Jellyfin). Uses a dedicated client for both the
+    TMDB fetch and the Jellyfin upload so there is no shared session state.
     """
     try:
+        fetch_url = artwork_url.replace('/original/', '/w500/')
+
         async with httpx.AsyncClient(timeout=30, follow_redirects=True) as img_client:
-            img_resp = await img_client.get(artwork_url)
+            img_resp = await img_client.get(fetch_url)
         if img_resp.status_code != 200:
             return f"artwork fetch returned HTTP {img_resp.status_code}"
 
-        # Use the content-type from the TMDB response; default to image/jpeg.
-        # TMDB serves JPEGs — upload them directly rather than re-encoding to
-        # PNG, which was causing Jellyfin to return HTTP 500.
-        content_type = img_resp.headers.get("content-type", "image/jpeg").split(";")[0].strip()
-
         headers = _jellyfin_headers(api_key)
-        headers["Content-Type"] = content_type
-        # Jellyfin image upload requires an index — /Images/Primary/0
-        upload_resp = await jf_client.post(
-            f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary/0",
-            headers=headers,
-            content=img_resp.content,
-            timeout=30,
-        )
+        headers["Content-Type"] = "image/jpeg"
+
+        async with httpx.AsyncClient(timeout=30) as upload_client:
+            upload_resp = await upload_client.post(
+                f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary/0",
+                headers=headers,
+                content=img_resp.content,
+                timeout=30,
+            )
         if upload_resp.status_code not in (200, 204):
             return f"Jellyfin image upload returned HTTP {upload_resp.status_code}: {upload_resp.text[:200]}"
         return None
@@ -240,7 +240,7 @@ async def push_collection(
 
                 artwork_err = None
                 if col.artwork_url:
-                    artwork_err = await _upload_artwork(client, base, api_key, old_jf_id, col.artwork_url)
+                    artwork_err = await _upload_artwork(base, api_key, old_jf_id, col.artwork_url)
 
                 col.in_jellyfin = True
                 col.jellyfin_synced_at = datetime.utcnow()
@@ -270,7 +270,11 @@ async def push_collection(
 
         artwork_err = None
         if col.artwork_url:
-            artwork_err = await _upload_artwork(client, base, api_key, jf_col_id, col.artwork_url)
+            # Give Jellyfin a moment to finish indexing the newly created
+            # collection before we attempt the image upload — BoxSet creation
+            # is partially asynchronous and an immediate upload can return 500.
+            await asyncio.sleep(1)
+            artwork_err = await _upload_artwork(base, api_key, jf_col_id, col.artwork_url)
 
         col.jellyfin_collection_id = jf_col_id
         col.in_jellyfin = True
