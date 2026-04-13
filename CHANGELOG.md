@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.14] — 2026-04-13
+
+### Changed
+- Login screen logo updated to match the sidebar: `logo.png` image + Oswald Bold uppercase gradient wordmark (purple → teal → blue) replacing the generic icon and plain white text
+
+---
+
 ## [0.2.13] — 2026-04-13
 
 ### Fixed
