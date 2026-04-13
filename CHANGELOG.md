@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.26] — 2026-04-13
+
+### Added
+- Collection detail page shows a blue **Imported from Jellyfin** badge for `is_jellyfin_native` collections, alongside the existing sync-state badge
+- App version displayed in the sidebar footer beneath the Sign out button
+
+---
+
 ## [0.2.25] — 2026-04-13
 
 ### Fixed

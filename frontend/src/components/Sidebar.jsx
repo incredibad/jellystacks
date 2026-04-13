@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, Film, Layers, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import pkg from '../../package.json'
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -74,6 +75,7 @@ export default function Sidebar() {
           <LogOut size={16} />
           Sign out
         </button>
+        <p className="text-xs text-slate-700 px-3 pt-2">v{pkg.version}</p>
       </div>
     </aside>
   )
