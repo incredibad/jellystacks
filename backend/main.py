@@ -29,6 +29,19 @@ def _run_migrations():
                 "ALTER TABLE collections ADD COLUMN is_jellyfin_native BOOLEAN NOT NULL DEFAULT 0"
             ))
 
+        # One-time fix: native collections imported before v0.2.22 have updated_at
+        # a few microseconds ahead of jellyfin_synced_at due to SQLAlchemy insert
+        # timing — pin jellyfin_synced_at = updated_at where the gap is < 1 second.
+        conn.execute(text("""
+            UPDATE collections
+            SET jellyfin_synced_at = updated_at
+            WHERE is_jellyfin_native = 1
+              AND jellyfin_synced_at IS NOT NULL
+              AND updated_at IS NOT NULL
+              AND julianday(updated_at) > julianday(jellyfin_synced_at)
+              AND julianday(updated_at) - julianday(jellyfin_synced_at) < 1.15741e-5
+        """))
+
         conn.commit()
 
 _run_migrations()

@@ -4,6 +4,17 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.24] — 2026-04-13
+
+### Fixed
+- Existing Jellyfin-imported collections still showed "Needs Sync" after v0.2.22 — the flush/pin fix only applied to new imports; added a startup migration that runs a SQL UPDATE to equalise `jellyfin_synced_at` with `updated_at` for any native collection where the gap is under 1 second (pure insert-time drift)
+
+### Added
+- Settings → Danger Zone: **Clear Jellyfin Collections** button removes all Jellyfin-imported collections from the local database so they can be re-imported fresh (nothing is deleted from Jellyfin)
+- `DELETE /api/collections/jellyfin-native` backend endpoint
+
+---
+
 ## [0.2.23] — 2026-04-13
 
 ### Fixed

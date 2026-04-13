@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Server, Key, User, CheckCircle2, XCircle, Loader, ChevronDown, ExternalLink } from 'lucide-react'
+import { Server, Key, User, CheckCircle2, XCircle, Loader, ChevronDown, ExternalLink, Trash2 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -43,6 +43,7 @@ export default function Settings() {
   const [original, setOriginal] = useState({})
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
+  const [clearingJf, setClearingJf] = useState(false)
   const [testResult, setTestResult] = useState(null)
   const [jellyfinUsers, setJellyfinUsers] = useState([])
   const [loadingUsers, setLoadingUsers] = useState(false)
@@ -115,6 +116,19 @@ export default function Settings() {
       toast.error(err.response?.data?.detail || 'Failed to fetch Jellyfin users.')
     } finally {
       setLoadingUsers(false)
+    }
+  }
+
+  const handleClearJellyfinCollections = async () => {
+    if (!confirm('Remove all Jellyfin-imported collections from JellyStacks? This only affects the local database — nothing is deleted from Jellyfin. You can re-import them afterwards.')) return
+    setClearingJf(true)
+    try {
+      const { data } = await api.delete('/collections/jellyfin-native')
+      toast.success(`Removed ${data.deleted} Jellyfin collection${data.deleted !== 1 ? 's' : ''}.`)
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to clear collections.')
+    } finally {
+      setClearingJf(false)
     }
   }
 
@@ -271,6 +285,39 @@ export default function Settings() {
             {saving ? <Loader size={15} className="animate-spin" /> : null}
             {saving ? 'Saving…' : 'Save Settings'}
           </button>
+        </div>
+
+        {/* Danger zone */}
+        <div
+          className="rounded-xl p-6"
+          style={{ background: 'var(--surface)', border: '1px solid #7f1d1d40' }}
+        >
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-lg bg-red-600/15 flex items-center justify-center">
+              <Trash2 size={17} className="text-red-400" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-white">Danger Zone</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Destructive actions — use with care.</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-sm text-slate-300 font-medium">Clear Jellyfin collections</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Removes all imported Jellyfin collections from JellyStacks. Nothing is deleted from Jellyfin — you can re-import afterwards.
+              </p>
+            </div>
+            <button
+              onClick={handleClearJellyfinCollections}
+              disabled={clearingJf}
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-red-400 border border-red-500/30 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {clearingJf ? <Loader size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              {clearingJf ? 'Clearing…' : 'Clear Jellyfin Collections'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
