@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.13] — 2026-04-13
+
+### Fixed
+- Duplicate collections on rename: the "stale" fallback path cleared `jellyfin_collection_id` locally but never deleted the old Jellyfin collection, leaving it orphaned; old ID is now always deleted from Jellyfin before recreating, regardless of whether the GET check succeeded or failed
+- Artwork HTTP 500: Jellyfin's image upload endpoint requires an explicit index — corrected URL from `/Images/Primary` to `/Images/Primary/0`
+
+---
+
 ## [0.2.12] — 2026-04-13
 
 ### Fixed
