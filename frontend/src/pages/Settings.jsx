@@ -126,7 +126,8 @@ export default function Settings() {
       const { data } = await api.delete('/collections/jellyfin-native')
       toast.success(`Removed ${data.deleted} Jellyfin collection${data.deleted !== 1 ? 's' : ''}.`)
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to clear collections.')
+      const detail = err.response?.data?.detail
+      toast.error(typeof detail === 'string' ? detail : 'Failed to clear collections.')
     } finally {
       setClearingJf(false)
     }
