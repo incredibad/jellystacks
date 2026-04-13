@@ -8,7 +8,6 @@ services:
       - jellystacks_data:/data
     environment:
       - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
-      - DATABASE_URL=sqlite:////data/jellystacks.db
     restart: unless-stopped
 
 volumes:
