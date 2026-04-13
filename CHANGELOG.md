@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.21] — 2026-04-13
+
+### Fixed
+- Collections "Local" filter always showed 0 when all JellyStacks collections had been pushed — the filter was keying on `in_jellyfin` (sync state) instead of `is_jellyfin_native` (origin); now "Local" shows JellyStacks-created collections and "From Jellyfin" shows imported ones, regardless of sync status
+
+---
+
 ## [0.2.20] — 2026-04-13
 
 ### Fixed
