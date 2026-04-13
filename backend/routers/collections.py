@@ -163,8 +163,9 @@ async def _upload_artwork(jf_client: httpx.AsyncClient, jf_url: str, api_key: st
 
         headers = _jellyfin_headers(api_key)
         headers["Content-Type"] = content_type
+        # Jellyfin image upload requires an index — /Images/Primary/0
         upload_resp = await jf_client.post(
-            f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary",
+            f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary/0",
             headers=headers,
             content=img_resp.content,
             timeout=30,
@@ -200,67 +201,60 @@ async def push_collection(
 
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
         if col.jellyfin_collection_id:
+            old_jf_id = col.jellyfin_collection_id
             check_params = {"UserId": user_id} if user_id else {}
             check = await client.get(
-                f"{base}/Items/{col.jellyfin_collection_id}",
+                f"{base}/Items/{old_jf_id}",
                 headers=headers,
                 params=check_params,
             )
-            if check.status_code == 200:
-                item_data = check.json()
-                jf_name = item_data.get("Name", "")
 
-                if jf_name != col.name:
-                    # Jellyfin BoxSet rename via the update API is unreliable.
-                    # Delete the old collection and recreate with the new name below.
+            if check.status_code == 200 and check.json().get("Name") == col.name:
+                # Collection exists in Jellyfin with the same name — sync in place.
+                items_resp = await client.get(
+                    f"{base}/Items",
+                    headers=headers,
+                    params={"ParentId": old_jf_id, "IncludeItemTypes": "Movie",
+                            "Recursive": "true", "Fields": "Id", "Limit": 1000},
+                )
+                current_ids = set()
+                if items_resp.status_code == 200:
+                    current_ids = {item["Id"] for item in items_resp.json().get("Items", [])}
+
+                wanted = set(movie_jf_ids)
+                to_remove = current_ids - wanted
+                to_add = wanted - current_ids
+
+                if to_remove:
                     await client.delete(
-                        f"{base}/Items/{col.jellyfin_collection_id}",
+                        f"{base}/Collections/{old_jf_id}/Items",
                         headers=headers,
+                        params={"ids": ",".join(to_remove)},
                     )
-                    col.jellyfin_collection_id = None
-                else:
-                    # Name matches — sync movie membership in place.
-                    items_resp = await client.get(
-                        f"{base}/Items",
+                if to_add:
+                    await client.post(
+                        f"{base}/Collections/{old_jf_id}/Items",
                         headers=headers,
-                        params={"ParentId": col.jellyfin_collection_id, "IncludeItemTypes": "Movie",
-                                "Recursive": "true", "Fields": "Id", "Limit": 1000},
+                        params={"ids": ",".join(to_add)},
                     )
-                    current_ids = set()
-                    if items_resp.status_code == 200:
-                        current_ids = {item["Id"] for item in items_resp.json().get("Items", [])}
 
-                    wanted = set(movie_jf_ids)
-                    to_remove = current_ids - wanted
-                    to_add = wanted - current_ids
+                artwork_err = None
+                if col.artwork_url:
+                    artwork_err = await _upload_artwork(client, base, api_key, old_jf_id, col.artwork_url)
 
-                    if to_remove:
-                        await client.delete(
-                            f"{base}/Collections/{col.jellyfin_collection_id}/Items",
-                            headers=headers,
-                            params={"ids": ",".join(to_remove)},
-                        )
-                    if to_add:
-                        await client.post(
-                            f"{base}/Collections/{col.jellyfin_collection_id}/Items",
-                            headers=headers,
-                            params={"ids": ",".join(to_add)},
-                        )
+                col.in_jellyfin = True
+                col.jellyfin_synced_at = datetime.utcnow()
+                db.commit()
+                msg = "Collection updated in Jellyfin."
+                if artwork_err:
+                    msg += f" (artwork upload failed: {artwork_err})"
+                return schemas.PushResult(success=True, jellyfin_collection_id=old_jf_id, message=msg)
 
-                    artwork_err = None
-                    if col.artwork_url:
-                        artwork_err = await _upload_artwork(client, base, api_key, col.jellyfin_collection_id, col.artwork_url)
-
-                    col.in_jellyfin = True
-                    col.jellyfin_synced_at = datetime.utcnow()
-                    db.commit()
-                    msg = "Collection updated in Jellyfin."
-                    if artwork_err:
-                        msg += f" (artwork upload failed: {artwork_err})"
-                    return schemas.PushResult(success=True, jellyfin_collection_id=col.jellyfin_collection_id,
-                                              message=msg)
-            else:
-                col.jellyfin_collection_id = None  # stale — fall through to create
+            # Name changed or collection not found in Jellyfin.
+            # Always delete the old Jellyfin collection before recreating so we
+            # don't leave orphaned duplicates (ignore errors — it may already be gone).
+            await client.delete(f"{base}/Items/{old_jf_id}", headers=headers)
+            col.jellyfin_collection_id = None
 
         resp = await client.post(
             f"{base}/Collections",
