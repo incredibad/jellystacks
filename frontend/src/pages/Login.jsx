@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Layers3, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 
@@ -40,10 +40,19 @@ export default function Login() {
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-violet-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-600/30">
-            <Layers3 size={28} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">JellyStacks</h1>
+          <img src="/logo.png" alt="JellyStacks" className="h-16 w-auto mb-3" />
+          <span
+            className="text-3xl font-bold uppercase tracking-wide select-none"
+            style={{
+              fontFamily: "'Oswald', sans-serif",
+              background: 'linear-gradient(to right, #9333ea, #14b8a6, #3b82f6)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            JellyStacks
+          </span>
           <p className="text-slate-400 text-sm mt-1">Sign in to your account</p>
         </div>
 
