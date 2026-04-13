@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [0.2.25] — 2026-04-13
+
+### Fixed
+- "Clear Jellyfin Collections" caused a blank page crash — `DELETE /collections/jellyfin-native` was registered after `DELETE /collections/{collection_id}`, so FastAPI matched the literal path against the int parameter first, returned a Pydantic 422 error object, and `toast.error()` tried to render it as a React child (error #31); fixed by moving the `/jellyfin-native` route before the parameterised route, and hardening the error handler to never pass non-string values to toast
+
+---
+
 ## [0.2.24] — 2026-04-13
 
 ### Fixed
