@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from sqlalchemy.orm import Session, selectinload
 import httpx
 
@@ -109,6 +110,26 @@ def delete_collection(collection_id: int, db: Session = Depends(get_db), _: mode
     db.delete(col)
     db.commit()
     return {"ok": True}
+
+
+@router.get("/{collection_id}/poster")
+async def get_collection_poster(collection_id: int, db: Session = Depends(get_db)):
+    """Proxy the Jellyfin collection poster image so the browser doesn't need an API key."""
+    col = db.query(models.Collection).filter(models.Collection.id == collection_id).first()
+    if not col or not col.jellyfin_collection_id:
+        raise HTTPException(404, "No Jellyfin collection.")
+    s = _get_settings_dict(db)
+    jf_url = s.get("jellyfin_url")
+    api_key = s.get("jellyfin_api_key")
+    if not jf_url or not api_key:
+        raise HTTPException(404, "Jellyfin not configured.")
+    url = f"{jf_url.rstrip('/')}/Items/{col.jellyfin_collection_id}/Images/Primary"
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        resp = await client.get(url, headers=_jellyfin_headers(api_key))
+    if resp.status_code != 200:
+        raise HTTPException(404, "No image.")
+    content_type = resp.headers.get("content-type", "image/jpeg")
+    return Response(content=resp.content, media_type=content_type)
 
 
 @router.post("/{collection_id}/movies", response_model=schemas.CollectionDetailResponse)
