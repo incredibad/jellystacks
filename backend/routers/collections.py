@@ -102,6 +102,19 @@ def update_collection(
     return _collection_to_detail(col)
 
 
+@router.delete("/jellyfin-native")
+def clear_jellyfin_native(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    """Delete all Jellyfin-imported collections from the local database (does not touch Jellyfin)."""
+    deleted = db.query(models.Collection).filter(
+        models.Collection.is_jellyfin_native == True  # noqa: E712
+    ).delete(synchronize_session=False)
+    db.commit()
+    return {"deleted": deleted}
+
+
 @router.delete("/{collection_id}")
 def delete_collection(collection_id: int, db: Session = Depends(get_db), _: models.User = Depends(get_current_user)):
     col = db.query(models.Collection).filter(models.Collection.id == collection_id).first()
@@ -317,19 +330,6 @@ async def push_all_collections(
         except HTTPException as e:
             results.append({"id": col.id, "name": col.name, "success": False, "reason": e.detail})
     return {"results": results}
-
-
-@router.delete("/jellyfin-native")
-def clear_jellyfin_native(
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_user),
-):
-    """Delete all Jellyfin-imported collections from the local database (does not touch Jellyfin)."""
-    deleted = db.query(models.Collection).filter(
-        models.Collection.is_jellyfin_native == True  # noqa: E712
-    ).delete(synchronize_session=False)
-    db.commit()
-    return {"deleted": deleted}
 
 
 @router.post("/import-from-jellyfin", response_model=schemas.ImportResult)
