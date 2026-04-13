@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon,
   CheckCircle2, Circle, AlertCircle, Pencil, X, Check, RefreshCw,
-  LayoutGrid, LayoutList
+  LayoutGrid, LayoutList, Import
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -241,6 +241,12 @@ export default function CollectionDetail() {
         {/* Info */}
         <div className="flex-1 min-w-0 py-1">
           <div className="flex items-center gap-3 mb-1 flex-wrap">
+            {collection.is_jellyfin_native && (
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/15 text-blue-400 border border-blue-500/20">
+                <Import size={12} />
+                Imported from Jellyfin
+              </span>
+            )}
             {needsSync ? (
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20">
                 <AlertCircle size={12} />
