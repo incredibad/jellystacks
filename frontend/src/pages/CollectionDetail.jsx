@@ -90,6 +90,11 @@ export default function CollectionDetail() {
     try {
       const { data } = await api.get(`/collections/${id}`)
       setCollection(data)
+      if (data.jellyfin_collection_id) {
+        api.post(`/collections/${id}/verify`)
+          .then(res => setCollection(prev => prev ? { ...prev, in_jellyfin: res.data.in_jellyfin } : prev))
+          .catch(() => {})
+      }
     } catch {
       toast.error('Collection not found.')
       navigate('/collections')

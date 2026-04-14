@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.0.2] — 2026-04-15
+
+### Changed
+- Collection detail page now silently verifies Jellyfin sync status on load (if the collection has been pushed), keeping the "In Jellyfin" / "Local Only" badge up-to-date without requiring a manual Verify click
+
+---
+
 ## [1.0.1] — 2026-04-13
 
 ### Fixed
