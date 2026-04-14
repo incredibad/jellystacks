@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.1.0] — 2026-04-15
+
+### Added
+- **Related Collections artwork source** — the artwork picker now shows a "Related Collections" item at the top of the movie list; clicking it queries TMDB's collection API for every movie in the collection, deduplicates the results, and displays official TMDB collection posters grouped by collection name in the right pane
+
+---
+
 ## [1.0.2] — 2026-04-15
 
 ### Changed

@@ -1,6 +1,9 @@
+import asyncio
+from typing import List
 from urllib.parse import unquote
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from fastapi.responses import Response
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import httpx
 
@@ -54,6 +57,18 @@ async def search_tmdb(
     ]
 
 
+def _make_image_entry(img: dict, size: str = "w342") -> dict:
+    path = img["file_path"]
+    return {
+        "file_path": path,
+        "width": img.get("width"),
+        "height": img.get("height"),
+        "vote_average": img.get("vote_average"),
+        "thumb_url": f"/api/tmdb/proxy-image?url={TMDB_IMG_BASE}/{size}{path}",
+        "full_url": f"{TMDB_IMG_BASE}/original{path}",
+    }
+
+
 @router.get("/movie/{tmdb_id}/images")
 async def get_movie_images(
     tmdb_id: int,
@@ -74,24 +89,72 @@ async def get_movie_images(
         raise HTTPException(502, f"TMDB error: {resp.status_code}")
 
     data = resp.json()
-    posters = data.get("posters", [])
-    backdrops = data.get("backdrops", [])
-
-    def make_entry(img: dict, size: str = "w342") -> dict:
-        path = img["file_path"]
-        return {
-            "file_path": path,
-            "width": img.get("width"),
-            "height": img.get("height"),
-            "vote_average": img.get("vote_average"),
-            "thumb_url": f"/api/tmdb/proxy-image?url={TMDB_IMG_BASE}/{size}{path}",
-            "full_url": f"{TMDB_IMG_BASE}/original{path}",
-        }
-
     return {
-        "posters": [make_entry(p) for p in posters[:30]],
-        "backdrops": [make_entry(b, "w780") for b in backdrops[:15]],
+        "posters": [_make_image_entry(p) for p in data.get("posters", [])[:30]],
+        "backdrops": [_make_image_entry(b, "w780") for b in data.get("backdrops", [])[:15]],
     }
+
+
+class RelatedCollectionsRequest(BaseModel):
+    tmdb_ids: List[int]
+
+
+@router.post("/related-collections")
+async def get_related_collection_images(
+    body: RelatedCollectionsRequest,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    """For a list of TMDB movie IDs, find all TMDB collections they belong to and
+    return the poster/backdrop images for each unique collection."""
+    api_key = _get_tmdb_key(db)
+
+    if not body.tmdb_ids:
+        return []
+
+    # Fetch movie details concurrently to discover belongs_to_collection
+    async with httpx.AsyncClient(timeout=15) as client:
+        resps = await asyncio.gather(
+            *[client.get(f"{TMDB_BASE}/movie/{tid}", params={"api_key": api_key})
+              for tid in body.tmdb_ids],
+            return_exceptions=True,
+        )
+
+    # Deduplicate TMDB collection IDs preserving first-seen order
+    seen: set[int] = set()
+    collections = []
+    for resp in resps:
+        if isinstance(resp, Exception) or resp.status_code != 200:
+            continue
+        btc = resp.json().get("belongs_to_collection")
+        if btc and btc["id"] not in seen:
+            seen.add(btc["id"])
+            collections.append({"id": btc["id"], "name": btc["name"]})
+
+    if not collections:
+        return []
+
+    # Fetch images for each collection concurrently
+    async with httpx.AsyncClient(timeout=15) as client:
+        img_resps = await asyncio.gather(
+            *[client.get(f"{TMDB_BASE}/collection/{c['id']}/images", params={"api_key": api_key})
+              for c in collections],
+            return_exceptions=True,
+        )
+
+    result = []
+    for col, resp in zip(collections, img_resps):
+        if isinstance(resp, Exception) or resp.status_code != 200:
+            continue
+        data = resp.json()
+        result.append({
+            "id": col["id"],
+            "name": col["name"],
+            "posters": [_make_image_entry(p) for p in data.get("posters", [])[:30]],
+            "backdrops": [_make_image_entry(b, "w780") for b in data.get("backdrops", [])[:15]],
+        })
+
+    return result
 
 
 @router.get("/proxy-image")
