@@ -320,23 +320,23 @@ export default function CollectionDetail() {
         <div className="flex-1 min-w-0 py-1">
           <div className="flex items-center gap-3 mb-1 flex-wrap">
             {collection.is_jellyfin_native && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/15 text-blue-400 border border-blue-500/20">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-700 text-white">
                 <Import size={12} />
                 Imported from Jellyfin
               </span>
             )}
             {needsSync ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-600 text-white">
                 <AlertCircle size={12} />
                 Needs Sync
               </span>
             ) : collection.in_jellyfin ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-teal-600 text-white">
                 <CheckCircle2 size={12} />
                 In Jellyfin
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-700/50 text-slate-400 border border-slate-600/30">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-500 text-white">
                 <Circle size={12} />
                 Local Only
               </span>
@@ -347,7 +347,7 @@ export default function CollectionDetail() {
                 TMDB Collection
               </span>
             ) : detectionDone ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-600 text-white">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-white">
                 Custom Collection
               </span>
             ) : null}

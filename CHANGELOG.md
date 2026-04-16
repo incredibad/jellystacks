@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.7] — 2026-04-16
+
+### Changed
+- Updated all collection status badges (Needs Sync, Jellyfin, Synced, Local, Custom) to use maximally distinct solid colours for partial colour-blindness accessibility: orange-600, blue-700, teal-600, slate-500, amber-500
+- Applied consistent badge colours to both the collection card posters and the collection detail page header
+
+---
+
 ## [1.3.6] — 2026-04-16
 
 ### Changed
