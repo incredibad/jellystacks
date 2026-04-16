@@ -522,18 +522,24 @@ async def detect_tmdb_collection(
     """
     col = _load_col(collection_id, db)
 
-    # Already linked — nothing to do.
-    if col.tmdb_collection_id:
-        return {"tmdb_collection_id": col.tmdb_collection_id}
-
     tmdb_ids = [int(m.tmdb_id) for m in col.movies if m.tmdb_id]
     if not tmdb_ids:
+        if col.tmdb_collection_id:
+            col.tmdb_collection_id = None
+            db.commit()
+        return {"tmdb_collection_id": None}
+
+    def _no_match():
+        """Clear any stale link and return a no-match response."""
+        if col.tmdb_collection_id:
+            col.tmdb_collection_id = None
+            db.commit()
         return {"tmdb_collection_id": None}
 
     try:
         api_key = _get_tmdb_key(db)
     except HTTPException:
-        return {"tmdb_collection_id": None}
+        return _no_match()
 
     # Step 1: find belongs_to_collection for every owned movie concurrently.
     async with httpx.AsyncClient(timeout=15) as client:
@@ -550,15 +556,15 @@ async def detect_tmdb_collection(
         btc = resp.json().get("belongs_to_collection")
         if not btc:
             # This movie belongs to no TMDB collection — can't be a TMDB collection.
-            return {"tmdb_collection_id": None}
+            return _no_match()
         if candidate_collection_id is None:
             candidate_collection_id = btc["id"]
         elif candidate_collection_id != btc["id"]:
             # Movies point to different TMDB collections — custom.
-            return {"tmdb_collection_id": None}
+            return _no_match()
 
     if candidate_collection_id is None:
-        return {"tmdb_collection_id": None}
+        return _no_match()
 
     # Step 2: fetch the TMDB collection and verify every owned movie is in it.
     async with httpx.AsyncClient(timeout=15) as client:
@@ -568,14 +574,14 @@ async def detect_tmdb_collection(
         )
 
     if resp.status_code != 200:
-        return {"tmdb_collection_id": None}
+        return _no_match()
 
     tmdb_col = resp.json()
     tmdb_movie_ids = {str(part["id"]) for part in tmdb_col.get("parts", [])}
 
     for movie in col.movies:
         if movie.tmdb_id and movie.tmdb_id not in tmdb_movie_ids:
-            return {"tmdb_collection_id": None}
+            return _no_match()
 
     # Match confirmed — persist.
     col.tmdb_collection_id = str(candidate_collection_id)
