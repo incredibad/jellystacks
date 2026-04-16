@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.9] — 2026-04-16
+
+### Changed
+- Jellyfin badge colour changed from blue-700 to navy (blue-900) to better distinguish it from the TMDB violet badge
+
+---
+
 ## [1.3.8] — 2026-04-16
 
 ### Fixed
