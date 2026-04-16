@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.2.2] — 2026-04-16
+
+### Fixed
+- Backup import failed with "Invalid cross-device link" — temp file is now written to the same directory as the database instead of `/tmp`
+
+---
+
 ## [1.2.1] — 2026-04-16
 
 ### Changed
