@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.10] — 2026-04-16
+
+### Fixed
+- Bulk operations now survive a page refresh — operation type and target IDs are saved to localStorage on start, and the context auto-resumes the operation on mount if an entry is found
+
+---
+
 ## [1.3.9] — 2026-04-16
 
 ### Changed

@@ -162,9 +162,8 @@ export default function Collections() {
     const targets = collections.filter(c => c.movie_count > 0)
     const skipped = collections.length - targets.length
     runOperation({
-      label: 'Pushing to Jellyfin…',
+      type: 'push-all',
       targets,
-      apiCall: (t) => api.post(`/collections/${t.id}/push`),
       onDone: (results) => {
         const succeeded = results.filter(r => r.ok).length
         const failed = results.filter(r => !r.ok).length
@@ -181,9 +180,8 @@ export default function Collections() {
     const targets = collections.filter(c => c.jellyfin_collection_id)
     if (!targets.length) { toast('Nothing to verify.', { icon: 'ℹ️' }); return }
     runOperation({
-      label: 'Verifying Jellyfin status…',
+      type: 'verify',
       targets,
-      apiCall: (t) => api.post(`/collections/${t.id}/verify`),
       onDone: (results) => {
         toast.success(`Verified ${results.length} collections.`)
         fetchCollections()
@@ -195,9 +193,8 @@ export default function Collections() {
     const targets = collections.filter(c => c.movie_count > 0)
     if (!targets.length) { toast('No collections to scan.', { icon: 'ℹ️' }); return }
     runOperation({
-      label: 'Detecting TMDB collections…',
+      type: 'detect-tmdb',
       targets,
-      apiCall: (t) => api.post(`/collections/${t.id}/detect-tmdb`),
       onDone: (results) => {
         const linked = results.filter(r => r.ok && r.data?.tmdb_collection_id).length
         const custom = results.filter(r => r.ok && !r.data?.tmdb_collection_id).length
