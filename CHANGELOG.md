@@ -4,6 +4,25 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.2.1] — 2026-04-16
+
+### Changed
+- Settings page split into four tabs: Sync, Account, Backup, System
+
+---
+
+## [1.2.0] — 2026-04-16
+
+### Added
+- Settings page now has **Sync** and **System** tabs
+- **Sync tab**: Jellyfin server configuration and TMDB integration (previously the only content)
+- **System tab**: password change, data backup export/import (zip archive), and Danger Zone
+- `POST /auth/change-password` — authenticated password change endpoint
+- `GET /settings/export` — downloads a zip of the full SQLite database for easy migration
+- `POST /settings/import` — restores from an exported backup zip, replacing all current data
+
+---
+
 ## [1.1.3] — 2026-04-16
 
 ### Fixed

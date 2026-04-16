@@ -1,7 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+import io
+import os
+import sqlite3
+import tempfile
+import zipfile
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import httpx
 
+from config import settings as app_settings
 from database import get_db
 import models
 import schemas
@@ -122,3 +130,80 @@ async def get_jellyfin_users(
         return [{"id": u["Id"], "name": u["Name"]} for u in users]
     except Exception as e:
         raise HTTPException(500, f"Failed to fetch Jellyfin users: {str(e)}")
+
+
+@router.get("/export")
+def export_data(_: models.User = Depends(get_current_user)):
+    db_path = app_settings.database_url.replace("sqlite:///", "")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        with open(db_path, "rb") as f:
+            zf.writestr("jellystacks.db", f.read())
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="jellystacks-backup.zip"'},
+    )
+
+
+@router.post("/import")
+async def import_data(
+    file: UploadFile = File(...),
+    _: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    content = await file.read()
+
+    try:
+        buf = io.BytesIO(content)
+        with zipfile.ZipFile(buf) as zf:
+            if "jellystacks.db" not in zf.namelist():
+                raise HTTPException(400, "Invalid backup: missing jellystacks.db.")
+            db_bytes = zf.read("jellystacks.db")
+    except zipfile.BadZipFile:
+        raise HTTPException(400, "Invalid backup: not a valid zip file.")
+
+    if not db_bytes.startswith(b"SQLite format 3"):
+        raise HTTPException(400, "Invalid backup: not a valid SQLite database.")
+
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".db")
+    try:
+        with os.fdopen(tmp_fd, "wb") as tmp_f:
+            tmp_f.write(db_bytes)
+
+        conn = sqlite3.connect(tmp_path)
+        try:
+            tables = {
+                row[0]
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+        finally:
+            conn.close()
+
+        required = {"users", "collections", "movies", "app_settings"}
+        missing = required - tables
+        if missing:
+            raise HTTPException(
+                400, f"Invalid backup: missing tables: {', '.join(sorted(missing))}"
+            )
+
+        db_path = app_settings.database_url.replace("sqlite:///", "")
+        db.close()
+        os.replace(tmp_path, db_path)
+    except HTTPException:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+    except Exception as e:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise HTTPException(500, f"Import failed: {str(e)}")
+
+    return {"message": "Data imported successfully. Please log in again."}
