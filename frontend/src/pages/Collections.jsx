@@ -105,6 +105,27 @@ function CreateModal({ onClose, onCreate }) {
   )
 }
 
+function ProgressToast({ label, current, total }) {
+  const pct = total > 0 ? (current / total) * 100 : 0
+  return (
+    <div
+      className="flex flex-col gap-3 px-4 py-3 rounded-xl shadow-2xl w-72"
+      style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-slate-200">{label}</span>
+        <span className="text-xs text-slate-500 tabular-nums">{current} / {total}</span>
+      </div>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+        <div
+          className="h-full rounded-full bg-violet-500 transition-all duration-150"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function Collections() {
   const navigate = useNavigate()
   const [collections, setCollections] = useState([])
@@ -115,6 +136,7 @@ export default function Collections() {
   const [importing, setImporting] = useState(false)
   const [detectingTmdb, setDetectingTmdb] = useState(false)
   const [opsOpen, setOpsOpen] = useState(false)
+  const [progress, setProgress] = useState(null) // { label, current, total }
   const [filter, setFilter] = useState('all') // 'all' | 'local' | 'jellyfin'
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
   const [pendingConfirm, setPendingConfirm] = useState(null) // 'import' | 'pushAll'
@@ -160,56 +182,69 @@ export default function Collections() {
   }
 
   const handlePushAll = async () => {
+    const targets = collections.filter(c => c.movie_count > 0)
+    if (!targets.length) return
     setPushingAll(true)
-    const tid = toast.loading('Pushing all collections to Jellyfin…')
-    try {
-      const { data } = await api.post('/collections/push-all')
-      const results = data.results
-      const succeeded = results.filter(r => r.success).length
-      const failed = results.filter(r => !r.success && !r.skipped).length
-      const skipped = results.filter(r => r.skipped).length
-      let msg = `${succeeded} pushed`
-      if (skipped) msg += `, ${skipped} skipped (empty)`
-      if (failed) msg += `, ${failed} failed`
-      toast.success(msg, { id: tid })
-      fetchCollections()
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Bulk push failed.', { id: tid })
-    } finally {
-      setPushingAll(false)
+    setProgress({ label: 'Pushing to Jellyfin…', current: 0, total: targets.length })
+    let succeeded = 0, failed = 0
+    for (let i = 0; i < targets.length; i++) {
+      try {
+        await api.post(`/collections/${targets[i].id}/push`)
+        succeeded++
+      } catch {
+        failed++
+      }
+      setProgress({ label: 'Pushing to Jellyfin…', current: i + 1, total: targets.length })
     }
+    setProgress(null)
+    let msg = `${succeeded} pushed`
+    if (collections.filter(c => c.movie_count === 0).length)
+      msg += `, ${collections.length - targets.length} skipped (empty)`
+    if (failed) msg += `, ${failed} failed`
+    toast.success(msg)
+    fetchCollections()
+    setPushingAll(false)
   }
 
   const handleVerifyAll = async () => {
+    const targets = collections.filter(c => c.jellyfin_collection_id)
+    if (!targets.length) { toast('Nothing to verify.', { icon: 'ℹ️' }); return }
     setVerifying(true)
-    const tid = toast.loading('Verifying Jellyfin status…')
-    try {
-      const { data } = await api.post('/collections/verify-all')
-      toast.success(`Verified ${data.verified} collections.`, { id: tid })
-      fetchCollections()
-    } catch {
-      toast.error('Verify failed.', { id: tid })
-    } finally {
-      setVerifying(false)
+    setProgress({ label: 'Verifying Jellyfin status…', current: 0, total: targets.length })
+    for (let i = 0; i < targets.length; i++) {
+      try { await api.post(`/collections/${targets[i].id}/verify`) } catch {}
+      setProgress({ label: 'Verifying Jellyfin status…', current: i + 1, total: targets.length })
     }
+    setProgress(null)
+    toast.success(`Verified ${targets.length} collections.`)
+    fetchCollections()
+    setVerifying(false)
   }
 
   const handleDetectTmdb = async () => {
+    const targets = collections.filter(c => c.movie_count > 0)
+    if (!targets.length) { toast('No collections to scan.', { icon: 'ℹ️' }); return }
     setDetectingTmdb(true)
-    const tid = toast.loading('Detecting TMDB collections…')
-    try {
-      const { data } = await api.post('/collections/detect-tmdb-all')
-      const parts = []
-      if (data.linked > 0) parts.push(`${data.linked} TMDB`)
-      if (data.custom > 0) parts.push(`${data.custom} Custom`)
-      if (data.skipped > 0) parts.push(`${data.skipped} skipped`)
-      toast.success(parts.join(', '), { id: tid })
-      fetchCollections()
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Detection failed.', { id: tid })
-    } finally {
-      setDetectingTmdb(false)
+    setProgress({ label: 'Detecting TMDB collections…', current: 0, total: targets.length })
+    let linked = 0, custom = 0, skipped = 0
+    for (let i = 0; i < targets.length; i++) {
+      try {
+        const { data } = await api.post(`/collections/${targets[i].id}/detect-tmdb`)
+        if (data.tmdb_collection_id) linked++
+        else custom++
+      } catch {
+        skipped++
+      }
+      setProgress({ label: 'Detecting TMDB collections…', current: i + 1, total: targets.length })
     }
+    setProgress(null)
+    const parts = []
+    if (linked) parts.push(`${linked} TMDB`)
+    if (custom) parts.push(`${custom} Custom`)
+    if (skipped) parts.push(`${skipped} skipped`)
+    toast.success(parts.join(', '))
+    fetchCollections()
+    setDetectingTmdb(false)
   }
 
   const handleImport = async () => {
@@ -450,6 +485,17 @@ export default function Collections() {
           onConfirm={handlePushAll}
           onClose={() => setPendingConfirm(null)}
         />
+      )}
+
+      {/* Progress toast — bottom right */}
+      {progress && (
+        <div className="fixed bottom-5 right-5 z-50">
+          <ProgressToast
+            label={progress.label}
+            current={progress.current}
+            total={progress.total}
+          />
+        </div>
       )}
     </div>
   )
