@@ -507,6 +507,33 @@ async def verify_all(db: Session = Depends(get_db), current_user: models.User = 
     return {"verified": len(cols)}
 
 
+@router.post("/detect-tmdb-all")
+async def detect_tmdb_all(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Run TMDB collection detection across every collection."""
+    cols = db.query(models.Collection).options(
+        selectinload(models.Collection.movies)
+    ).all()
+    linked = 0
+    custom = 0
+    skipped = 0
+    for col in cols:
+        if not col.movies:
+            skipped += 1
+            continue
+        try:
+            result = await detect_tmdb_collection(col.id, db, current_user)
+            if result["tmdb_collection_id"]:
+                linked += 1
+            else:
+                custom += 1
+        except Exception:
+            skipped += 1
+    return {"linked": linked, "custom": custom, "skipped": skipped}
+
+
 @router.post("/{collection_id}/detect-tmdb")
 async def detect_tmdb_collection(
     collection_id: int,
