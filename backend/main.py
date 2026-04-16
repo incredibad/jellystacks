@@ -24,6 +24,10 @@ def _run_migrations():
                 conn.execute(text(ddl))
 
         col_cols = {c["name"] for c in inspector.get_columns("collections")}
+        if "tmdb_collection_id" not in col_cols:
+            conn.execute(text(
+                "ALTER TABLE collections ADD COLUMN tmdb_collection_id TEXT"
+            ))
         if "is_jellyfin_native" not in col_cols:
             conn.execute(text(
                 "ALTER TABLE collections ADD COLUMN is_jellyfin_native BOOLEAN NOT NULL DEFAULT 0"

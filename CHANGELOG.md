@@ -4,6 +4,16 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.0] — 2026-04-16
+
+### Added
+- Collections are now auto-detected as **TMDB Collections** — when all owned movies belong to the same TMDB franchise collection and every owned movie is confirmed in that TMDB list, the collection is linked automatically and shown with a "TMDB Collection" badge
+- Collection detail page shows a **"Not in your library"** section for movies that are part of the TMDB collection but not in your Jellyfin library, with posters, titles, and release years
+- TMDB badge shown on collection cards in the list view when a collection is TMDB-linked
+- New backend endpoints: `POST /collections/{id}/detect-tmdb` and `GET /collections/{id}/unowned`
+
+---
+
 ## [1.2.2] — 2026-04-16
 
 ### Fixed

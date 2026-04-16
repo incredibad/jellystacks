@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2, Import } from 'lucide-react'
+import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2, Import, Film } from 'lucide-react'
 import { useState } from 'react'
 
 export default function CollectionCard({ collection, onPush, onDelete }) {
@@ -49,7 +49,7 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
           {/* Dark overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
-          {/* Status badge */}
+          {/* Status badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             {needsSync ? (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
@@ -70,6 +70,12 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800/80 text-slate-400 border border-slate-600/30">
                 <Circle size={11} />
                 Local
+              </span>
+            )}
+            {collection.tmdb_collection_id && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-500/20 text-violet-400 border border-violet-500/30">
+                <Film size={11} />
+                TMDB
               </span>
             )}
           </div>
