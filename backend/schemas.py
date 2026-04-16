@@ -73,10 +73,19 @@ class CollectionUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     artwork_url: Optional[str] = None
+    tmdb_collection_id: Optional[str] = None
 
 
 class CollectionMoviesAdd(BaseModel):
     movie_ids: List[int]
+
+
+class UnownedMovieResponse(BaseModel):
+    tmdb_id: str
+    title: str
+    year: Optional[str]
+    overview: Optional[str]
+    poster_url: Optional[str]
 
 
 class CollectionResponse(BaseModel):
@@ -85,6 +94,7 @@ class CollectionResponse(BaseModel):
     description: Optional[str]
     artwork_url: Optional[str]
     jellyfin_collection_id: Optional[str]
+    tmdb_collection_id: Optional[str]
     in_jellyfin: bool
     is_jellyfin_native: bool
     jellyfin_synced_at: Optional[datetime]

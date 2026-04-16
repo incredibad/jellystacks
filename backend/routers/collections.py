@@ -15,6 +15,17 @@ from routers.movies import _jellyfin_headers, _movie_to_response
 router = APIRouter()
 
 
+_TMDB_BASE = "https://api.themoviedb.org/3"
+_TMDB_IMG_BASE = "https://image.tmdb.org/t/p"
+
+
+def _get_tmdb_key(db: Session) -> str:
+    key = _get_settings_dict(db).get("tmdb_api_key")
+    if not key:
+        raise HTTPException(400, "TMDB API key not configured.")
+    return key
+
+
 def _collection_to_response(c: models.Collection) -> schemas.CollectionResponse:
     return schemas.CollectionResponse(
         id=c.id,
@@ -22,6 +33,7 @@ def _collection_to_response(c: models.Collection) -> schemas.CollectionResponse:
         description=c.description,
         artwork_url=c.artwork_url,
         jellyfin_collection_id=c.jellyfin_collection_id,
+        tmdb_collection_id=c.tmdb_collection_id,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
@@ -38,6 +50,7 @@ def _collection_to_detail(c: models.Collection) -> schemas.CollectionDetailRespo
         description=c.description,
         artwork_url=c.artwork_url,
         jellyfin_collection_id=c.jellyfin_collection_id,
+        tmdb_collection_id=c.tmdb_collection_id,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
@@ -492,6 +505,132 @@ async def verify_all(db: Session = Depends(get_db), current_user: models.User = 
     for col in cols:
         await verify_jellyfin_status(col.id, db, current_user)
     return {"verified": len(cols)}
+
+
+@router.post("/{collection_id}/detect-tmdb")
+async def detect_tmdb_collection(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    """Auto-detect and store the TMDB collection this collection maps to.
+
+    Algorithm: all movies with a TMDB ID must belong to the same TMDB
+    collection AND must all appear in that collection's official movie list.
+    If any owned movie is absent from the TMDB list the collection is treated
+    as custom and nothing is stored.
+    """
+    col = _load_col(collection_id, db)
+
+    # Already linked — nothing to do.
+    if col.tmdb_collection_id:
+        return {"tmdb_collection_id": col.tmdb_collection_id}
+
+    tmdb_ids = [int(m.tmdb_id) for m in col.movies if m.tmdb_id]
+    if not tmdb_ids:
+        return {"tmdb_collection_id": None}
+
+    try:
+        api_key = _get_tmdb_key(db)
+    except HTTPException:
+        return {"tmdb_collection_id": None}
+
+    # Step 1: find belongs_to_collection for every owned movie concurrently.
+    async with httpx.AsyncClient(timeout=15) as client:
+        resps = await asyncio.gather(
+            *[client.get(f"{_TMDB_BASE}/movie/{tid}", params={"api_key": api_key})
+              for tid in tmdb_ids],
+            return_exceptions=True,
+        )
+
+    candidate_collection_id: int | None = None
+    for resp in resps:
+        if isinstance(resp, Exception) or resp.status_code != 200:
+            continue
+        btc = resp.json().get("belongs_to_collection")
+        if not btc:
+            # This movie belongs to no TMDB collection — can't be a TMDB collection.
+            return {"tmdb_collection_id": None}
+        if candidate_collection_id is None:
+            candidate_collection_id = btc["id"]
+        elif candidate_collection_id != btc["id"]:
+            # Movies point to different TMDB collections — custom.
+            return {"tmdb_collection_id": None}
+
+    if candidate_collection_id is None:
+        return {"tmdb_collection_id": None}
+
+    # Step 2: fetch the TMDB collection and verify every owned movie is in it.
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"{_TMDB_BASE}/collection/{candidate_collection_id}",
+            params={"api_key": api_key},
+        )
+
+    if resp.status_code != 200:
+        return {"tmdb_collection_id": None}
+
+    tmdb_col = resp.json()
+    tmdb_movie_ids = {str(part["id"]) for part in tmdb_col.get("parts", [])}
+
+    for movie in col.movies:
+        if movie.tmdb_id and movie.tmdb_id not in tmdb_movie_ids:
+            return {"tmdb_collection_id": None}
+
+    # Match confirmed — persist.
+    col.tmdb_collection_id = str(candidate_collection_id)
+    db.commit()
+
+    return {
+        "tmdb_collection_id": col.tmdb_collection_id,
+        "tmdb_collection_name": tmdb_col.get("name"),
+    }
+
+
+@router.get("/{collection_id}/unowned", response_model=list[schemas.UnownedMovieResponse])
+async def get_unowned_movies(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    """Return movies that are in the linked TMDB collection but not in the local library."""
+    col = _load_col(collection_id, db)
+    if not col.tmdb_collection_id:
+        return []
+
+    api_key = _get_tmdb_key(db)
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"{_TMDB_BASE}/collection/{col.tmdb_collection_id}",
+            params={"api_key": api_key},
+        )
+    if resp.status_code != 200:
+        return []
+
+    # All TMDB IDs present anywhere in the local library (not just this collection).
+    owned_tmdb_ids = {
+        m.tmdb_id
+        for m in db.query(models.Movie.tmdb_id)
+        .filter(models.Movie.tmdb_id.isnot(None))
+        .all()
+    }
+
+    unowned = []
+    for part in sorted(resp.json().get("parts", []), key=lambda p: p.get("release_date") or ""):
+        if str(part["id"]) not in owned_tmdb_ids:
+            poster_path = part.get("poster_path")
+            unowned.append(schemas.UnownedMovieResponse(
+                tmdb_id=str(part["id"]),
+                title=part.get("title") or "",
+                year=(part.get("release_date") or "")[:4] or None,
+                overview=part.get("overview"),
+                poster_url=(
+                    f"/api/tmdb/proxy-image?url={_TMDB_IMG_BASE}/w342{poster_path}"
+                    if poster_path else None
+                ),
+            ))
+    return unowned
 
 
 @router.delete("/{collection_id}/jellyfin")

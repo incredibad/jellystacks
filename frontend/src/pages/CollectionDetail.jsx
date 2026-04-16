@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon,
   CheckCircle2, Circle, AlertCircle, Pencil, X, Check, RefreshCw,
-  LayoutGrid, LayoutList, Import
+  LayoutGrid, LayoutList, Import, Film,
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -69,6 +69,38 @@ function EditableField({ label, value, onSave, multiline = false }) {
   )
 }
 
+function UnownedMovieCard({ movie }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  return (
+    <div className="relative rounded-xl overflow-hidden" style={{ background: 'var(--surface)' }}>
+      <div className="aspect-[2/3] relative overflow-hidden bg-slate-800">
+        {movie.poster_url && !imgFailed ? (
+          <img
+            src={movie.poster_url}
+            alt={movie.title}
+            loading="lazy"
+            className="w-full h-full object-cover"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Film size={32} className="text-slate-700" />
+          </div>
+        )}
+        {/* Dim overlay */}
+        <div className="absolute inset-0 bg-black/50" />
+        <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-black/70 text-slate-400">
+          Not in library
+        </span>
+      </div>
+      <div className="p-2.5">
+        <p className="text-sm font-medium text-slate-500 truncate leading-snug">{movie.title}</p>
+        {movie.year && <span className="text-xs text-slate-600">{movie.year}</span>}
+      </div>
+    </div>
+  )
+}
+
 export default function CollectionDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -80,19 +112,47 @@ export default function CollectionDetail() {
   const [showArtwork, setShowArtwork] = useState(false)
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
   const [jfImgError, setJfImgError] = useState(false)
+  const [unownedMovies, setUnownedMovies] = useState([])
+  const [showUnowned, setShowUnowned] = useState(true)
 
   const switchView = (v) => {
     setView(v)
     localStorage.setItem(VIEW_KEY, v)
   }
 
+  const fetchUnowned = async (colId) => {
+    try {
+      const { data } = await api.get(`/collections/${colId}/unowned`)
+      setUnownedMovies(data)
+    } catch {
+      // silently ignore — unowned section just stays empty
+    }
+  }
+
   const fetchCollection = async () => {
     try {
       const { data } = await api.get(`/collections/${id}`)
       setCollection(data)
+
+      // Auto-verify Jellyfin status in the background
       if (data.jellyfin_collection_id) {
         api.post(`/collections/${id}/verify`)
           .then(res => setCollection(prev => prev ? { ...prev, in_jellyfin: res.data.in_jellyfin } : prev))
+          .catch(() => {})
+      }
+
+      // If already linked to a TMDB collection, fetch unowned immediately
+      if (data.tmdb_collection_id) {
+        fetchUnowned(id)
+      } else if (data.movies.some(m => m.tmdb_id)) {
+        // Try to auto-detect silently; if matched, then fetch unowned
+        api.post(`/collections/${id}/detect-tmdb`)
+          .then(res => {
+            if (res.data.tmdb_collection_id) {
+              setCollection(prev => prev ? { ...prev, tmdb_collection_id: res.data.tmdb_collection_id } : prev)
+              fetchUnowned(id)
+            }
+          })
           .catch(() => {})
       }
     } catch {
@@ -268,6 +328,12 @@ export default function CollectionDetail() {
                 Local Only
               </span>
             )}
+            {collection.tmdb_collection_id && (
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-violet-500/15 text-violet-400 border border-violet-500/20">
+                <Film size={12} />
+                TMDB Collection
+              </span>
+            )}
             <span className="text-xs text-slate-500">{collection.movie_count} movies</span>
           </div>
 
@@ -426,6 +492,32 @@ export default function CollectionDetail() {
           </div>
         )}
       </div>
+
+      {/* Unowned movies */}
+      {unownedMovies.length > 0 && (
+        <div className="mt-10">
+          <button
+            onClick={() => setShowUnowned(v => !v)}
+            className="flex items-center gap-2 mb-4 group"
+          >
+            <h2 className="text-lg font-semibold text-slate-400 group-hover:text-slate-300 transition-colors">
+              Not in your library
+              <span className="text-slate-600 font-normal text-base ml-2">({unownedMovies.length})</span>
+            </h2>
+            <span className="text-xs text-slate-600 group-hover:text-slate-500 transition-colors">
+              {showUnowned ? '▲ hide' : '▼ show'}
+            </span>
+          </button>
+
+          {showUnowned && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
+              {unownedMovies.map(movie => (
+                <UnownedMovieCard key={movie.tmdb_id} movie={movie} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modals */}
       {showPicker && (
