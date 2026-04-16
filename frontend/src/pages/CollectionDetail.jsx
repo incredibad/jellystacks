@@ -89,7 +89,7 @@ function UnownedMovieCard({ movie }) {
         )}
         {/* Dim overlay */}
         <div className="absolute inset-0 bg-black/50" />
-        <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-black/70 text-slate-400">
+        <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-normal bg-black/70 text-slate-400">
           Not in library
         </span>
       </div>
@@ -320,38 +320,42 @@ export default function CollectionDetail() {
         <div className="flex-1 min-w-0 py-1">
           <div className="flex items-center gap-3 mb-1 flex-wrap">
             {collection.is_jellyfin_native && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-900 text-white">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-blue-900 text-white">
                 <Import size={12} />
                 Imported from Jellyfin
               </span>
             )}
             {needsSync ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-600 text-white">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-orange-600 text-white">
                 <AlertCircle size={12} />
                 Needs Sync
               </span>
             ) : collection.in_jellyfin ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-teal-600 text-white">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-teal-600 text-white">
                 <CheckCircle2 size={12} />
                 In Jellyfin
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-500 text-white">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-slate-500 text-white">
                 <Circle size={12} />
                 Local Only
               </span>
             )}
             {collection.tmdb_collection_id ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-violet-600 text-white">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-violet-600 text-white">
                 <Film size={12} />
                 TMDB Collection
               </span>
             ) : detectionDone ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-white">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-amber-500 text-white">
                 Custom Collection
               </span>
             ) : null}
-            <span className="text-xs text-slate-500">{collection.movie_count} movies</span>
+            <span className="text-xs text-slate-500">
+  {collection.tmdb_collection_id && collection.tmdb_total_parts
+    ? `${collection.movie_count}/${collection.tmdb_total_parts} movies`
+    : `${collection.movie_count} ${collection.movie_count === 1 ? 'movie' : 'movies'}`}
+</span>
           </div>
 
           <h1 className="text-3xl font-bold text-white mb-2">
@@ -439,7 +443,7 @@ export default function CollectionDetail() {
       {/* Movies section */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-normal text-white">
             Movies <span className="text-slate-500 font-normal text-base">({collection.movie_count})</span>
           </h2>
           <div className="flex items-center gap-2">
@@ -517,7 +521,7 @@ export default function CollectionDetail() {
             onClick={() => setShowUnowned(v => !v)}
             className="flex items-center gap-2 mb-4 group"
           >
-            <h2 className="text-lg font-semibold text-slate-400 group-hover:text-slate-300 transition-colors">
+            <h2 className="text-lg font-normal text-slate-400 group-hover:text-slate-300 transition-colors">
               Not in your library
               <span className="text-slate-600 font-normal text-base ml-2">({unownedMovies.length})</span>
             </h2>

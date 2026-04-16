@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.16] — 2026-04-16
+
+### Changed
+- Collection detail page badges changed from semibold to regular weight font
+- Movie count on collection detail page now shows X/Y format for TMDB collections
+
+---
+
 ## [1.3.15] — 2026-04-16
 
 ### Added
