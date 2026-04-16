@@ -237,6 +237,9 @@ export default function Collections() {
     let result
     if (filter === 'local') result = collections.filter(c => !c.is_jellyfin_native)
     else if (filter === 'jellyfin') result = collections.filter(c => c.is_jellyfin_native)
+    else if (filter === 'incomplete') result = collections.filter(c =>
+      c.movie_count === 0 || (c.tmdb_total_parts && c.movie_count < c.tmdb_total_parts)
+    )
     else result = collections
     return [...result].sort((a, b) => sortKey(a.name).localeCompare(sortKey(b.name)))
   }, [collections, filter])
@@ -244,6 +247,9 @@ export default function Collections() {
   const jellyfinNative = collections.filter(c => c.is_jellyfin_native).length
   const localCount = collections.filter(c => !c.is_jellyfin_native).length
   const inJellyfin = collections.filter(c => c.in_jellyfin).length
+  const incompleteCount = collections.filter(c =>
+    c.movie_count === 0 || (c.tmdb_total_parts && c.movie_count < c.tmdb_total_parts)
+  ).length
 
   return (
     <div className="p-8">
@@ -345,6 +351,7 @@ export default function Collections() {
               { key: 'all', label: `All (${collections.length})` },
               { key: 'jellyfin', label: `From Jellyfin (${jellyfinNative})` },
               { key: 'local', label: `Local (${localCount})` },
+              { key: 'incomplete', label: `Incomplete (${incompleteCount})` },
             ].map(({ key, label }) => (
               <button
                 key={key}
