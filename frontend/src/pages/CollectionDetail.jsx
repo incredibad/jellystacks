@@ -114,6 +114,7 @@ export default function CollectionDetail() {
   const [jfImgError, setJfImgError] = useState(false)
   const [unownedMovies, setUnownedMovies] = useState([])
   const [showUnowned, setShowUnowned] = useState(true)
+  const [detectionDone, setDetectionDone] = useState(false)
 
   const switchView = (v) => {
     setView(v)
@@ -141,19 +142,26 @@ export default function CollectionDetail() {
           .catch(() => {})
       }
 
-      // If already linked to a TMDB collection, fetch unowned immediately
-      if (data.tmdb_collection_id) {
-        fetchUnowned(id)
-      } else if (data.movies.some(m => m.tmdb_id)) {
-        // Try to auto-detect silently; if matched, then fetch unowned
+      // Always re-run detection on load — handles additions/removals that
+      // may have invalidated or newly satisfied the TMDB match.
+      if (data.movies.length > 0) {
         api.post(`/collections/${id}/detect-tmdb`)
           .then(res => {
-            if (res.data.tmdb_collection_id) {
-              setCollection(prev => prev ? { ...prev, tmdb_collection_id: res.data.tmdb_collection_id } : prev)
+            const linkedId = res.data.tmdb_collection_id
+            setCollection(prev => prev ? { ...prev, tmdb_collection_id: linkedId } : prev)
+            if (linkedId) {
               fetchUnowned(id)
+            } else {
+              setUnownedMovies([])
             }
           })
-          .catch(() => {})
+          .catch(() => {
+            // Detection failed (e.g. no TMDB key) — fall back to stored value
+            if (data.tmdb_collection_id) fetchUnowned(id)
+          })
+          .finally(() => setDetectionDone(true))
+      } else {
+        setDetectionDone(true)
       }
     } catch {
       toast.error('Collection not found.')
@@ -328,12 +336,16 @@ export default function CollectionDetail() {
                 Local Only
               </span>
             )}
-            {collection.tmdb_collection_id && (
+            {collection.tmdb_collection_id ? (
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-violet-500/15 text-violet-400 border border-violet-500/20">
                 <Film size={12} />
                 TMDB Collection
               </span>
-            )}
+            ) : detectionDone ? (
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-700/50 text-slate-400 border border-slate-600/30">
+                Custom Collection
+              </span>
+            ) : null}
             <span className="text-xs text-slate-500">{collection.movie_count} movies</span>
           </div>
 

@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.1] — 2026-04-16
+
+### Changed
+- TMDB collection detection now re-runs on every page load — if a movie is added that breaks the match, the collection reverts to Custom automatically
+- Stale TMDB links are cleared in the DB whenever detection fails
+- "Custom Collection" badge now shown on the collection detail page once detection has completed and no TMDB match was found
+
+---
+
 ## [1.3.0] — 2026-04-16
 
 ### Added
