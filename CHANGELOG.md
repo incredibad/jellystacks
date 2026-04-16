@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.6] — 2026-04-16
+
+### Changed
+- Sync status badges on collection cards (Needs Sync, Jellyfin, Synced, Local) updated to solid fills with white text to match the TMDB/Custom badge style
+
+---
+
 ## [1.3.5] — 2026-04-16
 
 ### Added
