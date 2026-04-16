@@ -129,3 +129,10 @@ class JellyfinTestResult(BaseModel):
     server_name: Optional[str]
     version: Optional[str]
     message: str
+
+
+# ── System ────────────────────────────────────────────────────────────────────
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
