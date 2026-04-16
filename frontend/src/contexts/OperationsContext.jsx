@@ -46,7 +46,7 @@ export function OperationsProvider({ children }) {
   const [progress, setProgress] = useState(null)
   const runningRef = useRef(false)
 
-  const _execute = useCallback(async (type, targets, startAt, onDone) => {
+  const _execute = useCallback(async (type, targets, startAt, onDone, onEach) => {
     if (runningRef.current || !targets.length) return
     runningRef.current = true
 
@@ -60,12 +60,15 @@ export function OperationsProvider({ children }) {
         targetIds: targets.map(t => t.id),
         current: i,
       }))
+      let result
       try {
         const { data } = await config.apiCall(targets[i])
-        results.push({ ok: true, data })
+        result = { ok: true, data }
       } catch {
-        results.push({ ok: false })
+        result = { ok: false }
       }
+      results.push(result)
+      onEach?.(targets[i], result)
       setProgress({ label: config.label, current: i + 1, total: targets.length })
     }
 
@@ -105,9 +108,9 @@ export function OperationsProvider({ children }) {
     }
   }, [_execute])
 
-  const runOperation = useCallback(({ type, targets, onDone }) => {
+  const runOperation = useCallback(({ type, targets, onDone, onEach }) => {
     if (runningRef.current || !targets.length) return
-    _execute(type, targets, 0, onDone)
+    _execute(type, targets, 0, onDone, onEach)
   }, [_execute])
 
   return (

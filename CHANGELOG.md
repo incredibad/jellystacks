@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.13] — 2026-04-16
+
+### Changed
+- TMDB detect operation now updates each collection card in real-time as detection completes, rather than refreshing all at the end
+
+---
+
 ## [1.3.12] — 2026-04-16
 
 ### Changed
