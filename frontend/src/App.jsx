@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { OperationsProvider } from './contexts/OperationsContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
@@ -69,7 +70,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <OperationsProvider>
+        <AppRoutes />
+      </OperationsProvider>
     </AuthProvider>
   )
 }
