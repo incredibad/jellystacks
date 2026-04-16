@@ -8,6 +8,37 @@ import CollectionListRow from '../components/CollectionListRow'
 
 const VIEW_KEY = 'jellystacks:collections-view'
 
+function ConfirmModal({ title, description, confirmLabel, onConfirm, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="relative w-full max-w-sm rounded-2xl p-6"
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+      >
+        <h2 className="text-base font-semibold text-white mb-2">{title}</h2>
+        <p className="text-sm text-slate-400 mb-5">{description}</p>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => { onConfirm(); onClose() }}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-colors"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function CreateModal({ onClose, onCreate }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -84,6 +115,7 @@ export default function Collections() {
   const [importing, setImporting] = useState(false)
   const [filter, setFilter] = useState('all') // 'all' | 'local' | 'jellyfin'
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
+  const [pendingConfirm, setPendingConfirm] = useState(null) // 'import' | 'pushAll'
 
   const switchView = (v) => {
     setView(v)
@@ -178,10 +210,14 @@ export default function Collections() {
     }
   }
 
+  const sortKey = (name) => name.replace(/^(the|a|an)\s+/i, '').toLowerCase()
+
   const filtered = useMemo(() => {
-    if (filter === 'local') return collections.filter(c => !c.is_jellyfin_native)
-    if (filter === 'jellyfin') return collections.filter(c => c.is_jellyfin_native)
-    return collections
+    let result
+    if (filter === 'local') result = collections.filter(c => !c.is_jellyfin_native)
+    else if (filter === 'jellyfin') result = collections.filter(c => c.is_jellyfin_native)
+    else result = collections
+    return [...result].sort((a, b) => sortKey(a.name).localeCompare(sortKey(b.name)))
   }, [collections, filter])
 
   const jellyfinNative = collections.filter(c => c.is_jellyfin_native).length
@@ -201,7 +237,7 @@ export default function Collections() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={handleImport}
+            onClick={() => setPendingConfirm('import')}
             disabled={importing}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-40 transition-all border border-transparent hover:border-slate-700"
           >
@@ -217,7 +253,7 @@ export default function Collections() {
             Verify Status
           </button>
           <button
-            onClick={handlePushAll}
+            onClick={() => setPendingConfirm('pushAll')}
             disabled={pushingAll || collections.length === 0}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-40 transition-all border border-transparent hover:border-slate-700"
           >
@@ -328,6 +364,26 @@ export default function Collections() {
         <CreateModal
           onClose={() => setShowCreate(false)}
           onCreate={(col) => navigate(`/collections/${col.id}`)}
+        />
+      )}
+
+      {pendingConfirm === 'import' && (
+        <ConfirmModal
+          title="Import from Jellyfin"
+          description="This will pull all collections currently in Jellyfin into Jellystacks. New collections will be created locally and existing ones will be updated to reflect their current Jellyfin state. Your local-only collections are not affected."
+          confirmLabel="Import"
+          onConfirm={handleImport}
+          onClose={() => setPendingConfirm(null)}
+        />
+      )}
+
+      {pendingConfirm === 'pushAll' && (
+        <ConfirmModal
+          title="Push All to Jellyfin"
+          description={`This will sync all ${collections.length} ${collections.length === 1 ? 'collection' : 'collections'} to Jellyfin — creating or updating each one with its current movies and artwork. Empty collections will be skipped.`}
+          confirmLabel="Push All"
+          onConfirm={handlePushAll}
+          onClose={() => setPendingConfirm(null)}
         />
       )}
     </div>
