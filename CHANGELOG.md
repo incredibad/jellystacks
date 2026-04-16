@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.5] — 2026-04-16
+
+### Added
+- Progress bar toast in the bottom-right corner during bulk operations — shows current/total count with an animated violet progress bar
+- Detect TMDB, Verify Status, and Push All now run per-collection on the frontend so progress can be tracked in real time
+
+---
+
 ## [1.3.4] — 2026-04-16
 
 ### Changed
