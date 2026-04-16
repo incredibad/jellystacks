@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Layers, Upload, RefreshCw, Download, LayoutGrid, LayoutList, Film } from 'lucide-react'
+import { Plus, Layers, Upload, RefreshCw, Download, LayoutGrid, LayoutList, Film, ChevronDown, Loader } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import CollectionCard from '../components/CollectionCard'
@@ -114,6 +114,7 @@ export default function Collections() {
   const [verifying, setVerifying] = useState(false)
   const [importing, setImporting] = useState(false)
   const [detectingTmdb, setDetectingTmdb] = useState(false)
+  const [opsOpen, setOpsOpen] = useState(false)
   const [filter, setFilter] = useState('all') // 'all' | 'local' | 'jellyfin'
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
   const [pendingConfirm, setPendingConfirm] = useState(null) // 'import' | 'pushAll'
@@ -254,39 +255,76 @@ export default function Collections() {
             {inJellyfin > 0 && ` · ${inJellyfin} in Jellyfin`}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setPendingConfirm('import')}
-            disabled={importing}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-40 transition-all border border-transparent hover:border-slate-700"
-          >
-            <Download size={14} className={importing ? 'animate-bounce' : ''} />
-            Import from Jellyfin
-          </button>
-          <button
-            onClick={handleVerifyAll}
-            disabled={verifying || collections.length === 0}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-40 transition-all border border-transparent hover:border-slate-700"
-          >
-            <RefreshCw size={14} className={verifying ? 'animate-spin' : ''} />
-            Verify Status
-          </button>
-          <button
-            onClick={handleDetectTmdb}
-            disabled={detectingTmdb || collections.length === 0}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-40 transition-all border border-transparent hover:border-slate-700"
-          >
-            <Film size={14} className={detectingTmdb ? 'animate-pulse' : ''} />
-            Detect TMDB
-          </button>
-          <button
-            onClick={() => setPendingConfirm('pushAll')}
-            disabled={pushingAll || collections.length === 0}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-40 transition-all border border-transparent hover:border-slate-700"
-          >
-            <Upload size={14} className={pushingAll ? 'animate-spin' : ''} />
-            Push All
-          </button>
+        <div className="flex items-center gap-2">
+          {/* Operations dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setOpsOpen(v => !v)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all border border-slate-700"
+            >
+              {(importing || verifying || detectingTmdb || pushingAll)
+                ? <Loader size={14} className="animate-spin" />
+                : <ChevronDown size={14} className={`transition-transform ${opsOpen ? 'rotate-180' : ''}`} />
+              }
+              Operations
+            </button>
+
+            {opsOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setOpsOpen(false)} />
+                <div
+                  className="absolute right-0 top-10 z-20 w-52 rounded-xl shadow-xl py-1"
+                  style={{ background: '#1e1e30', border: '1px solid var(--border)' }}
+                >
+                  {[
+                    {
+                      label: 'Import from Jellyfin',
+                      icon: importing ? <Loader size={14} className="animate-spin" /> : <Download size={14} />,
+                      busy: importing,
+                      onClick: () => { setPendingConfirm('import'); setOpsOpen(false) },
+                    },
+                    {
+                      label: 'Verify Status',
+                      icon: verifying ? <Loader size={14} className="animate-spin" /> : <RefreshCw size={14} />,
+                      busy: verifying,
+                      disabled: collections.length === 0,
+                      onClick: () => { handleVerifyAll(); setOpsOpen(false) },
+                    },
+                    {
+                      label: 'Detect TMDB',
+                      icon: detectingTmdb ? <Loader size={14} className="animate-spin" /> : <Film size={14} />,
+                      busy: detectingTmdb,
+                      disabled: collections.length === 0,
+                      onClick: () => { handleDetectTmdb(); setOpsOpen(false) },
+                    },
+                    null, // divider
+                    {
+                      label: 'Push All to Jellyfin',
+                      icon: pushingAll ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />,
+                      busy: pushingAll,
+                      disabled: collections.length === 0,
+                      onClick: () => { setPendingConfirm('pushAll'); setOpsOpen(false) },
+                    },
+                  ].map((item, i) =>
+                    item === null ? (
+                      <div key={i} className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
+                    ) : (
+                      <button
+                        key={item.label}
+                        onClick={item.onClick}
+                        disabled={item.busy || item.disabled}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {item.icon}
+                        {item.label}
+                      </button>
+                    )
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
