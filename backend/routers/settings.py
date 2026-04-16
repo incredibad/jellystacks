@@ -167,7 +167,8 @@ async def import_data(
     if not db_bytes.startswith(b"SQLite format 3"):
         raise HTTPException(400, "Invalid backup: not a valid SQLite database.")
 
-    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".db")
+    db_path = app_settings.database_url.replace("sqlite:///", "")
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".db", dir=os.path.dirname(db_path))
     try:
         with os.fdopen(tmp_fd, "wb") as tmp_f:
             tmp_f.write(db_bytes)
@@ -190,7 +191,6 @@ async def import_data(
                 400, f"Invalid backup: missing tables: {', '.join(sorted(missing))}"
             )
 
-        db_path = app_settings.database_url.replace("sqlite:///", "")
         db.close()
         os.replace(tmp_path, db_path)
     except HTTPException:
