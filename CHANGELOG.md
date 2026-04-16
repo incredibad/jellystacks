@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.8] — 2026-04-16
+
+### Fixed
+- Bulk operations (Verify Status, Detect TMDB, Push All) now persist through page navigation — progress toast continues to appear regardless of which page you're on, and the operation runs to completion even after leaving Collections
+
+---
+
 ## [1.3.7] — 2026-04-16
 
 ### Changed
