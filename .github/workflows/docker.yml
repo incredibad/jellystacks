@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
   # Allow manual trigger from the GitHub Actions tab
   workflow_dispatch:
 
@@ -34,8 +35,9 @@ jobs:
         with:
           images: incredibad/jellystacks
           tags: |
-            type=raw,value=latest
-            type=raw,value=v${{ steps.version.outputs.version }}
+            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
+            type=raw,value=v${{ steps.version.outputs.version }},enable=${{ github.ref_name == 'main' }}
+            type=raw,value=dev,enable=${{ github.ref_name == 'dev' }}
             type=sha,prefix=,format=short
 
       - name: Build and push
@@ -50,6 +52,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Create and push git tag
+        if: github.ref_name == 'main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
