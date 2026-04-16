@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.12] — 2026-04-16
+
+### Changed
+- Collection card poster badges changed from semibold to regular weight font
+
+---
+
 ## [1.3.11] — 2026-04-16
 
 ### Fixed

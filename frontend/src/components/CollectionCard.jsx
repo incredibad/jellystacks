@@ -52,22 +52,22 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
           {/* Status badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             {needsSync ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-600 text-white backdrop-blur-sm">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-orange-600 text-white backdrop-blur-sm">
                 <AlertCircle size={11} />
                 Needs Sync
               </span>
             ) : collection.is_jellyfin_native ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-900 text-white backdrop-blur-sm">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-blue-900 text-white backdrop-blur-sm">
                 <Import size={11} />
                 Jellyfin
               </span>
             ) : collection.in_jellyfin ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-600 text-white backdrop-blur-sm">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-teal-600 text-white backdrop-blur-sm">
                 <CheckCircle2 size={11} />
                 Synced
               </span>
             ) : (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-500 text-white backdrop-blur-sm">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-slate-500 text-white backdrop-blur-sm">
                 <Circle size={11} />
                 Local
               </span>
@@ -78,12 +78,12 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
           {collection.tmdb_checked && (
             <div className="absolute top-2 right-2">
               {collection.tmdb_collection_id ? (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-600 text-white backdrop-blur-sm">
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-violet-600 text-white backdrop-blur-sm">
                   <Film size={11} />
                   TMDB
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500 text-white backdrop-blur-sm">
+                <span className="px-2 py-0.5 rounded-full text-xs font-normal bg-amber-500 text-white backdrop-blur-sm">
                   Custom
                 </span>
               )}
@@ -106,7 +106,7 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
       <div className="p-3 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <Link to={`/collections/${collection.id}`}>
-            <h3 className="text-sm font-semibold text-slate-200 truncate hover:text-violet-400 transition-colors">
+            <h3 className="text-sm font-normal text-slate-200 truncate hover:text-violet-400 transition-colors">
               {collection.name}
             </h3>
           </Link>
