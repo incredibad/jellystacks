@@ -320,7 +320,7 @@ export default function CollectionDetail() {
         <div className="flex-1 min-w-0 py-1">
           <div className="flex items-center gap-3 mb-1 flex-wrap">
             {collection.is_jellyfin_native && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-700 text-white">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-900 text-white">
                 <Import size={12} />
                 Imported from Jellyfin
               </span>

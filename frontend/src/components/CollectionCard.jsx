@@ -57,7 +57,7 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
                 Needs Sync
               </span>
             ) : collection.is_jellyfin_native ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-700 text-white backdrop-blur-sm">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-900 text-white backdrop-blur-sm">
                 <Import size={11} />
                 Jellyfin
               </span>
