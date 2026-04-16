@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Layers, Upload, RefreshCw, Download, LayoutGrid, LayoutList } from 'lucide-react'
+import { Plus, Layers, Upload, RefreshCw, Download, LayoutGrid, LayoutList, Film } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import CollectionCard from '../components/CollectionCard'
@@ -113,6 +113,7 @@ export default function Collections() {
   const [pushingAll, setPushingAll] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [detectingTmdb, setDetectingTmdb] = useState(false)
   const [filter, setFilter] = useState('all') // 'all' | 'local' | 'jellyfin'
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
   const [pendingConfirm, setPendingConfirm] = useState(null) // 'import' | 'pushAll'
@@ -192,6 +193,24 @@ export default function Collections() {
     }
   }
 
+  const handleDetectTmdb = async () => {
+    setDetectingTmdb(true)
+    const tid = toast.loading('Detecting TMDB collections…')
+    try {
+      const { data } = await api.post('/collections/detect-tmdb-all')
+      const parts = []
+      if (data.linked > 0) parts.push(`${data.linked} TMDB`)
+      if (data.custom > 0) parts.push(`${data.custom} Custom`)
+      if (data.skipped > 0) parts.push(`${data.skipped} skipped`)
+      toast.success(parts.join(', '), { id: tid })
+      fetchCollections()
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Detection failed.', { id: tid })
+    } finally {
+      setDetectingTmdb(false)
+    }
+  }
+
   const handleImport = async () => {
     setImporting(true)
     const tid = toast.loading('Importing from Jellyfin…')
@@ -251,6 +270,14 @@ export default function Collections() {
           >
             <RefreshCw size={14} className={verifying ? 'animate-spin' : ''} />
             Verify Status
+          </button>
+          <button
+            onClick={handleDetectTmdb}
+            disabled={detectingTmdb || collections.length === 0}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-40 transition-all border border-transparent hover:border-slate-700"
+          >
+            <Film size={14} className={detectingTmdb ? 'animate-pulse' : ''} />
+            Detect TMDB
           </button>
           <button
             onClick={() => setPendingConfirm('pushAll')}

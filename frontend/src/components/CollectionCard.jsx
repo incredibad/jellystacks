@@ -72,10 +72,18 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
                 Local
               </span>
             )}
-            {collection.tmdb_collection_id && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-500/20 text-violet-400 border border-violet-500/30">
+          </div>
+
+          {/* TMDB / Custom type badge — top right */}
+          <div className="absolute top-2 right-2">
+            {collection.tmdb_collection_id ? (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-500/20 text-violet-400 border border-violet-500/30 backdrop-blur-sm">
                 <Film size={11} />
                 TMDB
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-black/50 text-slate-400 border border-slate-600/30 backdrop-blur-sm">
+                Custom
               </span>
             )}
           </div>

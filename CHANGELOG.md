@@ -4,6 +4,17 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.2] — 2026-04-16
+
+### Added
+- "Detect TMDB" bulk scan button on the Collections page — runs detection across all collections at once and reports how many were linked, marked Custom, or skipped
+- `POST /collections/detect-tmdb-all` backend endpoint
+
+### Changed
+- TMDB/Custom badge moved to top-right of the collection poster on the cards list view for better visibility
+
+---
+
 ## [1.3.1] — 2026-04-16
 
 ### Changed
