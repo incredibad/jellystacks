@@ -46,15 +46,20 @@ export function OperationsProvider({ children }) {
   const [progress, setProgress] = useState(null)
   const runningRef = useRef(false)
 
-  const _execute = useCallback(async (type, targets, onDone) => {
+  const _execute = useCallback(async (type, targets, startAt, onDone) => {
     if (runningRef.current || !targets.length) return
     runningRef.current = true
 
     const config = CONFIGS[type]
-    setProgress({ label: config.label, current: 0, total: targets.length })
+    setProgress({ label: config.label, current: startAt, total: targets.length })
 
     const results = []
-    for (let i = 0; i < targets.length; i++) {
+    for (let i = startAt; i < targets.length; i++) {
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        type,
+        targetIds: targets.map(t => t.id),
+        current: i,
+      }))
       try {
         const { data } = await config.apiCall(targets[i])
         results.push({ ok: true, data })
@@ -80,15 +85,17 @@ export function OperationsProvider({ children }) {
     const saved = localStorage.getItem(LS_KEY)
     if (!saved) return
     try {
-      const { type, targetIds } = JSON.parse(saved)
+      const { type, targetIds, current } = JSON.parse(saved)
       if (!CONFIGS[type] || !targetIds?.length) {
         localStorage.removeItem(LS_KEY)
         return
       }
       api.get('/collections').then(({ data: collections }) => {
-        const targets = collections.filter(c => targetIds.includes(c.id))
+        const targets = targetIds
+          .map(id => collections.find(c => c.id === id))
+          .filter(Boolean)
         if (targets.length) {
-          _execute(type, targets, null) // null → use resumeToast
+          _execute(type, targets, current ?? 0, null)
         } else {
           localStorage.removeItem(LS_KEY)
         }
@@ -100,11 +107,7 @@ export function OperationsProvider({ children }) {
 
   const runOperation = useCallback(({ type, targets, onDone }) => {
     if (runningRef.current || !targets.length) return
-    localStorage.setItem(LS_KEY, JSON.stringify({
-      type,
-      targetIds: targets.map(t => t.id),
-    }))
-    _execute(type, targets, onDone)
+    _execute(type, targets, 0, onDone)
   }, [_execute])
 
   return (

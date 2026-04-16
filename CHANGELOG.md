@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.11] — 2026-04-16
+
+### Fixed
+- Bulk operations now resume from the exact item they were on when the page was refreshed, not from the beginning — current index is written to localStorage before each API call
+
+---
+
 ## [1.3.10] — 2026-04-16
 
 ### Fixed
