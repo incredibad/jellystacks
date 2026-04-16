@@ -195,6 +195,11 @@ export default function Collections() {
     runOperation({
       type: 'detect-tmdb',
       targets,
+      onEach: (target, result) => {
+        if (result.ok) {
+          setCollections(prev => prev.map(c => c.id === target.id ? { ...c, ...result.data } : c))
+        }
+      },
       onDone: (results) => {
         const linked = results.filter(r => r.ok && r.data?.tmdb_collection_id).length
         const custom = results.filter(r => r.ok && !r.data?.tmdb_collection_id).length
@@ -204,7 +209,6 @@ export default function Collections() {
         if (custom) parts.push(`${custom} Custom`)
         if (skipped) parts.push(`${skipped} skipped`)
         toast.success(parts.join(', '))
-        fetchCollections()
       },
     })
   }
