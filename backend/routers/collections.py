@@ -407,6 +407,22 @@ async def import_from_jellyfin(
                 if existing.name != name:
                     existing.name = name
                     updated += 1
+
+                # Re-sync movie membership so newly-added Jellyfin movies are picked up.
+                items_resp = await client.get(
+                    f"{base}/Items",
+                    headers=headers,
+                    params={"ParentId": jf_id, "IncludeItemTypes": "Movie",
+                            "Recursive": "true", "Fields": "Id", "Limit": 1000},
+                )
+                if items_resp.status_code == 200:
+                    movie_jf_ids = [item["Id"] for item in items_resp.json().get("Items", [])]
+                    if movie_jf_ids:
+                        movies = db.query(models.Movie).filter(
+                            models.Movie.jellyfin_id.in_(movie_jf_ids)
+                        ).all()
+                        existing.movies = movies
+
                 # Repair timestamp drift on existing native collections: if updated_at
                 # is only microseconds ahead of jellyfin_synced_at it's SQLAlchemy
                 # insert-time drift, not a real local change — pin them equal so the

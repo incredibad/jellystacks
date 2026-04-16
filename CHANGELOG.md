@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.14] — 2026-04-16
+
+### Fixed
+- Jellyfin-native collections with 0 movies: Import from Jellyfin now re-syncs movie membership for existing collections, not just newly imported ones — fixes cases where movies were added to a Jellyfin collection after the initial import
+
+---
+
 ## [1.3.13] — 2026-04-16
 
 ### Changed
