@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 import httpx
 
@@ -43,6 +44,19 @@ def _movie_to_response(m: models.Movie) -> schemas.MovieResponse:
     )
 
 
+def _dedup_subquery(db: Session):
+    """Return a subquery of the lowest movie id per (title, year, library_name) group.
+
+    This ensures that when a movie has multiple files in Jellyfin they are
+    represented by a single row within each library.
+    """
+    return (
+        db.query(func.min(models.Movie.id).label("id"))
+        .group_by(models.Movie.title, models.Movie.year, models.Movie.library_name)
+        .subquery()
+    )
+
+
 @router.get("", response_model=list[schemas.MovieResponse])
 def list_movies(
     search: str = Query(default="", alias="q"),
@@ -52,7 +66,8 @@ def list_movies(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
-    query = db.query(models.Movie)
+    dedup = _dedup_subquery(db)
+    query = db.query(models.Movie).filter(models.Movie.id.in_(db.query(dedup.c.id)))
     if search:
         query = query.filter(models.Movie.title.ilike(f"%{search}%"))
     if library:
@@ -63,7 +78,11 @@ def list_movies(
 
 @router.get("/count")
 def movie_count(db: Session = Depends(get_db), _: models.User = Depends(get_current_user)):
-    return {"count": db.query(models.Movie).count()}
+    dedup = _dedup_subquery(db)
+    count = db.query(func.count()).select_from(
+        db.query(models.Movie).filter(models.Movie.id.in_(db.query(dedup.c.id))).subquery()
+    ).scalar()
+    return {"count": count}
 
 
 @router.get("/libraries")

@@ -4,6 +4,27 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.1.3] — 2026-04-16
+
+### Fixed
+- Movies with multiple files in Jellyfin no longer appear as duplicates — the API now deduplicates by (title, year, library) so only one entry per movie is shown, both on the Movies page and in the collection movie picker. Movies with the same title across different libraries are still shown separately.
+
+---
+
+## [1.1.2] — 2026-04-16
+
+### Changed
+- "Import from Jellyfin" and "Push All" buttons now show a confirmation modal explaining what the action does before executing
+
+---
+
+## [1.1.1] — 2026-04-16
+
+### Changed
+- Collections list now sorts alphabetically while ignoring leading articles ("the", "a", "an")
+
+---
+
 ## [1.1.0] — 2026-04-15
 
 ### Added
