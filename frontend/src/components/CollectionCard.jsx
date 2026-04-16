@@ -52,22 +52,22 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
           {/* Status badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             {needsSync ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500 text-white backdrop-blur-sm">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-600 text-white backdrop-blur-sm">
                 <AlertCircle size={11} />
                 Needs Sync
               </span>
             ) : collection.is_jellyfin_native ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white backdrop-blur-sm">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-700 text-white backdrop-blur-sm">
                 <Import size={11} />
                 Jellyfin
               </span>
             ) : collection.in_jellyfin ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-600 text-white backdrop-blur-sm">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-600 text-white backdrop-blur-sm">
                 <CheckCircle2 size={11} />
                 Synced
               </span>
             ) : (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-600 text-white backdrop-blur-sm">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-500 text-white backdrop-blur-sm">
                 <Circle size={11} />
                 Local
               </span>
@@ -83,7 +83,7 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
                   TMDB
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-600 text-white backdrop-blur-sm">
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500 text-white backdrop-blur-sm">
                   Custom
                 </span>
               )}
