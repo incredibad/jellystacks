@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.3] — 2026-04-16
+
+### Changed
+- Collections header actions consolidated into a single "Operations" dropdown (Import from Jellyfin, Verify Status, Detect TMDB, Push All); "New Collection" remains a standalone button
+
+---
+
 ## [1.3.2] — 2026-04-16
 
 ### Added
