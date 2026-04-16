@@ -148,7 +148,12 @@ export default function CollectionDetail() {
         api.post(`/collections/${id}/detect-tmdb`)
           .then(res => {
             const linkedId = res.data.tmdb_collection_id
-            setCollection(prev => prev ? { ...prev, tmdb_collection_id: linkedId } : prev)
+            setCollection(prev => prev ? {
+              ...prev,
+              tmdb_collection_id: linkedId,
+              tmdb_checked: true,
+              tmdb_total_parts: res.data.tmdb_total_parts ?? null,
+            } : prev)
             if (linkedId) {
               fetchUnowned(id)
             } else {
@@ -337,12 +342,12 @@ export default function CollectionDetail() {
               </span>
             )}
             {collection.tmdb_collection_id ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-violet-500/15 text-violet-400 border border-violet-500/20">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-violet-600 text-white">
                 <Film size={12} />
                 TMDB Collection
               </span>
             ) : detectionDone ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-700/50 text-slate-400 border border-slate-600/30">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-600 text-white">
                 Custom Collection
               </span>
             ) : null}

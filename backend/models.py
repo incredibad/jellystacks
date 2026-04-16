@@ -56,6 +56,8 @@ class Collection(Base):
     artwork_url = Column(String, nullable=True)
     jellyfin_collection_id = Column(String, nullable=True, index=True)
     tmdb_collection_id = Column(String, nullable=True)
+    tmdb_checked = Column(Boolean, default=False)   # True once detect-tmdb has run
+    tmdb_total_parts = Column(Integer, nullable=True)  # Total movies in the TMDB franchise
     in_jellyfin = Column(Boolean, default=False)
     is_jellyfin_native = Column(Boolean, default=False)  # True = existed in Jellyfin before JellyStacks
     jellyfin_synced_at = Column(DateTime, nullable=True)

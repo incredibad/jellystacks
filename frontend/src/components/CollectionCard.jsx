@@ -74,24 +74,29 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
             )}
           </div>
 
-          {/* TMDB / Custom type badge — top right */}
-          <div className="absolute top-2 right-2">
-            {collection.tmdb_collection_id ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-500/20 text-violet-400 border border-violet-500/30 backdrop-blur-sm">
-                <Film size={11} />
-                TMDB
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-black/50 text-slate-400 border border-slate-600/30 backdrop-blur-sm">
-                Custom
-              </span>
-            )}
-          </div>
+          {/* TMDB / Custom type badge — top right, only shown once detection has run */}
+          {collection.tmdb_checked && (
+            <div className="absolute top-2 right-2">
+              {collection.tmdb_collection_id ? (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-600 text-white backdrop-blur-sm">
+                  <Film size={11} />
+                  TMDB
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-600 text-white backdrop-blur-sm">
+                  Custom
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Movie count badge */}
           <div className="absolute bottom-2 right-2">
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-black/60 text-slate-300">
-              {collection.movie_count} {collection.movie_count === 1 ? 'movie' : 'movies'}
+              {collection.tmdb_collection_id && collection.tmdb_total_parts
+                ? `${collection.movie_count}/${collection.tmdb_total_parts} movies`
+                : `${collection.movie_count} ${collection.movie_count === 1 ? 'movie' : 'movies'}`
+              }
             </span>
           </div>
         </div>

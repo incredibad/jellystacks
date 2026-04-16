@@ -95,6 +95,8 @@ class CollectionResponse(BaseModel):
     artwork_url: Optional[str]
     jellyfin_collection_id: Optional[str]
     tmdb_collection_id: Optional[str]
+    tmdb_checked: bool
+    tmdb_total_parts: Optional[int]
     in_jellyfin: bool
     is_jellyfin_native: bool
     jellyfin_synced_at: Optional[datetime]

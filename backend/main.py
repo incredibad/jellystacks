@@ -28,6 +28,14 @@ def _run_migrations():
             conn.execute(text(
                 "ALTER TABLE collections ADD COLUMN tmdb_collection_id TEXT"
             ))
+        if "tmdb_checked" not in col_cols:
+            conn.execute(text(
+                "ALTER TABLE collections ADD COLUMN tmdb_checked BOOLEAN NOT NULL DEFAULT 0"
+            ))
+        if "tmdb_total_parts" not in col_cols:
+            conn.execute(text(
+                "ALTER TABLE collections ADD COLUMN tmdb_total_parts INTEGER"
+            ))
         if "is_jellyfin_native" not in col_cols:
             conn.execute(text(
                 "ALTER TABLE collections ADD COLUMN is_jellyfin_native BOOLEAN NOT NULL DEFAULT 0"
