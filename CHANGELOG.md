@@ -4,6 +4,16 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.4] — 2026-04-16
+
+### Changed
+- TMDB/Custom badge on collection cards only appears after detection has confirmed the status — unscanned collections show no badge
+- Badge colours updated to solid fills: violet for TMDB, sky blue for Custom (no more translucent grey)
+- TMDB collection cards show movie count as `owned/total` format (e.g. "4/8 movies")
+- New DB columns: `tmdb_checked` (detection has run), `tmdb_total_parts` (franchise size)
+
+---
+
 ## [1.3.3] — 2026-04-16
 
 ### Changed

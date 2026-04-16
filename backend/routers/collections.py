@@ -34,6 +34,8 @@ def _collection_to_response(c: models.Collection) -> schemas.CollectionResponse:
         artwork_url=c.artwork_url,
         jellyfin_collection_id=c.jellyfin_collection_id,
         tmdb_collection_id=c.tmdb_collection_id,
+        tmdb_checked=bool(c.tmdb_checked),
+        tmdb_total_parts=c.tmdb_total_parts,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
@@ -51,6 +53,8 @@ def _collection_to_detail(c: models.Collection) -> schemas.CollectionDetailRespo
         artwork_url=c.artwork_url,
         jellyfin_collection_id=c.jellyfin_collection_id,
         tmdb_collection_id=c.tmdb_collection_id,
+        tmdb_checked=bool(c.tmdb_checked),
+        tmdb_total_parts=c.tmdb_total_parts,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
@@ -557,10 +561,11 @@ async def detect_tmdb_collection(
         return {"tmdb_collection_id": None}
 
     def _no_match():
-        """Clear any stale link and return a no-match response."""
-        if col.tmdb_collection_id:
-            col.tmdb_collection_id = None
-            db.commit()
+        """Confirm as Custom: clear any stale link and mark detection as done."""
+        col.tmdb_collection_id = None
+        col.tmdb_total_parts = None
+        col.tmdb_checked = True
+        db.commit()
         return {"tmdb_collection_id": None}
 
     try:
@@ -612,11 +617,14 @@ async def detect_tmdb_collection(
 
     # Match confirmed — persist.
     col.tmdb_collection_id = str(candidate_collection_id)
+    col.tmdb_total_parts = len(tmdb_col.get("parts", []))
+    col.tmdb_checked = True
     db.commit()
 
     return {
         "tmdb_collection_id": col.tmdb_collection_id,
         "tmdb_collection_name": tmdb_col.get("name"),
+        "tmdb_total_parts": col.tmdb_total_parts,
     }
 
 
