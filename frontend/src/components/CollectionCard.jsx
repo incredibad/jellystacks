@@ -52,22 +52,22 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
           {/* Status badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             {needsSync ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500 text-white backdrop-blur-sm">
                 <AlertCircle size={11} />
                 Needs Sync
               </span>
             ) : collection.is_jellyfin_native ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white backdrop-blur-sm">
                 <Import size={11} />
                 Jellyfin
               </span>
             ) : collection.in_jellyfin ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-600 text-white backdrop-blur-sm">
                 <CheckCircle2 size={11} />
                 Synced
               </span>
             ) : (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800/80 text-slate-400 border border-slate-600/30">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-600 text-white backdrop-blur-sm">
                 <Circle size={11} />
                 Local
               </span>
