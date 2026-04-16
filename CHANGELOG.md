@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.3.15] — 2026-04-16
+
+### Added
+- "Incomplete" filter pill on the Collections screen — shows collections with 0 movies or TMDB collections where you're missing at least one part
+
+---
+
 ## [1.3.14] — 2026-04-16
 
 ### Fixed
