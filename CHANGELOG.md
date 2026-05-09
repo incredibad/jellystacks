@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.5.1] — 2026-05-09
+
+### Added
+- Library filter pills now appear on the Suggestions and Related tabs as well as Search — filters suggestions/related results client-side by library
+
+---
+
 ## [1.5.0] — 2026-05-09
 
 ### Added
