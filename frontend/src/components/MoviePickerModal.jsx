@@ -14,6 +14,7 @@ const BREAKDOWN_LABELS = {
   overview_phrase: 'Overview phrase match',
   overview_word:   'Overview word match',
   year_range:      'Year range match',
+  recommended_by:  'Recommended by',
 }
 
 function scoreColor(score) {
@@ -159,6 +160,10 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
   const [suggestions, setSuggestions] = useState([])
   const [suggestionsLoading, setSuggestionsLoading] = useState(false)
   const [suggestionsFetched, setSuggestionsFetched] = useState(false)
+  const [related, setRelated] = useState([])
+  const [relatedLoading, setRelatedLoading] = useState(false)
+  const [relatedFetched, setRelatedFetched] = useState(false)
+  const [relatedEnabled, setRelatedEnabled] = useState(false)
 
   const sentinelRef = useRef(null)
   const offsetRef = useRef(0)
@@ -169,6 +174,9 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
 
   useEffect(() => {
     api.get('/movies/libraries').then(({ data }) => setLibraries(data)).catch(() => {})
+    api.get('/settings').then(({ data }) => {
+      setRelatedEnabled(data.tmdb_related_enabled && data.tmdb_api_key_set)
+    }).catch(() => {})
   }, [])
 
   const fetchPage = useCallback(async (newOffset, resetList) => {
@@ -203,9 +211,24 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
     }
   }, [collection.id, suggestionsFetched])
 
+  const fetchRelated = useCallback(async () => {
+    if (relatedFetched) return
+    setRelatedLoading(true)
+    try {
+      const { data } = await api.get(`/collections/${collection.id}/related`)
+      setRelated(data)
+      setRelatedFetched(true)
+    } catch {
+      // silent
+    } finally {
+      setRelatedLoading(false)
+    }
+  }, [collection.id, relatedFetched])
+
   const handleTabChange = (tab) => {
     setActiveTab(tab)
     if (tab === 'suggestions') fetchSuggestions()
+    if (tab === 'related') fetchRelated()
   }
 
   useEffect(() => {
@@ -301,6 +324,19 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
             <Sparkles size={14} />
             Suggestions
           </button>
+          {relatedEnabled && (
+            <button
+              onClick={() => handleTabChange('related')}
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'related'
+                  ? 'border-violet-500 text-white'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Film size={14} />
+              Related
+            </button>
+          )}
         </div>
 
         {/* Search controls — only shown on search tab */}
@@ -372,30 +408,58 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
               </div>
             )
           ) : (
-            suggestionsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : suggestions.length === 0 ? (
-              <div className="text-center py-12 text-slate-500 text-sm">
-                {suggestionsFetched
-                  ? 'No suggestions found for this collection name.'
-                  : 'Loading suggestions…'}
-              </div>
+            activeTab === 'suggestions' ? (
+              suggestionsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : suggestions.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 text-sm">
+                  {suggestionsFetched
+                    ? 'No suggestions found for this collection name.'
+                    : 'Loading suggestions…'}
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {suggestions.map(({ movie, score, breakdown }) => (
+                    <MovieRow
+                      key={movie.id}
+                      movie={movie}
+                      isIn={existingIds.has(movie.id)}
+                      isSel={selected.has(movie.id)}
+                      onToggle={toggle}
+                      score={score}
+                      breakdown={breakdown}
+                    />
+                  ))}
+                </div>
+              )
             ) : (
-              <div className="space-y-1">
-                {suggestions.map(({ movie, score, breakdown }) => (
-                  <MovieRow
-                    key={movie.id}
-                    movie={movie}
-                    isIn={existingIds.has(movie.id)}
-                    isSel={selected.has(movie.id)}
-                    onToggle={toggle}
-                    score={score}
-                    breakdown={breakdown}
-                  />
-                ))}
-              </div>
+              relatedLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : related.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 text-sm">
+                  {relatedFetched
+                    ? 'No related movies found in your library.'
+                    : 'Loading related movies…'}
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {related.map(({ movie, score, breakdown }) => (
+                    <MovieRow
+                      key={movie.id}
+                      movie={movie}
+                      isIn={existingIds.has(movie.id)}
+                      isSel={selected.has(movie.id)}
+                      onToggle={toggle}
+                      score={score}
+                      breakdown={breakdown}
+                    />
+                  ))}
+                </div>
+              )
             )
           )}
         </div>

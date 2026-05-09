@@ -74,3 +74,11 @@ class AppSetting(Base):
 
     key = Column(String, primary_key=True)
     value = Column(Text, nullable=True)
+
+
+class TmdbRelatedCache(Base):
+    __tablename__ = "tmdb_related_cache"
+
+    tmdb_id = Column(String, primary_key=True)
+    related_ids = Column(Text, nullable=False)  # JSON array of TMDB IDs
+    cached_at = Column(DateTime, nullable=False)

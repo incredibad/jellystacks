@@ -67,6 +67,7 @@ export default function Settings() {
     jellyfin_api_key: '',
     jellyfin_user_id: '',
     tmdb_api_key: '',
+    tmdb_related_enabled: false,
   })
   const [original, setOriginal] = useState({})
   const [saving, setSaving] = useState(false)
@@ -90,6 +91,7 @@ export default function Settings() {
         jellyfin_api_key: '',
         jellyfin_user_id: data.jellyfin_user_id || '',
         tmdb_api_key: '',
+        tmdb_related_enabled: data.tmdb_related_enabled || false,
       })
       setOriginal(data)
     })
@@ -108,6 +110,7 @@ export default function Settings() {
       if (form.jellyfin_api_key) payload.jellyfin_api_key = form.jellyfin_api_key
       if (form.jellyfin_user_id !== original.jellyfin_user_id) payload.jellyfin_user_id = form.jellyfin_user_id
       if (form.tmdb_api_key) payload.tmdb_api_key = form.tmdb_api_key
+      if (form.tmdb_related_enabled !== original.tmdb_related_enabled) payload.tmdb_related_enabled = form.tmdb_related_enabled
 
       if (Object.keys(payload).length === 0) {
         toast('No changes to save.', { icon: 'ℹ️' })
@@ -408,6 +411,27 @@ export default function Settings() {
                 autoComplete="new-password"
               />
             </Field>
+
+            <div className="flex items-center justify-between gap-4 pt-1">
+              <div>
+                <p className="text-sm text-slate-300 font-medium">Related Movies</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Show a "Related" tab when adding movies — fetches TMDB recommendations based on what's already in the collection. Results are cached for 2 weeks.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => set('tmdb_related_enabled', !form.tmdb_related_enabled)}
+                disabled={!original.tmdb_api_key_set && !form.tmdb_api_key}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
+                  form.tmdb_related_enabled ? 'bg-violet-600' : 'bg-slate-700'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
+                  form.tmdb_related_enabled ? 'translate-x-4' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
           </Section>
 
           <div className="flex justify-end">
