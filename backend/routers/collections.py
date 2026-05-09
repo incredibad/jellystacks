@@ -142,15 +142,19 @@ def get_suggestions(
     for movie in all_movies:
         if movie.id in existing_ids:
             continue
-        s = score_movie(movie, unigrams, bigrams, year_range)
+        s, breakdown = score_movie(movie, unigrams, bigrams, year_range)
         if s > 0:
-            scored.append((s, movie))
+            scored.append((s, breakdown, movie))
 
     scored.sort(key=lambda x: x[0], reverse=True)
 
     return [
-        schemas.SuggestionResponse(movie=_movie_to_response(m), score=round(s, 1))
-        for s, m in scored[:limit]
+        schemas.SuggestionResponse(
+            movie=_movie_to_response(m),
+            score=round(s, 1),
+            breakdown=breakdown,
+        )
+        for s, breakdown, m in scored[:limit]
     ]
 
 

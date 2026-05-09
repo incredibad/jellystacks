@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.4.1] — 2026-05-09
+
+### Added
+- Score badge on suggestion rows is now colour-coded (green ≥ 6, amber ≥ 3, grey below) and bolder
+- Hovering the score shows a verbose tooltip with a full per-field breakdown: which term matched, what it matched against, and each section's score contribution
+
+---
+
 ## [1.4.0] — 2026-05-09
 
 ### Added

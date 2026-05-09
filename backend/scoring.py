@@ -111,9 +111,25 @@ def _parse_year_range(tokens: list[str]) -> tuple[int, int] | None:
     return None
 
 
-def score_movie(movie, unigrams: list[str], bigrams: list[str], year_range) -> float:
-    score = 0.0
+def score_movie(
+    movie, unigrams: list[str], bigrams: list[str], year_range
+) -> tuple[float, dict]:
+    """Return (total_score, breakdown) for a movie against the query terms.
 
+    breakdown shape:
+      {
+        "director":      {"score": float, "matches": [{"term": str, "via": str}]},
+        "person":        {"score": float, "matches": [{"term": str, "via": str}]},
+        "tag_phrase":    {"score": float, "matches": [{"term": str, "via": str}]},
+        "tag_word":      {"score": float, "matches": [{"term": str, "via": str}]},
+        "genre":         {"score": float, "matches": [{"term": str, "via": str}]},
+        "title_phrase":  {"score": float, "matches": [{"term": str}]},
+        "title_word":    {"score": float, "matches": [{"term": str}]},
+        "overview_phrase": {"score": float, "matches": [{"term": str}]},
+        "overview_word": {"score": float, "matches": [{"term": str}]},
+        "year_range":    {"score": float, "match": str | None},
+      }
+    """
     tags = json.loads(movie.tags or "[]")
     genres = json.loads(movie.genres or "[]")
     people = json.loads(movie.people or "[]")
@@ -124,52 +140,88 @@ def score_movie(movie, unigrams: list[str], bigrams: list[str], year_range) -> f
     genres_lower = [g.lower() for g in genres]
 
     director_names = {p["name"].lower() for p in people if p.get("type") == "Director"}
-    all_people_names = " ".join(p["name"].lower() for p in people)
+    all_people = [(p["name"].lower(), p.get("type", "")) for p in people]
+
+    breakdown: dict = {
+        "director":       {"score": 0.0, "matches": []},
+        "person":         {"score": 0.0, "matches": []},
+        "tag_phrase":     {"score": 0.0, "matches": []},
+        "tag_word":       {"score": 0.0, "matches": []},
+        "genre":          {"score": 0.0, "matches": []},
+        "title_phrase":   {"score": 0.0, "matches": []},
+        "title_word":     {"score": 0.0, "matches": []},
+        "overview_phrase":{"score": 0.0, "matches": []},
+        "overview_word":  {"score": 0.0, "matches": []},
+        "year_range":     {"score": 0.0, "match": None},
+    }
 
     # ── People ──────────────────────────────────────────────────────────────────
     for term in bigrams + unigrams:
-        if any(term in name for name in director_names):
-            score += WEIGHTS["director"]
-        elif term in all_people_names:
-            score += WEIGHTS["person"]
+        matched_director = next((name for name in director_names if term in name), None)
+        if matched_director:
+            breakdown["director"]["score"] += WEIGHTS["director"]
+            breakdown["director"]["matches"].append({"term": term, "via": matched_director})
+            continue
+        matched_person = next((name for name, _ in all_people if term in name), None)
+        if matched_person:
+            ptype = next((t for n, t in all_people if n == matched_person), "")
+            breakdown["person"]["score"] += WEIGHTS["person"]
+            breakdown["person"]["matches"].append(
+                {"term": term, "via": f"{matched_person} ({ptype})" if ptype else matched_person}
+            )
 
     # ── Tags ────────────────────────────────────────────────────────────────────
     for term in bigrams:
-        if any(term in tag for tag in tags_lower):
-            score += WEIGHTS["tag_phrase"]
+        matched_tag = next((tag for tag in tags_lower if term in tag), None)
+        if matched_tag:
+            breakdown["tag_phrase"]["score"] += WEIGHTS["tag_phrase"]
+            breakdown["tag_phrase"]["matches"].append({"term": term, "via": matched_tag})
     for term in unigrams:
         if term in COMMON_WORDS:
             continue
-        if any(term == tag or term in tag.split() for tag in tags_lower):
-            score += WEIGHTS["tag_word"]
+        matched_tag = next(
+            (tag for tag in tags_lower if term == tag or term in tag.split()), None
+        )
+        if matched_tag:
+            breakdown["tag_word"]["score"] += WEIGHTS["tag_word"]
+            breakdown["tag_word"]["matches"].append({"term": term, "via": matched_tag})
 
     # ── Genres ──────────────────────────────────────────────────────────────────
-    all_genres = " ".join(genres_lower)
     for term in bigrams + unigrams:
         if term in COMMON_WORDS:
             continue
-        if term in all_genres:
-            score += WEIGHTS["genre"]
+        matched_genre = next((g for g in genres_lower if term in g), None)
+        if matched_genre:
+            breakdown["genre"]["score"] += WEIGHTS["genre"]
+            breakdown["genre"]["matches"].append({"term": term, "via": matched_genre})
 
     # ── Title ───────────────────────────────────────────────────────────────────
     for term in bigrams:
         if term in title:
-            score += WEIGHTS["title_phrase"]
+            breakdown["title_phrase"]["score"] += WEIGHTS["title_phrase"]
+            breakdown["title_phrase"]["matches"].append({"term": term})
     for term in unigrams:
         if term not in COMMON_WORDS and term in title:
-            score += WEIGHTS["title_word"]
+            breakdown["title_word"]["score"] += WEIGHTS["title_word"]
+            breakdown["title_word"]["matches"].append({"term": term})
 
     # ── Overview ────────────────────────────────────────────────────────────────
     for term in bigrams:
         if term in overview:
-            score += WEIGHTS["overview_phrase"]
+            breakdown["overview_phrase"]["score"] += WEIGHTS["overview_phrase"]
+            breakdown["overview_phrase"]["matches"].append({"term": term})
     for term in unigrams:
         if term not in COMMON_WORDS and term in overview:
-            score += WEIGHTS["overview_word"]
+            breakdown["overview_word"]["score"] += WEIGHTS["overview_word"]
+            breakdown["overview_word"]["matches"].append({"term": term})
 
     # ── Year range ──────────────────────────────────────────────────────────────
     if year_range and movie.year:
         if year_range[0] <= movie.year <= year_range[1]:
-            score += WEIGHTS["year_range"]
+            breakdown["year_range"]["score"] = WEIGHTS["year_range"]
+            breakdown["year_range"]["match"] = (
+                f"{movie.year} (within {year_range[0]}–{year_range[1]})"
+            )
 
-    return score
+    total = sum(v["score"] for v in breakdown.values())
+    return total, breakdown
