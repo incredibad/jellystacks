@@ -37,6 +37,8 @@ class Movie(Base):
     tmdb_id = Column(String, nullable=True)
     imdb_id = Column(String, nullable=True)
     genres = Column(String, nullable=True)
+    tags = Column(Text, nullable=True)
+    people = Column(Text, nullable=True)
     runtime = Column(Integer, nullable=True)
     community_rating = Column(String, nullable=True)
     primary_image_tag = Column(String, nullable=True)

@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.4.0] — 2026-05-09
+
+### Added
+- Movie suggestions in the "Add Movies" modal — a new Suggestions tab scores your entire library against the collection name using tags, people (cast/crew), genres, title, overview, and year, returning ranked matches
+- Jellyfin sync now pulls `Tags` and `People` fields for richer metadata used by suggestions
+- Scoring engine with synonym expansion (e.g. "time travel" → "time loop") and decade detection (e.g. "1980s" boosts films from that era)
+
+---
+
 ## [1.3.16] — 2026-04-16
 
 ### Changed

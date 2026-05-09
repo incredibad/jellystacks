@@ -19,6 +19,8 @@ def _run_migrations():
         for col, ddl in [
             ("library_name", "ALTER TABLE movies ADD COLUMN library_name TEXT"),
             ("library_id",   "ALTER TABLE movies ADD COLUMN library_id TEXT"),
+            ("tags",         "ALTER TABLE movies ADD COLUMN tags TEXT"),
+            ("people",       "ALTER TABLE movies ADD COLUMN people TEXT"),
         ]:
             if col not in movie_cols:
                 conn.execute(text(ddl))

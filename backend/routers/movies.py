@@ -174,7 +174,7 @@ async def sync_movies(
                 params: dict = {
                     "IncludeItemTypes": "Movie",
                     "Recursive": "true",
-                    "Fields": "ProviderIds,Overview,Genres,SortName,RunTimeTicks,CommunityRating",
+                    "Fields": "ProviderIds,Overview,Genres,SortName,RunTimeTicks,CommunityRating,Tags,People",
                     "ImageTypeLimit": "1",
                     "EnableImageTypes": "Primary",
                     "Limit": 500,
@@ -211,6 +211,12 @@ async def sync_movies(
         runtime_ticks = item.get("RunTimeTicks")
         runtime_min = int(runtime_ticks / 600_000_000) if runtime_ticks else None
         genres = item.get("Genres", [])
+        tags = item.get("Tags", [])
+        people = [
+            {"name": p["Name"], "type": p.get("Type", "")}
+            for p in (item.get("People") or [])[:30]
+            if p.get("Name")
+        ]
         provider_ids = item.get("ProviderIds", {})
         primary_tag = (item.get("ImageTags") or {}).get("Primary")
         rating = item.get("CommunityRating")
@@ -225,6 +231,8 @@ async def sync_movies(
             existing.tmdb_id = provider_ids.get("Tmdb")
             existing.imdb_id = provider_ids.get("Imdb")
             existing.genres = json.dumps(genres)
+            existing.tags = json.dumps(tags)
+            existing.people = json.dumps(people)
             existing.runtime = runtime_min
             existing.community_rating = rating_str
             existing.primary_image_tag = primary_tag
@@ -241,6 +249,8 @@ async def sync_movies(
                 tmdb_id=provider_ids.get("Tmdb"),
                 imdb_id=provider_ids.get("Imdb"),
                 genres=json.dumps(genres),
+                tags=json.dumps(tags),
+                people=json.dumps(people),
                 runtime=runtime_min,
                 community_rating=rating_str,
                 primary_image_tag=primary_tag,
