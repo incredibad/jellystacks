@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.5.8] — 2026-05-09
+
+### Fixed
+- Collection artwork now updates immediately in the UI after selection — previously the Jellyfin poster was always preferred over a newly chosen artwork URL, making the change appear to have no effect
+
+---
+
 ## [1.5.7] — 2026-05-09
 
 ### Changed

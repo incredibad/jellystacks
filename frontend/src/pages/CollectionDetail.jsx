@@ -292,7 +292,7 @@ export default function CollectionDetail() {
   const tmdbPoster = collection.artwork_url
     ? `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
     : null
-  const artworkSrc = (!jfImgError && jfPoster) ? jfPoster : tmdbPoster
+  const artworkSrc = tmdbPoster ?? ((!jfImgError && jfPoster) ? jfPoster : null)
 
   // True when the collection is in Jellyfin but has been modified locally since the last sync.
   const needsSync = collection.in_jellyfin &&
