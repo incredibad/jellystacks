@@ -11,6 +11,7 @@ import schemas
 from auth import get_current_user
 from routers.settings import _get_settings_dict
 from routers.movies import _jellyfin_headers, _movie_to_response
+from scoring import _tokenise, _parse_year_range, score_movie
 
 router = APIRouter()
 
@@ -117,6 +118,40 @@ def update_collection(
     db.commit()
     db.refresh(col)
     return _collection_to_detail(col)
+
+
+@router.get("/{collection_id}/suggestions", response_model=list[schemas.SuggestionResponse])
+def get_suggestions(
+    collection_id: int,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    """Score every library movie against the collection name and return the top matches."""
+    col = _load_col(collection_id, db)
+    if not col.name.strip():
+        return []
+
+    unigrams, bigrams = _tokenise(col.name)
+    year_range = _parse_year_range(unigrams)
+
+    existing_ids = {m.id for m in col.movies}
+    all_movies = db.query(models.Movie).all()
+
+    scored = []
+    for movie in all_movies:
+        if movie.id in existing_ids:
+            continue
+        s = score_movie(movie, unigrams, bigrams, year_range)
+        if s > 0:
+            scored.append((s, movie))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    return [
+        schemas.SuggestionResponse(movie=_movie_to_response(m), score=round(s, 1))
+        for s, m in scored[:limit]
+    ]
 
 
 @router.delete("/jellyfin-native")

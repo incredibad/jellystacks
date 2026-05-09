@@ -62,6 +62,11 @@ class SyncResult(BaseModel):
     total: int
 
 
+class SuggestionResponse(BaseModel):
+    movie: "MovieResponse"
+    score: float
+
+
 # ── Collection ────────────────────────────────────────────────────────────────
 
 class CollectionCreate(BaseModel):

@@ -1,8 +1,60 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Search, X, Plus, Film } from 'lucide-react'
+import { Search, X, Plus, Film, Sparkles } from 'lucide-react'
 import api from '../api/client'
 
 const PAGE_SIZE = 75
+
+function MovieRow({ movie, isIn, isSel, onToggle, score }) {
+  return (
+    <button
+      onClick={() => onToggle(movie.id)}
+      disabled={isIn}
+      className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all ${
+        isIn
+          ? 'opacity-50 cursor-not-allowed'
+          : isSel
+          ? 'bg-violet-600/20 border border-violet-500/40'
+          : 'hover:bg-white/5 border border-transparent'
+      }`}
+    >
+      <div className="w-9 h-12 rounded overflow-hidden flex-shrink-0 bg-slate-800 relative">
+        <img
+          src={`/api/movies/${movie.id}/poster`}
+          alt=""
+          loading="lazy"
+          className="w-full h-full object-cover"
+          onError={e => { e.target.style.display = 'none' }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Film size={14} className="text-slate-600" />
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-slate-200 truncate">{movie.title}</p>
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          {movie.year && <span className="text-xs text-slate-500">{movie.year}</span>}
+          {movie.library_name && (
+            <>
+              {movie.year && <span className="text-slate-700 text-xs">·</span>}
+              <span className="text-xs text-slate-500 truncate">{movie.library_name}</span>
+            </>
+          )}
+        </div>
+      </div>
+      {isIn && <span className="text-xs text-slate-500 flex-shrink-0">Already added</span>}
+      {!isIn && score != null && !isSel && (
+        <span className="text-xs text-slate-500 flex-shrink-0 tabular-nums">{score.toFixed(1)}</span>
+      )}
+      {isSel && (
+        <div className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center flex-shrink-0">
+          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+        </div>
+      )}
+    </button>
+  )
+}
 
 export default function MoviePickerModal({ collection, onClose, onAdded }) {
   const [movies, setMovies] = useState([])
@@ -16,8 +68,13 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
   const [libraries, setLibraries] = useState([])
   const [activeLibrary, setActiveLibrary] = useState('')
 
+  const [activeTab, setActiveTab] = useState('search')
+  const [suggestions, setSuggestions] = useState([])
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+  const [suggestionsFetched, setSuggestionsFetched] = useState(false)
+
   const sentinelRef = useRef(null)
-  const offsetRef = useRef(0)   // kept in sync with offset state for use inside callbacks
+  const offsetRef = useRef(0)
   const searchRef = useRef('')
   const libraryRef = useRef('')
 
@@ -45,7 +102,25 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
     }
   }, [])
 
-  // Reset and reload when search or library changes
+  const fetchSuggestions = useCallback(async () => {
+    if (suggestionsFetched) return
+    setSuggestionsLoading(true)
+    try {
+      const { data } = await api.get(`/collections/${collection.id}/suggestions`)
+      setSuggestions(data)
+      setSuggestionsFetched(true)
+    } catch {
+      // silent — suggestions are best-effort
+    } finally {
+      setSuggestionsLoading(false)
+    }
+  }, [collection.id, suggestionsFetched])
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    if (tab === 'suggestions') fetchSuggestions()
+  }
+
   useEffect(() => {
     searchRef.current = search
     libraryRef.current = activeLibrary
@@ -56,7 +131,6 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
     return () => clearTimeout(t)
   }, [search, activeLibrary, fetchPage])
 
-  // Infinite scroll sentinel
   useEffect(() => {
     const el = sentinelRef.current
     if (!el) return
@@ -116,114 +190,125 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
           </button>
         </div>
 
-        {/* Search + library filter */}
-        <div className="p-4 border-b space-y-2.5" style={{ borderColor: 'var(--border)' }}>
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search movies…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
-              style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
-            />
-          </div>
-          {libraries.length > 1 && (
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setActiveLibrary('')}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                  activeLibrary === '' ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
-                }`}
-              >
-                All
-              </button>
-              {libraries.map(lib => (
+        {/* Tabs */}
+        <div className="flex border-b" style={{ borderColor: 'var(--border)' }}>
+          <button
+            onClick={() => handleTabChange('search')}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'search'
+                ? 'border-violet-500 text-white'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Search size={14} />
+            Search
+          </button>
+          <button
+            onClick={() => handleTabChange('suggestions')}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'suggestions'
+                ? 'border-violet-500 text-white'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Sparkles size={14} />
+            Suggestions
+          </button>
+        </div>
+
+        {/* Search controls — only shown on search tab */}
+        {activeTab === 'search' && (
+          <div className="p-4 border-b space-y-2.5" style={{ borderColor: 'var(--border)' }}>
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                autoFocus
+                type="text"
+                placeholder="Search movies…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
+                style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
+              />
+            </div>
+            {libraries.length > 1 && (
+              <div className="flex flex-wrap gap-1.5">
                 <button
-                  key={lib}
-                  onClick={() => setActiveLibrary(lib === activeLibrary ? '' : lib)}
+                  onClick={() => setActiveLibrary('')}
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                    activeLibrary === lib ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                    activeLibrary === '' ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
                   }`}
                 >
-                  {lib}
+                  All
                 </button>
-              ))}
-            </div>
-          )}
-        </div>
+                {libraries.map(lib => (
+                  <button
+                    key={lib}
+                    onClick={() => setActiveLibrary(lib === activeLibrary ? '' : lib)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                      activeLibrary === lib ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {lib}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Movie list */}
         <div className="overflow-y-auto flex-1 p-2">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : movies.length === 0 ? (
-            <div className="text-center py-12 text-slate-500 text-sm">No movies found.</div>
-          ) : (
-            <div className="space-y-1">
-              {movies.map(movie => {
-                const isIn = existingIds.has(movie.id)
-                const isSel = selected.has(movie.id)
-                return (
-                  <button
-                    key={movie.id}
-                    onClick={() => toggle(movie.id)}
-                    disabled={isIn}
-                    className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all ${
-                      isIn
-                        ? 'opacity-50 cursor-not-allowed'
-                        : isSel
-                        ? 'bg-violet-600/20 border border-violet-500/40'
-                        : 'hover:bg-white/5 border border-transparent'
-                    }`}
-                  >
-                    <div className="w-9 h-12 rounded overflow-hidden flex-shrink-0 bg-slate-800 relative">
-                      <img
-                        src={`/api/movies/${movie.id}/poster`}
-                        alt=""
-                        loading="lazy"
-                        className="w-full h-full object-cover"
-                        onError={e => { e.target.style.display = 'none' }}
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Film size={14} className="text-slate-600" />
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-200 truncate">{movie.title}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        {movie.year && <span className="text-xs text-slate-500">{movie.year}</span>}
-                        {movie.library_name && (
-                          <>
-                            {movie.year && <span className="text-slate-700 text-xs">·</span>}
-                            <span className="text-xs text-slate-500 truncate">{movie.library_name}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {isIn && <span className="text-xs text-slate-500 flex-shrink-0">Already added</span>}
-                    {isSel && (
-                      <div className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-
-              {/* Infinite scroll sentinel */}
-              <div ref={sentinelRef} className="py-2 flex items-center justify-center">
-                {loadingMore && (
-                  <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-                )}
+          {activeTab === 'search' ? (
+            loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
               </div>
-            </div>
+            ) : movies.length === 0 ? (
+              <div className="text-center py-12 text-slate-500 text-sm">No movies found.</div>
+            ) : (
+              <div className="space-y-1">
+                {movies.map(movie => (
+                  <MovieRow
+                    key={movie.id}
+                    movie={movie}
+                    isIn={existingIds.has(movie.id)}
+                    isSel={selected.has(movie.id)}
+                    onToggle={toggle}
+                  />
+                ))}
+                <div ref={sentinelRef} className="py-2 flex items-center justify-center">
+                  {loadingMore && (
+                    <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                  )}
+                </div>
+              </div>
+            )
+          ) : (
+            suggestionsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : suggestions.length === 0 ? (
+              <div className="text-center py-12 text-slate-500 text-sm">
+                {suggestionsFetched
+                  ? 'No suggestions found for this collection name.'
+                  : 'Loading suggestions…'}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {suggestions.map(({ movie, score }) => (
+                  <MovieRow
+                    key={movie.id}
+                    movie={movie}
+                    isIn={existingIds.has(movie.id)}
+                    isSel={selected.has(movie.id)}
+                    onToggle={toggle}
+                    score={score}
+                  />
+                ))}
+              </div>
+            )
           )}
         </div>
 
