@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.4.2] — 2026-05-09
+
+### Fixed
+- Suggestion score tooltip now renders via a React portal so it escapes the modal's overflow container and displays correctly above all content
+
+---
+
 ## [1.4.1] — 2026-05-09
 
 ### Added

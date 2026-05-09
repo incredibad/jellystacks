@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, X, Plus, Film, Sparkles } from 'lucide-react'
 import api from '../api/client'
 
@@ -22,17 +23,35 @@ function scoreColor(score) {
 }
 
 function ScoreBadge({ score, breakdown }) {
+  const badgeRef = useRef(null)
+  const [tooltipStyle, setTooltipStyle] = useState(null)
+
   const sections = breakdown
     ? Object.entries(breakdown).filter(([, v]) => v.score > 0)
     : []
 
+  const showTooltip = () => {
+    if (!badgeRef.current || !sections.length) return
+    const rect = badgeRef.current.getBoundingClientRect()
+    setTooltipStyle({
+      position: 'fixed',
+      bottom: window.innerHeight - rect.top + 8,
+      right: window.innerWidth - rect.right,
+    })
+  }
+
+  const hideTooltip = () => setTooltipStyle(null)
+
   return (
-    <div className="relative group flex-shrink-0">
-      <span className={`text-sm font-bold tabular-nums ${scoreColor(score)}`}>
+    <div ref={badgeRef} className="flex-shrink-0" onMouseEnter={showTooltip} onMouseLeave={hideTooltip}>
+      <span className={`text-sm font-bold tabular-nums cursor-default ${scoreColor(score)}`}>
         {score.toFixed(1)}
       </span>
-      {sections.length > 0 && (
-        <div className="absolute right-0 bottom-full mb-2 w-72 hidden group-hover:block z-50 pointer-events-none">
+      {tooltipStyle && sections.length > 0 && createPortal(
+        <div
+          className="w-72 z-[9999] pointer-events-none"
+          style={tooltipStyle}
+        >
           <div
             className="rounded-xl p-3 text-xs shadow-2xl space-y-2"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
@@ -63,7 +82,8 @@ function ScoreBadge({ score, breakdown }) {
               </div>
             ))}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
