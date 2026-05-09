@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.5.4] — 2026-05-09
+
+### Fixed
+- Suggestions and Related tabs now return up to 500 results instead of 50, preventing client-side library filtering from silently hiding valid matches that fell outside the previous cap
+
+---
+
 ## [1.5.3] — 2026-05-09
 
 ### Added
