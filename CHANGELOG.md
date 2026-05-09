@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.5.9] — 2026-05-09
+
+### Changed
+- Poster grids on Movies, Collections, and Collection Detail pages now enforce a 160px minimum and 200px maximum card width (240–300px tall), preventing badges from being crowded on small cards while capping poster height at 300px
+
+---
+
 ## [1.5.8] — 2026-05-09
 
 ### Fixed

@@ -430,7 +430,7 @@ export default function Collections() {
           </p>
         </div>
       ) : view === 'grid' ? (
-        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,1fr))]">
+        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
           {filtered.map(col => (
             <CollectionCard
               key={col.id}

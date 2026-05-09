@@ -554,7 +554,7 @@ export default function CollectionDetail() {
             </button>
           </div>
         ) : view === 'grid' ? (
-          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,1fr))]">
+          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
             {sortedMovies.map(movie => (
               <div key={movie.id} className="relative group">
                 <MovieCard movie={movie} />
@@ -596,7 +596,7 @@ export default function CollectionDetail() {
           </button>
 
           {showUnowned && (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,1fr))]">
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
               {unownedMovies.map(movie => (
                 <UnownedMovieCard key={movie.tmdb_id} movie={movie} />
               ))}
