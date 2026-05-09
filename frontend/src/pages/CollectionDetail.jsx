@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon,
@@ -115,6 +115,7 @@ export default function CollectionDetail() {
   const [unownedMovies, setUnownedMovies] = useState([])
   const [showUnowned, setShowUnowned] = useState(true)
   const [detectionDone, setDetectionDone] = useState(false)
+  const [sort, setSort] = useState('name-asc')
 
   const switchView = (v) => {
     setView(v)
@@ -261,6 +262,23 @@ export default function CollectionDetail() {
   }
 
   if (!collection) return null
+
+  const sortedMovies = (() => {
+    const [field, dir] = sort.split('-')
+    return [...(collection.movies || [])].sort((a, b) => {
+      let cmp = 0
+      if (field === 'name') {
+        const ak = a.title.replace(/^(the|a|an)\s+/i, '').toLowerCase()
+        const bk = b.title.replace(/^(the|a|an)\s+/i, '').toLowerCase()
+        cmp = ak.localeCompare(bk)
+      } else if (field === 'year') {
+        cmp = (a.year || 0) - (b.year || 0)
+      } else if (field === 'rating') {
+        cmp = (parseFloat(a.community_rating) || 0) - (parseFloat(b.community_rating) || 0)
+      }
+      return dir === 'asc' ? cmp : -cmp
+    })
+  })()
 
   const jfPoster = collection.jellyfin_collection_id
     ? `/api/collections/${collection.id}/poster`
@@ -447,6 +465,21 @@ export default function CollectionDetail() {
             Movies <span className="text-slate-500 font-normal text-base">({collection.movie_count})</span>
           </h2>
           <div className="flex items-center gap-2">
+            {/* Sort */}
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value)}
+              className="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 outline-none cursor-pointer hover:text-white transition-colors"
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+            >
+              <option value="name-asc">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+              <option value="year-desc">Year (newest)</option>
+              <option value="year-asc">Year (oldest)</option>
+              <option value="rating-desc">Rating (highest)</option>
+              <option value="rating-asc">Rating (lowest)</option>
+            </select>
+
             {/* View toggle */}
             <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
               <button
@@ -490,7 +523,7 @@ export default function CollectionDetail() {
           </div>
         ) : view === 'grid' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
-            {collection.movies.map(movie => (
+            {sortedMovies.map(movie => (
               <div key={movie.id} className="relative group">
                 <MovieCard movie={movie} />
                 <button
@@ -505,7 +538,7 @@ export default function CollectionDetail() {
           </div>
         ) : (
           <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-            {collection.movies.map((movie, i) => (
+            {sortedMovies.map((movie, i) => (
               <div key={movie.id} style={i > 0 ? { borderTop: '1px solid var(--border)' } : {}}>
                 <MovieListRow movie={movie} onRemove={handleRemoveMovie} />
               </div>

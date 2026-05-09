@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.5.3] — 2026-05-09
+
+### Added
+- Sort control on the collection detail page — sort movies by Name A–Z / Z–A, Year (newest/oldest), or Rating (highest/lowest)
+
+---
+
 ## [1.5.2] — 2026-05-09
 
 ### Fixed
