@@ -172,6 +172,14 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
 
   const existingIds = new Set(collection.movies?.map(m => m.id) || [])
 
+  const filteredSuggestions = activeLibrary
+    ? suggestions.filter(s => s.movie.library_name === activeLibrary)
+    : suggestions
+
+  const filteredRelated = activeLibrary
+    ? related.filter(r => r.movie.library_name === activeLibrary)
+    : related
+
   useEffect(() => {
     api.get('/movies/libraries').then(({ data }) => setLibraries(data)).catch(() => {})
     api.get('/settings').then(({ data }) => {
@@ -339,21 +347,23 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
           )}
         </div>
 
-        {/* Search controls — only shown on search tab */}
-        {activeTab === 'search' && (
+        {/* Controls — search input (search tab only) + library pills (all tabs) */}
+        {(activeTab === 'search' || libraries.length > 1) && (
           <div className="p-4 border-b space-y-2.5" style={{ borderColor: 'var(--border)' }}>
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                autoFocus
-                type="text"
-                placeholder="Search movies…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
-                style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
-              />
-            </div>
+            {activeTab === 'search' && (
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search movies…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
+                  style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
+                />
+              </div>
+            )}
             {libraries.length > 1 && (
               <div className="flex flex-wrap gap-1.5">
                 <button
@@ -413,7 +423,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                 <div className="flex items-center justify-center py-12">
                   <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
                 </div>
-              ) : suggestions.length === 0 ? (
+              ) : filteredSuggestions.length === 0 ? (
                 <div className="text-center py-12 text-slate-500 text-sm">
                   {suggestionsFetched
                     ? 'No suggestions found for this collection name.'
@@ -421,7 +431,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {suggestions.map(({ movie, score, breakdown }) => (
+                  {filteredSuggestions.map(({ movie, score, breakdown }) => (
                     <MovieRow
                       key={movie.id}
                       movie={movie}
@@ -439,7 +449,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                 <div className="flex items-center justify-center py-12">
                   <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
                 </div>
-              ) : related.length === 0 ? (
+              ) : filteredRelated.length === 0 ? (
                 <div className="text-center py-12 text-slate-500 text-sm">
                   {relatedFetched
                     ? 'No related movies found in your library.'
@@ -447,7 +457,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {related.map(({ movie, score, breakdown }) => (
+                  {filteredRelated.map(({ movie, score, breakdown }) => (
                     <MovieRow
                       key={movie.id}
                       movie={movie}
