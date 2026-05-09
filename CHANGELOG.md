@@ -4,6 +4,16 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.5.0] — 2026-05-09
+
+### Added
+- Related Movies tab in the Add Movies modal — fetches TMDB recommendations based on movies already in the collection, cross-referenced against your local library, ranked by how many collection movies recommend each result
+- Results use the same colour-coded score badge and breakdown tooltip as Suggestions, showing which collection movies recommended each result
+- TMDB recommendations are cached per movie for 14 days (stored in a new `tmdb_related_cache` table)
+- Toggle in Settings → Sync → TMDB Integration to enable/disable the feature; tab only appears when enabled and a TMDB API key is configured
+
+---
+
 ## [1.4.3] — 2026-05-09
 
 ### Added

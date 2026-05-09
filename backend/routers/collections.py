@@ -1,5 +1,6 @@
 import asyncio
-from datetime import datetime
+import json
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session, selectinload
@@ -118,6 +119,97 @@ def update_collection(
     db.commit()
     db.refresh(col)
     return _collection_to_detail(col)
+
+
+@router.get("/{collection_id}/related", response_model=list[schemas.SuggestionResponse])
+async def get_related_movies(
+    collection_id: int,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    """Return library movies recommended by TMDB based on what's already in the collection.
+
+    Recommendations per movie are cached for 14 days.
+    """
+    s = _get_settings_dict(db)
+    if s.get("tmdb_related_enabled") != "true":
+        raise HTTPException(403, "Related movies feature is not enabled.")
+    api_key = s.get("tmdb_api_key")
+    if not api_key:
+        raise HTTPException(400, "TMDB API key not configured.")
+
+    col = _load_col(collection_id, db)
+    source_movies = [(m.tmdb_id, m.title) for m in col.movies if m.tmdb_id]
+    if not source_movies:
+        return []
+
+    cutoff = datetime.utcnow() - timedelta(days=14)
+
+    # Build a map of recommended_tmdb_id → [collection movie titles that recommended it]
+    tally: dict[str, list[str]] = {}
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        for tmdb_id, title in source_movies:
+            entry = db.query(models.TmdbRelatedCache).filter(
+                models.TmdbRelatedCache.tmdb_id == tmdb_id
+            ).first()
+
+            if entry and entry.cached_at > cutoff:
+                related_ids = json.loads(entry.related_ids)
+            else:
+                resp = await client.get(
+                    f"{_TMDB_BASE}/movie/{tmdb_id}/recommendations",
+                    params={"api_key": api_key, "page": 1},
+                )
+                if resp.status_code != 200:
+                    continue
+                related_ids = [str(r["id"]) for r in resp.json().get("results", [])]
+                if entry:
+                    entry.related_ids = json.dumps(related_ids)
+                    entry.cached_at = datetime.utcnow()
+                else:
+                    db.add(models.TmdbRelatedCache(
+                        tmdb_id=tmdb_id,
+                        related_ids=json.dumps(related_ids),
+                        cached_at=datetime.utcnow(),
+                    ))
+
+            for rid in related_ids:
+                tally.setdefault(rid, []).append(title)
+
+    db.commit()
+
+    if not tally:
+        return []
+
+    # Cross-reference against local library, deduplicate to lowest id per tmdb_id
+    library_movies = db.query(models.Movie).filter(
+        models.Movie.tmdb_id.in_(list(tally.keys()))
+    ).all()
+
+    best: dict[str, models.Movie] = {}
+    for m in library_movies:
+        if m.tmdb_id not in best or m.id < best[m.tmdb_id].id:
+            best[m.tmdb_id] = m
+
+    results = []
+    for tmdb_id, movie in best.items():
+        recommenders = tally[tmdb_id]
+        score = float(len(recommenders))
+        breakdown = {
+            "recommended_by": {
+                "score": score,
+                "matches": [{"term": t} for t in recommenders],
+            }
+        }
+        results.append((score, breakdown, movie))
+
+    results.sort(key=lambda x: x[0], reverse=True)
+    return [
+        schemas.SuggestionResponse(movie=_movie_to_response(m), score=s, breakdown=bd)
+        for s, bd, m in results[:limit]
+    ]
 
 
 @router.get("/{collection_id}/suggestions", response_model=list[schemas.SuggestionResponse])

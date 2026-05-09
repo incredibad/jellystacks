@@ -17,7 +17,7 @@ from auth import get_current_user
 
 router = APIRouter()
 
-SETTING_KEYS = ["jellyfin_url", "jellyfin_api_key", "jellyfin_user_id", "tmdb_api_key"]
+SETTING_KEYS = ["jellyfin_url", "jellyfin_api_key", "jellyfin_user_id", "tmdb_api_key", "tmdb_related_enabled"]
 
 
 def _get_settings_dict(db: Session) -> dict:
@@ -44,6 +44,7 @@ def get_settings(
         jellyfin_api_key_set=bool(s.get("jellyfin_api_key")),
         jellyfin_user_id=s.get("jellyfin_user_id"),
         tmdb_api_key_set=bool(s.get("tmdb_api_key")),
+        tmdb_related_enabled=s.get("tmdb_related_enabled") == "true",
     )
 
 
@@ -56,7 +57,7 @@ def update_settings(
     updates = data.model_dump(exclude_none=True)
     for key, value in updates.items():
         if key in SETTING_KEYS:
-            _set_setting(db, key, value)
+            _set_setting(db, key, "true" if value is True else "false" if value is False else value)
     db.commit()
     return get_settings(db, _)
 
