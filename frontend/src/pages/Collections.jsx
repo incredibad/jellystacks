@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Layers, Upload, RefreshCw, Download, LayoutGrid, LayoutList, Film, ChevronDown, Loader } from 'lucide-react'
+import { Plus, Layers, Upload, RefreshCw, Download, LayoutGrid, LayoutList, Film, ChevronDown, Loader, Search } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import CollectionCard from '../components/CollectionCard'
@@ -115,6 +115,7 @@ export default function Collections() {
   const [importing, setImporting] = useState(false)
   const [opsOpen, setOpsOpen] = useState(false)
   const [filter, setFilter] = useState('all') // 'all' | 'local' | 'jellyfin'
+  const [search, setSearch] = useState('')
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
   const [pendingConfirm, setPendingConfirm] = useState(null) // 'import' | 'pushAll'
 
@@ -241,8 +242,12 @@ export default function Collections() {
       c.movie_count === 0 || (c.tmdb_total_parts && c.movie_count < c.tmdb_total_parts)
     )
     else result = collections
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      result = result.filter(c => c.name.toLowerCase().includes(q))
+    }
     return [...result].sort((a, b) => sortKey(a.name).localeCompare(sortKey(b.name)))
-  }, [collections, filter])
+  }, [collections, filter, search])
 
   const jellyfinNative = collections.filter(c => c.is_jellyfin_native).length
   const localCount = collections.filter(c => !c.is_jellyfin_native).length
@@ -367,6 +372,19 @@ export default function Collections() {
             ))}
           </div>
 
+          {/* Search */}
+          <div className="relative flex-1 max-w-xs">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search collections…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-7 pr-3 py-1.5 rounded-lg text-xs text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
+              style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
+            />
+          </div>
+
           {/* View toggle */}
           <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
             <button
@@ -407,7 +425,9 @@ export default function Collections() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-slate-500">
-          <p className="text-sm">No collections match this filter.</p>
+          <p className="text-sm">
+            {search.trim() ? `No collections matching "${search.trim()}".` : 'No collections match this filter.'}
+          </p>
         </div>
       ) : view === 'grid' ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
