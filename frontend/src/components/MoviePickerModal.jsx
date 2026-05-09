@@ -2,9 +2,76 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, X, Plus, Film, Sparkles } from 'lucide-react'
 import api from '../api/client'
 
+const BREAKDOWN_LABELS = {
+  director:        'Director match',
+  person:          'Cast / crew match',
+  tag_phrase:      'Tag phrase match',
+  tag_word:        'Tag word match',
+  genre:           'Genre match',
+  title_phrase:    'Title phrase match',
+  title_word:      'Title word match',
+  overview_phrase: 'Overview phrase match',
+  overview_word:   'Overview word match',
+  year_range:      'Year range match',
+}
+
+function scoreColor(score) {
+  if (score >= 6) return 'text-emerald-400'
+  if (score >= 3) return 'text-amber-400'
+  return 'text-slate-400'
+}
+
+function ScoreBadge({ score, breakdown }) {
+  const sections = breakdown
+    ? Object.entries(breakdown).filter(([, v]) => v.score > 0)
+    : []
+
+  return (
+    <div className="relative group flex-shrink-0">
+      <span className={`text-sm font-bold tabular-nums ${scoreColor(score)}`}>
+        {score.toFixed(1)}
+      </span>
+      {sections.length > 0 && (
+        <div className="absolute right-0 bottom-full mb-2 w-72 hidden group-hover:block z-50 pointer-events-none">
+          <div
+            className="rounded-xl p-3 text-xs shadow-2xl space-y-2"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex items-center justify-between pb-1.5 border-b border-white/10">
+              <span className="font-semibold text-white">Score breakdown</span>
+              <span className={`font-bold tabular-nums ${scoreColor(score)}`}>{score.toFixed(1)}</span>
+            </div>
+            {sections.map(([key, val]) => (
+              <div key={key}>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300 font-medium">{BREAKDOWN_LABELS[key] ?? key}</span>
+                  <span className="text-slate-400 tabular-nums">+{val.score.toFixed(1)}</span>
+                </div>
+                {val.matches?.length > 0 && (
+                  <ul className="mt-1 space-y-0.5 pl-2">
+                    {val.matches.map((m, i) => (
+                      <li key={i} className="text-slate-500">
+                        <span className="text-violet-400">"{m.term}"</span>
+                        {m.via && <span> → {m.via}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {val.match && (
+                  <p className="mt-1 pl-2 text-slate-500">{val.match}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const PAGE_SIZE = 75
 
-function MovieRow({ movie, isIn, isSel, onToggle, score }) {
+function MovieRow({ movie, isIn, isSel, onToggle, score, breakdown }) {
   return (
     <button
       onClick={() => onToggle(movie.id)}
@@ -43,7 +110,7 @@ function MovieRow({ movie, isIn, isSel, onToggle, score }) {
       </div>
       {isIn && <span className="text-xs text-slate-500 flex-shrink-0">Already added</span>}
       {!isIn && score != null && !isSel && (
-        <span className="text-xs text-slate-500 flex-shrink-0 tabular-nums">{score.toFixed(1)}</span>
+        <ScoreBadge score={score} breakdown={breakdown} />
       )}
       {isSel && (
         <div className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center flex-shrink-0">
@@ -297,7 +364,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
               </div>
             ) : (
               <div className="space-y-1">
-                {suggestions.map(({ movie, score }) => (
+                {suggestions.map(({ movie, score, breakdown }) => (
                   <MovieRow
                     key={movie.id}
                     movie={movie}
@@ -305,6 +372,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                     isSel={selected.has(movie.id)}
                     onToggle={toggle}
                     score={score}
+                    breakdown={breakdown}
                   />
                 ))}
               </div>

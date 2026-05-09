@@ -65,6 +65,7 @@ class SyncResult(BaseModel):
 class SuggestionResponse(BaseModel):
     movie: "MovieResponse"
     score: float
+    breakdown: Optional[dict] = None
 
 
 # ── Collection ────────────────────────────────────────────────────────────────
