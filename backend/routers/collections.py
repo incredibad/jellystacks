@@ -124,7 +124,7 @@ def update_collection(
 @router.get("/{collection_id}/related", response_model=list[schemas.SuggestionResponse])
 async def get_related_movies(
     collection_id: int,
-    limit: int = 50,
+    limit: int = 500,
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
@@ -215,7 +215,7 @@ async def get_related_movies(
 @router.get("/{collection_id}/suggestions", response_model=list[schemas.SuggestionResponse])
 def get_suggestions(
     collection_id: int,
-    limit: int = 50,
+    limit: int = 500,
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
