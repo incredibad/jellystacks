@@ -4,6 +4,16 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.5.6] — 2026-05-09
+
+### Fixed
+- Collection detail page now spans full width on desktop (removed `max-w-7xl` constraint)
+
+### Added
+- Library filter pills on the collection detail page — appears next to the sort dropdown when movies span more than one library; shows filtered count in the heading
+
+---
+
 ## [1.5.5] — 2026-05-09
 
 ### Added

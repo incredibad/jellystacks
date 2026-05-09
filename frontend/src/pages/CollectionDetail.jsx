@@ -116,6 +116,7 @@ export default function CollectionDetail() {
   const [showUnowned, setShowUnowned] = useState(true)
   const [detectionDone, setDetectionDone] = useState(false)
   const [sort, setSort] = useState('name-asc')
+  const [libraryFilter, setLibraryFilter] = useState('')
 
   const switchView = (v) => {
     setView(v)
@@ -263,9 +264,14 @@ export default function CollectionDetail() {
 
   if (!collection) return null
 
+  const collectionLibraries = [...new Set((collection.movies || []).map(m => m.library_name).filter(Boolean))]
+
   const sortedMovies = (() => {
     const [field, dir] = sort.split('-')
-    return [...(collection.movies || [])].sort((a, b) => {
+    const base = libraryFilter
+      ? (collection.movies || []).filter(m => m.library_name === libraryFilter)
+      : (collection.movies || [])
+    return [...base].sort((a, b) => {
       let cmp = 0
       if (field === 'name') {
         const ak = a.title.replace(/^(the|a|an)\s+/i, '').toLowerCase()
@@ -294,7 +300,7 @@ export default function CollectionDetail() {
     new Date(collection.updated_at) > new Date(collection.jellyfin_synced_at)
 
   return (
-    <div className="p-8 max-w-7xl">
+    <div className="p-8">
       {/* Back */}
       <Link to="/collections" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-violet-400 transition-colors mb-6">
         <ArrowLeft size={15} />
@@ -462,9 +468,35 @@ export default function CollectionDetail() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-normal text-white">
-            Movies <span className="text-slate-500 font-normal text-base">({collection.movie_count})</span>
+            Movies <span className="text-slate-500 font-normal text-base">
+              {libraryFilter ? `${sortedMovies.length} of ${collection.movie_count}` : collection.movie_count}
+            </span>
           </h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Library pills */}
+            {collectionLibraries.length > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setLibraryFilter('')}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                    libraryFilter === '' ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  All
+                </button>
+                {collectionLibraries.map(lib => (
+                  <button
+                    key={lib}
+                    onClick={() => setLibraryFilter(lib === libraryFilter ? '' : lib)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                      libraryFilter === lib ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {lib}
+                  </button>
+                ))}
+              </div>
+            )}
             {/* Sort */}
             <select
               value={sort}
