@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.5.2] — 2026-05-09
+
+### Fixed
+- Score tooltip now flips below the badge when there isn't enough space above, preventing it from going off the top of the screen
+
+---
+
 ## [1.5.1] — 2026-05-09
 
 ### Added

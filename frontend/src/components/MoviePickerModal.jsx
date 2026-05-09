@@ -34,11 +34,12 @@ function ScoreBadge({ score, breakdown }) {
   const showTooltip = () => {
     if (!badgeRef.current || !sections.length) return
     const rect = badgeRef.current.getBoundingClientRect()
-    setTooltipStyle({
-      position: 'fixed',
-      bottom: window.innerHeight - rect.top + 8,
-      right: window.innerWidth - rect.right,
-    })
+    const above = rect.top > window.innerHeight * 0.4
+    setTooltipStyle(
+      above
+        ? { position: 'fixed', bottom: window.innerHeight - rect.top + 8, right: window.innerWidth - rect.right }
+        : { position: 'fixed', top: rect.bottom + 8, right: window.innerWidth - rect.right }
+    )
   }
 
   const hideTooltip = () => setTooltipStyle(null)
