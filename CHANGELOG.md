@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.5.7] — 2026-05-09
+
+### Changed
+- Poster grids on both the Collections and Collection Detail pages now use CSS `auto-fill` with a 140px minimum column width, adding more columns dynamically as the viewport widens and keeping posters well under 300px tall at all desktop sizes
+
+---
+
 ## [1.5.6] — 2026-05-09
 
 ### Fixed
