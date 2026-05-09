@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.5.5] — 2026-05-09
+
+### Added
+- Shift-click range selection in the Add Movies modal — click a movie, then shift-click another to select all movies in between across all three tabs (Search, Suggestions, Related)
+
+---
+
 ## [1.5.4] — 2026-05-09
 
 ### Fixed

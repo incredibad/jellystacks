@@ -93,10 +93,10 @@ function ScoreBadge({ score, breakdown }) {
 
 const PAGE_SIZE = 75
 
-function MovieRow({ movie, isIn, isSel, onToggle, score, breakdown }) {
+function MovieRow({ movie, isIn, isSel, onToggle, score, breakdown, index }) {
   return (
     <button
-      onClick={() => onToggle(movie.id)}
+      onClick={(e) => onToggle(movie.id, index, e.shiftKey)}
       disabled={isIn}
       className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all ${
         isIn
@@ -170,6 +170,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
   const offsetRef = useRef(0)
   const searchRef = useRef('')
   const libraryRef = useRef('')
+  const lastClickedIdx = useRef(null)
 
   const existingIds = new Set(collection.movies?.map(m => m.id) || [])
 
@@ -236,9 +237,14 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab)
+    lastClickedIdx.current = null
     if (tab === 'suggestions') fetchSuggestions()
     if (tab === 'related') fetchRelated()
   }
+
+  useEffect(() => {
+    lastClickedIdx.current = null
+  }, [activeLibrary])
 
   useEffect(() => {
     searchRef.current = search
@@ -267,13 +273,25 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
     return () => observer.disconnect()
   }, [hasMore, loading, loadingMore, fetchPage])
 
-  const toggle = (id) => {
+  const handleToggle = (id, index, shiftKey, displayedIds) => {
     if (existingIds.has(id)) return
-    setSelected(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
+    if (shiftKey && lastClickedIdx.current !== null) {
+      const lo = Math.min(lastClickedIdx.current, index)
+      const hi = Math.max(lastClickedIdx.current, index)
+      const rangeIds = displayedIds.slice(lo, hi + 1).filter(rid => !existingIds.has(rid))
+      setSelected(prev => {
+        const next = new Set(prev)
+        rangeIds.forEach(rid => next.add(rid))
+        return next
+      })
+    } else {
+      setSelected(prev => {
+        const next = new Set(prev)
+        next.has(id) ? next.delete(id) : next.add(id)
+        return next
+      })
+      lastClickedIdx.current = index
+    }
   }
 
   const handleAdd = async () => {
@@ -402,13 +420,14 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
               <div className="text-center py-12 text-slate-500 text-sm">No movies found.</div>
             ) : (
               <div className="space-y-1">
-                {movies.map(movie => (
+                {movies.map((movie, idx) => (
                   <MovieRow
                     key={movie.id}
                     movie={movie}
                     isIn={existingIds.has(movie.id)}
                     isSel={selected.has(movie.id)}
-                    onToggle={toggle}
+                    onToggle={(id, i, shift) => handleToggle(id, i, shift, movies.map(m => m.id))}
+                    index={idx}
                   />
                 ))}
                 <div ref={sentinelRef} className="py-2 flex items-center justify-center">
@@ -432,15 +451,16 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {filteredSuggestions.map(({ movie, score, breakdown }) => (
+                  {filteredSuggestions.map(({ movie, score, breakdown }, idx) => (
                     <MovieRow
                       key={movie.id}
                       movie={movie}
                       isIn={existingIds.has(movie.id)}
                       isSel={selected.has(movie.id)}
-                      onToggle={toggle}
+                      onToggle={(id, i, shift) => handleToggle(id, i, shift, filteredSuggestions.map(s => s.movie.id))}
                       score={score}
                       breakdown={breakdown}
+                      index={idx}
                     />
                   ))}
                 </div>
@@ -458,15 +478,16 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {filteredRelated.map(({ movie, score, breakdown }) => (
+                  {filteredRelated.map(({ movie, score, breakdown }, idx) => (
                     <MovieRow
                       key={movie.id}
                       movie={movie}
                       isIn={existingIds.has(movie.id)}
                       isSel={selected.has(movie.id)}
-                      onToggle={toggle}
+                      onToggle={(id, i, shift) => handleToggle(id, i, shift, filteredRelated.map(r => r.movie.id))}
                       score={score}
                       breakdown={breakdown}
+                      index={idx}
                     />
                   ))}
                 </div>
