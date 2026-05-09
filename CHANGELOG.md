@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.4.3] — 2026-05-09
+
+### Added
+- Search input on the Collections page — filters by collection name client-side, works in combination with the existing filter pills
+
+---
+
 ## [1.4.2] — 2026-05-09
 
 ### Fixed
