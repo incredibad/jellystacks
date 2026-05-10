@@ -523,7 +523,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
   }
 
   const renderRelatedList = () => {
-    if (relatedLoading) return <Spinner />
+    if (relatedLoading || (!relatedFetched && !relatedError)) return <Spinner />
     if (relatedError) return (
       <div className="text-center py-12 space-y-3">
         <p className="text-slate-500 text-sm">Failed to load recommendations.</p>
@@ -536,7 +536,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
       </div>
     )
     if (filteredRelated.length === 0) return (
-      <Empty text={relatedFetched ? 'No related movies found in your library.' : 'Loading related movies…'} />
+      <Empty text="No related movies found in your library." />
     )
     return (
       <div className="space-y-1">
