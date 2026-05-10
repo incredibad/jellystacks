@@ -75,7 +75,14 @@ export default function CollectionListRow({ collection, onPush, onDelete }) {
           </span>
         </Link>
         <p className="text-xs text-slate-500 mt-0.5">
-          {collection.movie_count} {collection.movie_count === 1 ? 'movie' : 'movies'}
+          {(() => {
+            const mc = collection.movie_count
+            const sc = collection.show_count || 0
+            const parts = []
+            if (mc > 0) parts.push(`${mc} ${mc === 1 ? 'movie' : 'movies'}`)
+            if (sc > 0) parts.push(`${sc} ${sc === 1 ? 'show' : 'shows'}`)
+            return parts.join(' · ') || 'Empty'
+          })()}
           {collection.description && ` · ${collection.description}`}
         </p>
       </div>

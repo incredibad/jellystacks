@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.7.4] — 2026-05-10
+
+### Fixed
+- Collection poster cards and list rows now show show count alongside movie count (e.g. "3 movies · 2 shows") instead of movies only
+
+---
+
 ## [1.7.3] — 2026-05-10
 
 ### Fixed
