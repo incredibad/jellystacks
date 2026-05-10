@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.17] — 2026-05-10
+
+### Fixed
+- Library badges now use solid high-opacity coloured backgrounds with white text for clear contrast against any poster image
+
+---
+
 ## [1.8.16] — 2026-05-10
 
 ### Changed

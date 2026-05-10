@@ -1,12 +1,12 @@
 const PALETTE = [
-  { bg: 'rgba(139,92,246,0.22)',  text: '#c4b5fd' },  // violet
-  { bg: 'rgba(59,130,246,0.22)',  text: '#93c5fd' },  // blue
-  { bg: 'rgba(16,185,129,0.22)', text: '#6ee7b7' },  // emerald
-  { bg: 'rgba(245,158,11,0.22)', text: '#fcd34d' },  // amber
-  { bg: 'rgba(244,63,94,0.22)',  text: '#fda4af' },  // rose
-  { bg: 'rgba(6,182,212,0.22)',  text: '#67e8f9' },  // cyan
-  { bg: 'rgba(217,70,239,0.22)', text: '#f0abfc' },  // fuchsia
-  { bg: 'rgba(99,102,241,0.22)', text: '#a5b4fc' },  // indigo
+  { bg: 'rgba(109,40,217,0.85)',  text: '#fff' },  // violet
+  { bg: 'rgba(29,78,216,0.85)',   text: '#fff' },  // blue
+  { bg: 'rgba(4,120,87,0.85)',    text: '#fff' },  // emerald
+  { bg: 'rgba(180,83,9,0.85)',    text: '#fff' },  // amber
+  { bg: 'rgba(190,18,60,0.85)',   text: '#fff' },  // rose
+  { bg: 'rgba(14,116,144,0.85)',  text: '#fff' },  // cyan
+  { bg: 'rgba(162,28,175,0.85)',  text: '#fff' },  // fuchsia
+  { bg: 'rgba(67,56,202,0.85)',   text: '#fff' },  // indigo
 ]
 
 export function libraryColor(name) {
