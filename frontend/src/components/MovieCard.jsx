@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Film } from 'lucide-react'
+import { libraryColor } from '../utils/libraryColor'
 
 export default function MovieCard({ movie, selected, onToggle }) {
   const [imgFailed, setImgFailed] = useState(false)
@@ -34,11 +35,17 @@ export default function MovieCard({ movie, selected, onToggle }) {
         )}
 
         {/* Library pill — top-right */}
-        {movie.library_name && (
-          <span className="absolute top-1.5 right-1.5 z-10 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-tight bg-black/60 text-slate-300 backdrop-blur-sm truncate max-w-[80%]">
-            {movie.library_name}
-          </span>
-        )}
+        {movie.library_name && (() => {
+          const { bg, text } = libraryColor(movie.library_name)
+          return (
+            <span
+              className="absolute top-1.5 right-1.5 z-10 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-tight truncate max-w-[80%]"
+              style={{ background: bg, color: text }}
+            >
+              {movie.library_name}
+            </span>
+          )
+        })()}
 
         {/* Overlay on hover / selection */}
         {onToggle && (

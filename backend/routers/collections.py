@@ -863,7 +863,7 @@ async def import_from_tmdb(
     poster_path = tmdb_col.get("poster_path")
     artwork_url = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else None
 
-    owned_movies = _best_by_tmdb_id(
+    owned_movies = (
         db.query(models.Movie).filter(models.Movie.tmdb_id.in_(tmdb_movie_ids)).all()
         if tmdb_movie_ids else []
     )
@@ -902,7 +902,7 @@ async def create_from_mdblist(
 
     movie_ids, show_ids, total, *_ = _split_raw_response(resp.json())
 
-    movies = _best_by_tmdb_id(
+    movies = (
         db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).all()
         if movie_ids else []
     )
