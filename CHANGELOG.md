@@ -4,6 +4,16 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.8] — 2026-05-10
+
+### Added
+- Custom artwork upload: hover over a collection's artwork to reveal "Browse" (existing TMDB picker) and "Upload" (new file upload) options
+- Uploaded image is previewed instantly from the local file, then a spinner shows while it uploads to the server
+- Uploaded artwork is stored in `/data/artwork/` and served via a new local endpoint
+- When pushing to Jellyfin, locally uploaded artwork is sent via direct byte upload (`POST /Items/{id}/Images/Primary`) instead of the remote-fetch path used for TMDB images
+
+---
+
 ## [1.8.7] — 2026-05-10
 
 ### Added

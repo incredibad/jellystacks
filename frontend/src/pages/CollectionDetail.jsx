@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon,
@@ -110,6 +110,9 @@ export default function CollectionDetail() {
   const [verifying, setVerifying] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [showArtwork, setShowArtwork] = useState(false)
+  const [uploadingArtwork, setUploadingArtwork] = useState(false)
+  const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
+  const artworkFileRef = useRef(null)
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
   const [jfImgError, setJfImgError] = useState(false)
   const [unownedMovies, setUnownedMovies] = useState([])
@@ -123,6 +126,30 @@ export default function CollectionDetail() {
   const switchView = (v) => {
     setView(v)
     localStorage.setItem(VIEW_KEY, v)
+  }
+
+  const handleArtworkFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const preview = URL.createObjectURL(file)
+    setLocalPreviewUrl(preview)
+    setUploadingArtwork(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const { data } = await api.post(`/collections/${id}/artwork/upload`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setCollection(prev => ({ ...prev, artwork_url: data.artwork_url }))
+      setLocalPreviewUrl(null)
+      toast.success('Artwork saved.')
+    } catch {
+      toast.error('Upload failed.')
+      setLocalPreviewUrl(null)
+    } finally {
+      setUploadingArtwork(false)
+      e.target.value = ''
+    }
   }
 
   const fetchUnowned = async (colId) => {
@@ -320,10 +347,13 @@ export default function CollectionDetail() {
   const jfPoster = collection.jellyfin_collection_id
     ? `/api/collections/${collection.id}/poster`
     : null
-  const tmdbPoster = collection.artwork_url
-    ? `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
-    : null
-  const artworkSrc = tmdbPoster ?? ((!jfImgError && jfPoster) ? jfPoster : null)
+  const artworkSrc = localPreviewUrl ?? (() => {
+    if (collection.artwork_url?.startsWith('/api/')) return collection.artwork_url
+    if (collection.artwork_url) {
+      return `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
+    }
+    return (!jfImgError && jfPoster) ? jfPoster : null
+  })()
 
   // True when the collection is in Jellyfin but has been modified locally since the last sync.
   const needsSync = collection.in_jellyfin &&
@@ -343,8 +373,7 @@ export default function CollectionDetail() {
         {/* Artwork */}
         <div className="relative group flex-shrink-0">
           <div
-            className="w-36 h-52 rounded-xl overflow-hidden bg-slate-800 flex items-center justify-center cursor-pointer"
-            onClick={() => setShowArtwork(true)}
+            className="w-36 h-52 rounded-xl overflow-hidden bg-slate-800 flex items-center justify-center"
             style={{ border: '1px solid var(--border)' }}
           >
             {artworkSrc ? (
@@ -362,13 +391,38 @@ export default function CollectionDetail() {
                 <span className="text-xs">No artwork</span>
               </div>
             )}
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
-              <div className="flex flex-col items-center gap-1 text-white text-xs">
-                <ImageIcon size={18} />
-                Change
+
+            {uploadingArtwork ? (
+              <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2 rounded-xl">
+                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="text-white text-xs">Uploading…</span>
               </div>
-            </div>
+            ) : (
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-4">
+                <button
+                  onClick={() => setShowArtwork(true)}
+                  className="flex flex-col items-center gap-1.5 text-white text-[11px] hover:text-violet-300 transition-colors"
+                >
+                  <ImageIcon size={18} />
+                  Browse
+                </button>
+                <button
+                  onClick={() => artworkFileRef.current?.click()}
+                  className="flex flex-col items-center gap-1.5 text-white text-[11px] hover:text-violet-300 transition-colors"
+                >
+                  <Upload size={18} />
+                  Upload
+                </button>
+              </div>
+            )}
           </div>
+          <input
+            ref={artworkFileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleArtworkFileChange}
+          />
         </div>
 
         {/* Info */}
