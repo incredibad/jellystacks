@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.13.2] — 2026-05-10
+
+### Fixed
+- Settings page build error: sync tab grid and Save button were adjacent JSX siblings inside a `&&` expression — wrapped in a Fragment to fix the vite/esbuild compile failure
+
+---
+
 ## [1.13.1] — 2026-05-10
 
 ### Changed

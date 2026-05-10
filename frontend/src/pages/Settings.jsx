@@ -300,6 +300,7 @@ export default function Settings() {
 
       {/* ── Sync tab ───────────────────────────────────────────────────────── */}
       {activeTab === 'sync' && (
+        <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left column */}
           <div className="space-y-6">
@@ -550,6 +551,7 @@ export default function Settings() {
             {saving ? 'Saving…' : 'Save Settings'}
           </button>
         </div>
+        </>
       )}
 
       {/* ── Account tab ────────────────────────────────────────────────────── */}
