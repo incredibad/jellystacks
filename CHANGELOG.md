@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.18] — 2026-05-10
+
+### Changed
+- TMDB and MDBList collections are now locked against manual modification — "Add Items" button and per-item remove buttons are hidden in the UI, and the backend add/remove endpoints return 400 if called on a managed collection
+
+---
+
 ## [1.8.17] — 2026-05-10
 
 ### Fixed

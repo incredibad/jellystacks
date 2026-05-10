@@ -363,6 +363,8 @@ export default function CollectionDetail() {
 
   if (!collection) return null
 
+  const isLocked = !!(collection.tmdb_collection_id || collection.mdblist_list_id)
+
   const collectionLibraries = [...new Set([
     ...(collection.movies || []).map(m => m.library_name),
     ...(collection.shows || []).map(s => s.library_name),
@@ -699,13 +701,15 @@ export default function CollectionDetail() {
               <LayoutList size={15} />
             </button>
           </div>
-          <button
-            onClick={() => setShowPicker(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 transition-all border border-violet-500/20 hover:border-violet-500/40"
-          >
-            <Plus size={15} />
-            Add Items
-          </button>
+          {!isLocked && (
+            <button
+              onClick={() => setShowPicker(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 transition-all border border-violet-500/20 hover:border-violet-500/40"
+            >
+              <Plus size={15} />
+              Add Items
+            </button>
+          )}
         </div>
       </div>
 
@@ -727,13 +731,15 @@ export default function CollectionDetail() {
               {sortedMovies.map(movie => (
                 <div key={movie.id} className="relative group">
                   <MovieCard movie={movie} />
-                  <button
-                    onClick={() => handleRemoveMovie(movie.id)}
-                    className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-400 shadow-lg"
-                    title="Remove from collection"
-                  >
-                    <X size={12} />
-                  </button>
+                  {!isLocked && (
+                    <button
+                      onClick={() => handleRemoveMovie(movie.id)}
+                      className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-400 shadow-lg"
+                      title="Remove from collection"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -741,7 +747,7 @@ export default function CollectionDetail() {
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
               {sortedMovies.map((movie, i) => (
                 <div key={movie.id} style={i > 0 ? { borderTop: '1px solid var(--border)' } : {}}>
-                  <MovieListRow movie={movie} onRemove={handleRemoveMovie} />
+                  <MovieListRow movie={movie} onRemove={isLocked ? null : handleRemoveMovie} />
                 </div>
               ))}
             </div>
@@ -760,13 +766,15 @@ export default function CollectionDetail() {
               {sortedShows.map(show => (
                 <div key={show.id} className="relative group">
                   <MovieCard movie={show} />
-                  <button
-                    onClick={() => handleRemoveShow(show.id)}
-                    className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-400 shadow-lg"
-                    title="Remove from collection"
-                  >
-                    <X size={12} />
-                  </button>
+                  {!isLocked && (
+                    <button
+                      onClick={() => handleRemoveShow(show.id)}
+                      className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-400 shadow-lg"
+                      title="Remove from collection"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -774,7 +782,7 @@ export default function CollectionDetail() {
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
               {sortedShows.map((show, i) => (
                 <div key={show.id} style={i > 0 ? { borderTop: '1px solid var(--border)' } : {}}>
-                  <MovieListRow movie={show} onRemove={handleRemoveShow} />
+                  <MovieListRow movie={show} onRemove={isLocked ? null : handleRemoveShow} />
                 </div>
               ))}
             </div>
@@ -789,13 +797,15 @@ export default function CollectionDetail() {
           style={{ background: 'var(--surface)', border: '1px dashed var(--border)' }}
         >
           <p className="text-sm">No items in this collection yet.</p>
-          <button
-            onClick={() => setShowPicker(true)}
-            className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
-          >
-            <Plus size={15} />
-            Add Items
-          </button>
+          {!isLocked && (
+            <button
+              onClick={() => setShowPicker(true)}
+              className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
+            >
+              <Plus size={15} />
+              Add Items
+            </button>
+          )}
         </div>
       )}
 
