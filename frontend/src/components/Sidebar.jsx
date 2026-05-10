@@ -1,19 +1,35 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Film, Tv, Layers, Settings, LogOut } from 'lucide-react'
+import { Film, Tv, Layers, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useState, useEffect } from 'react'
+import api from '../api/client'
 import pkg from '../../package.json'
 
-const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/movies', icon: Film, label: 'Movies' },
-  { to: '/shows', icon: Tv, label: 'Shows' },
-  { to: '/collections', icon: Layers, label: 'Collections' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+const NAV_ITEMS = [
+  { to: '/movies',      icon: Film,   label: 'Movies',      countKey: 'movies' },
+  { to: '/shows',       icon: Tv,     label: 'Shows',       countKey: 'shows' },
+  { to: '/collections', icon: Layers, label: 'Collections', countKey: 'collections' },
+  { to: '/settings',    icon: Settings, label: 'Settings',  countKey: null },
 ]
 
 export default function Sidebar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [counts, setCounts] = useState({})
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/movies/count'),
+      api.get('/shows/count'),
+      api.get('/collections/count'),
+    ]).then(([movies, shows, collections]) => {
+      setCounts({
+        movies: movies.data.count,
+        shows: shows.data.count,
+        collections: collections.data.count,
+      })
+    }).catch(() => {})
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -43,7 +59,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {navItems.map(({ to, icon: Icon, label }) => (
+        {NAV_ITEMS.map(({ to, icon: Icon, label, countKey }) => (
           <NavLink
             key={to}
             to={to}
@@ -56,7 +72,12 @@ export default function Sidebar() {
             }
           >
             <Icon size={18} />
-            {label}
+            <span className="flex-1">{label}</span>
+            {countKey && counts[countKey] != null && (
+              <span className="text-xs tabular-nums text-slate-500">
+                {counts[countKey].toLocaleString()}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

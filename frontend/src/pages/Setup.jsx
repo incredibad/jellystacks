@@ -28,7 +28,7 @@ export default function Setup({ onSetupComplete }) {
     try {
       await register(username, password, email || undefined)
       onSetupComplete?.()
-      navigate('/dashboard', { replace: true })
+      navigate('/movies', { replace: true })
       toast.success('Admin account created! Welcome to JellyStacks.')
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Setup failed.')
