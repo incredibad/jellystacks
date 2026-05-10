@@ -157,6 +157,81 @@ async def get_related_collection_images(
     return result
 
 
+@router.get("/search-collections")
+async def search_tmdb_collections(
+    q: str = Query(..., min_length=1),
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    api_key = _get_tmdb_key(db)
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"{TMDB_BASE}/search/collection",
+            params={"api_key": api_key, "query": q, "include_adult": "false"},
+        )
+    if resp.status_code != 200:
+        raise HTTPException(502, f"TMDB error: {resp.status_code}")
+    results = resp.json().get("results", [])
+    return [
+        {
+            "id": r["id"],
+            "name": r.get("name"),
+            "overview": r.get("overview"),
+            "poster_thumb": (
+                f"/api/tmdb/proxy-image?url={TMDB_IMG_BASE}/w185{r['poster_path']}"
+                if r.get("poster_path") else None
+            ),
+        }
+        for r in results[:20]
+    ]
+
+
+@router.get("/collection/{tmdb_collection_id}")
+async def get_tmdb_collection_detail(
+    tmdb_collection_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    api_key = _get_tmdb_key(db)
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"{TMDB_BASE}/collection/{tmdb_collection_id}",
+            params={"api_key": api_key},
+        )
+    if resp.status_code != 200:
+        raise HTTPException(502, f"TMDB error: {resp.status_code}")
+    data = resp.json()
+    parts = data.get("parts", [])
+    tmdb_ids = [str(p["id"]) for p in parts]
+    owned_ids = {
+        m.tmdb_id
+        for m in db.query(models.Movie).filter(models.Movie.tmdb_id.in_(tmdb_ids)).all()
+    }
+    poster_path = data.get("poster_path")
+    return {
+        "id": data["id"],
+        "name": data.get("name"),
+        "overview": data.get("overview"),
+        "poster_thumb": (
+            f"/api/tmdb/proxy-image?url={TMDB_IMG_BASE}/w342{poster_path}"
+            if poster_path else None
+        ),
+        "poster_full": f"{TMDB_IMG_BASE}/original{poster_path}" if poster_path else None,
+        "parts": [
+            {
+                "id": p["id"],
+                "title": p.get("title"),
+                "year": (p.get("release_date") or "")[:4] or None,
+                "poster_path": p.get("poster_path"),
+                "owned": str(p["id"]) in owned_ids,
+            }
+            for p in sorted(parts, key=lambda p: p.get("release_date") or "")
+        ],
+        "total_parts": len(parts),
+        "owned_count": len(owned_ids),
+    }
+
+
 @router.get("/proxy-image")
 async def proxy_image(
     url: str = Query(...),

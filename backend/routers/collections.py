@@ -2,6 +2,7 @@ import asyncio
 import json
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from fastapi.responses import Response
 from sqlalchemy.orm import Session, selectinload
 import httpx
@@ -251,14 +252,32 @@ def get_suggestions(
 
 
 @router.delete("/jellyfin-native")
-def clear_jellyfin_native(
+async def clear_jellyfin_native(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
-    """Delete all Jellyfin-imported collections from the local database (does not touch Jellyfin)."""
-    deleted = db.query(models.Collection).filter(
+    """Delete all Jellyfin-auto-generated collections from Jellyfin and the local database."""
+    cols = db.query(models.Collection).filter(
         models.Collection.is_jellyfin_native == True  # noqa: E712
-    ).delete(synchronize_session=False)
+    ).all()
+
+    s = _get_settings_dict(db)
+    jf_url = s.get("jellyfin_url")
+    api_key = s.get("jellyfin_api_key")
+    jf_ids = [c.jellyfin_collection_id for c in cols if c.jellyfin_collection_id]
+    if jf_url and api_key and jf_ids:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            await asyncio.gather(
+                *[client.delete(
+                    f"{jf_url.rstrip('/')}/Items/{jid}",
+                    headers=_jellyfin_headers(api_key),
+                ) for jid in jf_ids],
+                return_exceptions=True,
+            )
+
+    deleted = len(cols)
+    for col in cols:
+        db.delete(col)
     db.commit()
     return {"deleted": deleted}
 
@@ -599,6 +618,59 @@ async def import_from_jellyfin(
 
     db.commit()
     return schemas.ImportResult(imported=imported, updated=updated)
+
+
+class TmdbImportRequest(BaseModel):
+    tmdb_collection_id: int
+
+
+@router.post("/import-from-tmdb", response_model=schemas.CollectionDetailResponse)
+async def import_from_tmdb(
+    data: TmdbImportRequest,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    """Create a local collection from a TMDB franchise collection, pre-populated with owned movies."""
+    existing = db.query(models.Collection).filter(
+        models.Collection.tmdb_collection_id == str(data.tmdb_collection_id)
+    ).first()
+    if existing:
+        raise HTTPException(409, f'"{existing.name}" is already in Jellystacks.')
+
+    api_key = _get_tmdb_key(db)
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"{_TMDB_BASE}/collection/{data.tmdb_collection_id}",
+            params={"api_key": api_key},
+        )
+    if resp.status_code != 200:
+        raise HTTPException(502, f"TMDB error: {resp.status_code}")
+
+    tmdb_col = resp.json()
+    parts = tmdb_col.get("parts", [])
+    tmdb_movie_ids = [str(p["id"]) for p in parts]
+
+    poster_path = tmdb_col.get("poster_path")
+    artwork_url = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else None
+
+    owned_movies = (
+        db.query(models.Movie).filter(models.Movie.tmdb_id.in_(tmdb_movie_ids)).all()
+        if tmdb_movie_ids else []
+    )
+
+    col = models.Collection(
+        name=tmdb_col.get("name"),
+        description=tmdb_col.get("overview") or None,
+        artwork_url=artwork_url,
+        tmdb_collection_id=str(data.tmdb_collection_id),
+        tmdb_total_parts=len(parts),
+        tmdb_checked=True,
+    )
+    col.movies = owned_movies
+    db.add(col)
+    db.commit()
+    db.refresh(col)
+    return _collection_to_detail(col)
 
 
 @router.post("/{collection_id}/verify", response_model=schemas.CollectionResponse)
