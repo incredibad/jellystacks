@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Search, X, ChevronLeft, Plus, List, Heart } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -7,12 +7,21 @@ export default function MdblistModal({ onClose, onCreate }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
-  const [selected, setSelected] = useState(null)   // the chosen list metadata
-  const [preview, setPreview] = useState(null)      // { movie_count, show_count, total_items }
+  const [topLists, setTopLists] = useState([])
+  const [loadingTop, setLoadingTop] = useState(true)
+  const [selected, setSelected] = useState(null)
+  const [preview, setPreview] = useState(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [name, setName] = useState('')
   const [creating, setCreating] = useState(false)
   const timer = useRef(null)
+
+  useEffect(() => {
+    api.get('/mdblist/top')
+      .then(({ data }) => setTopLists(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setLoadingTop(false))
+  }, [])
 
   const doSearch = async (q) => {
     if (!q.trim()) { setResults([]); return }
@@ -89,7 +98,7 @@ export default function MdblistModal({ onClose, onCreate }) {
               </button>
             )}
             <h2 className="text-lg font-semibold text-white">
-              {selected ? selected.name : 'Search MDBList'}
+              {selected ? selected.name : 'MDBList'}
             </h2>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
@@ -187,55 +196,61 @@ export default function MdblistModal({ onClose, onCreate }) {
             </div>
 
             <div className="overflow-y-auto flex-1 p-2">
-              {searching ? (
+              {(searching || (loadingTop && !query.trim())) ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
                 </div>
-              ) : results.length === 0 ? (
-                <div className="text-center py-12 text-slate-500 text-sm">
-                  {query.trim() ? 'No lists found.' : 'Start typing to search MDBList…'}
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {results.map(result => {
-                    const mt = result.mediatype
-                    const badge = mt === 'movie'
-                      ? { label: 'Movies', cls: 'bg-blue-500/20 text-blue-300' }
-                      : mt === 'show'
-                      ? { label: 'Shows', cls: 'bg-emerald-500/20 text-emerald-300' }
-                      : { label: 'Mixed', cls: 'bg-violet-500/20 text-violet-300' }
-                    return (
-                      <button
-                        key={result.id}
-                        onClick={() => handleSelect(result)}
-                        className="w-full flex items-center gap-3 p-2.5 rounded-lg text-left hover:bg-white/5 transition-colors"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-violet-600/20 flex items-center justify-center flex-shrink-0">
-                          <List size={14} className="text-violet-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-200 truncate">{result.name}</p>
-                          <p className="text-xs text-slate-500 truncate mt-0.5">
-                            by {result.user_name}
-                            {result.description ? ` · ${result.description}` : ''}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <span className={`w-14 text-center px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.cls}`}>
-                            {badge.label}
-                          </span>
-                          <span className="w-10 text-right text-xs text-slate-500 tabular-nums">
-                            {result.items != null ? `${result.items}` : ''}
-                          </span>
-                          <span className="w-8 text-right flex items-center justify-end gap-0.5 text-xs text-slate-500 tabular-nums">
-                            {result.likes > 0 ? <><Heart size={10} />{result.likes}</> : null}
-                          </span>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+              ) : (() => {
+                const displayList = query.trim() ? results : topLists
+                const isSearch = !!query.trim()
+                if (isSearch && displayList.length === 0) {
+                  return <div className="text-center py-12 text-slate-500 text-sm">No lists found.</div>
+                }
+                return (
+                  <div className="space-y-1">
+                    {!isSearch && (
+                      <p className="px-2.5 pt-1 pb-0.5 text-[11px] font-medium text-slate-500 uppercase tracking-wider">Top Lists</p>
+                    )}
+                    {displayList.map(result => {
+                      const mt = result.mediatype
+                      const badge = mt === 'movie'
+                        ? { label: 'Movies', cls: 'bg-blue-500/20 text-blue-300' }
+                        : mt === 'show'
+                        ? { label: 'Shows', cls: 'bg-emerald-500/20 text-emerald-300' }
+                        : { label: 'Mixed', cls: 'bg-violet-500/20 text-violet-300' }
+                      return (
+                        <button
+                          key={result.id}
+                          onClick={() => handleSelect(result)}
+                          className="w-full flex items-center gap-3 p-2.5 rounded-lg text-left hover:bg-white/5 transition-colors"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-violet-600/20 flex items-center justify-center flex-shrink-0">
+                            <List size={14} className="text-violet-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-200 truncate">{result.name}</p>
+                            <p className="text-xs text-slate-500 truncate mt-0.5">
+                              by {result.user_name}
+                              {result.description ? ` · ${result.description}` : ''}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <span className={`w-14 text-center px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.cls}`}>
+                              {badge.label}
+                            </span>
+                            <span className="w-10 text-right text-xs text-slate-500 tabular-nums">
+                              {result.items != null ? `${result.items}` : ''}
+                            </span>
+                            <span className="w-8 text-right flex items-center justify-end gap-0.5 text-xs text-slate-500 tabular-nums">
+                              {result.likes > 0 ? <><Heart size={10} />{result.likes}</> : null}
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}
