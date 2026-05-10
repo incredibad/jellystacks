@@ -3,6 +3,7 @@ import os
 import sqlite3
 import tempfile
 import zipfile
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
@@ -135,6 +136,9 @@ async def get_jellyfin_users(
         raise HTTPException(500, f"Failed to fetch Jellyfin users: {str(e)}")
 
 
+_ARTWORK_DIR = Path("/data/artwork")
+
+
 @router.get("/export")
 def export_data(_: models.User = Depends(get_current_user)):
     db_path = app_settings.database_url.replace("sqlite:///", "")
@@ -142,6 +146,10 @@ def export_data(_: models.User = Depends(get_current_user)):
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         with open(db_path, "rb") as f:
             zf.writestr("jellystacks.db", f.read())
+        if _ARTWORK_DIR.exists():
+            for art_file in _ARTWORK_DIR.rglob("*"):
+                if art_file.is_file():
+                    zf.write(str(art_file), "artwork/" + str(art_file.relative_to(_ARTWORK_DIR)))
     buf.seek(0)
     return StreamingResponse(
         buf,
@@ -161,9 +169,11 @@ async def import_data(
     try:
         buf = io.BytesIO(content)
         with zipfile.ZipFile(buf) as zf:
-            if "jellystacks.db" not in zf.namelist():
+            names = zf.namelist()
+            if "jellystacks.db" not in names:
                 raise HTTPException(400, "Invalid backup: missing jellystacks.db.")
             db_bytes = zf.read("jellystacks.db")
+            artwork_entries = [n for n in names if n.startswith("artwork/") and not n.endswith("/")]
     except zipfile.BadZipFile:
         raise HTTPException(400, "Invalid backup: not a valid zip file.")
 
@@ -187,7 +197,7 @@ async def import_data(
         finally:
             conn.close()
 
-        required = {"users", "collections", "movies", "app_settings"}
+        required = {"users", "collections", "movies", "shows", "app_settings"}
         missing = required - tables
         if missing:
             raise HTTPException(
@@ -208,5 +218,18 @@ async def import_data(
         except OSError:
             pass
         raise HTTPException(500, f"Import failed: {str(e)}")
+
+    # Restore artwork files (absent in older backups — gracefully skip if none)
+    if artwork_entries:
+        try:
+            buf.seek(0)
+            with zipfile.ZipFile(buf) as zf:
+                for entry in artwork_entries:
+                    rel = entry[len("artwork/"):]
+                    dest = _ARTWORK_DIR / rel
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    dest.write_bytes(zf.read(entry))
+        except Exception as e:
+            print(f"[import] artwork restore failed: {e}", flush=True)
 
     return {"message": "Data imported successfully. Please log in again."}
