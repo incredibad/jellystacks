@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.13.0] — 2026-05-10
+
+### Changed
+- Removed the Dashboard page; the app now lands on Movies by default
+- Sidebar nav items for Movies, Shows, and Collections now show a right-aligned item count that loads once on mount
+
+---
+
 ## [1.12.6] — 2026-05-10
 
 ### Changed

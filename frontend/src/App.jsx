@@ -5,7 +5,6 @@ import { OperationsProvider } from './contexts/OperationsContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
-import Dashboard from './pages/Dashboard'
 import Movies from './pages/Movies'
 import Shows from './pages/Shows'
 import Collections from './pages/Collections'
@@ -56,14 +55,13 @@ function AppRoutes() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/" element={<Navigate to="/movies" replace />} />
         <Route path="/movies" element={<Movies />} />
         <Route path="/shows" element={<Shows />} />
         <Route path="/collections" element={<Collections />} />
         <Route path="/collections/:id" element={<CollectionDetail />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/movies" replace />} />
       </Routes>
     </Layout>
   )

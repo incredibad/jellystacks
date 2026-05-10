@@ -132,6 +132,11 @@ def list_collections(
     return [_collection_to_response(c) for c in cols]
 
 
+@router.get("/count")
+def collection_count(db: Session = Depends(get_db), _: models.User = Depends(get_current_user)):
+    return {"count": db.query(models.Collection).count()}
+
+
 @router.post("", response_model=schemas.CollectionDetailResponse)
 def create_collection(
     data: schemas.CollectionCreate,
