@@ -215,6 +215,11 @@ export default function TmdbCollectionModal({ onClose, onCreate }) {
                           <p className="text-xs text-slate-500 truncate mt-0.5">{result.overview}</p>
                         )}
                       </div>
+                      {result.total_parts > 0 && (
+                        <span className={`flex-shrink-0 text-xs font-medium tabular-nums ${result.owned_count > 0 ? 'text-emerald-400' : 'text-slate-600'}`}>
+                          {result.owned_count}/{result.total_parts}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
