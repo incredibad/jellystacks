@@ -1,3 +1,4 @@
+import base64
 import io
 import json
 from datetime import datetime
@@ -106,7 +107,51 @@ def list_libraries(db: Session = Depends(get_db), _: models.User = Depends(get_c
     return [r[0] for r in rows]
 
 
+async def _push_artwork_to_jf(
+    jf_url: str, api_key: str, jellyfin_id: str, custom_artwork_url: str
+) -> None:
+    """Push custom artwork to Jellyfin. Logs errors but does not raise."""
+    try:
+        headers = _jellyfin_headers(api_key)
+        image_endpoint = f"{jf_url.rstrip('/')}/Items/{jellyfin_id}/Images/Primary"
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+            if custom_artwork_url.startswith('/data/'):
+                p = Path(custom_artwork_url)
+                if not p.exists():
+                    print(f"[artwork] local file not found: {p}", flush=True)
+                    return
+                image_bytes = p.read_bytes()
+            else:
+                r = await client.get(custom_artwork_url)
+                if r.status_code != 200:
+                    print(f"[artwork] fetch remote {r.status_code}", flush=True)
+                    return
+                image_bytes = r.content
+            # Ensure JPEG
+            img = PILImage.open(io.BytesIO(image_bytes))
+            if img.mode not in ("RGB", "L"):
+                img = img.convert("RGB")
+            buf = io.BytesIO()
+            img.save(buf, "JPEG", quality=92)
+            image_bytes = buf.getvalue()
+            resp = await client.post(
+                image_endpoint, content=image_bytes,
+                headers={**headers, "Content-Type": "image/jpeg"},
+            )
+            print(f"[artwork] JF push {resp.status_code}", flush=True)
+            if resp.status_code == 500:
+                resp = await client.post(
+                    image_endpoint, content=base64.b64encode(image_bytes),
+                    headers={**headers, "Content-Type": "image/jpeg"},
+                )
+                print(f"[artwork] JF push b64 {resp.status_code}", flush=True)
+    except Exception as e:
+        print(f"[artwork] push to JF failed: {e}", flush=True)
+
+
 # ── Poster proxy — no auth required (movie artwork is not sensitive) ──────────
+_NO_STORE = {"Cache-Control": "no-store"}
+
 @router.get("/{movie_id}/poster")
 async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
     movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
@@ -118,13 +163,13 @@ async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
         if movie.custom_artwork_url.startswith('/data/'):
             p = Path(movie.custom_artwork_url)
             if p.exists():
-                return FileResponse(str(p), media_type='image/jpeg')
+                return FileResponse(str(p), media_type='image/jpeg', headers=_NO_STORE)
         else:
             try:
                 async with httpx.AsyncClient(timeout=15) as client:
                     r = await client.get(movie.custom_artwork_url)
                 if r.status_code == 200:
-                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'))
+                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'), headers=_NO_STORE)
             except Exception:
                 pass
 
@@ -175,6 +220,9 @@ async def upload_movie_artwork(
     movie.custom_artwork_url = str(path)
     db.commit()
     db.refresh(movie)
+    s = _get_settings_dict(db)
+    if s.get("jellyfin_url") and s.get("jellyfin_api_key"):
+        await _push_artwork_to_jf(s["jellyfin_url"], s["jellyfin_api_key"], movie.jellyfin_id, str(path))
     return _movie_to_response(movie)
 
 
@@ -183,7 +231,7 @@ class ArtworkUrlRequest(BaseModel):
 
 
 @router.put("/{movie_id}/artwork", response_model=schemas.MovieResponse)
-def set_movie_artwork_url(
+async def set_movie_artwork_url(
     movie_id: int,
     data: ArtworkUrlRequest,
     db: Session = Depends(get_db),
@@ -193,6 +241,37 @@ def set_movie_artwork_url(
     if not movie:
         raise HTTPException(404, "Movie not found.")
     movie.custom_artwork_url = data.url
+    db.commit()
+    db.refresh(movie)
+    s = _get_settings_dict(db)
+    if s.get("jellyfin_url") and s.get("jellyfin_api_key"):
+        await _push_artwork_to_jf(s["jellyfin_url"], s["jellyfin_api_key"], movie.jellyfin_id, data.url)
+    return _movie_to_response(movie)
+
+
+@router.delete("/{movie_id}/artwork", response_model=schemas.MovieResponse)
+async def clear_movie_artwork(
+    movie_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+    if not movie:
+        raise HTTPException(404, "Movie not found.")
+    movie.custom_artwork_url = None
+    path = _ARTWORK_DIR / f"{movie_id}.jpg"
+    if path.exists():
+        path.unlink()
+    s = _get_settings_dict(db)
+    if s.get("jellyfin_url") and s.get("jellyfin_api_key"):
+        try:
+            async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+                await client.delete(
+                    f"{s['jellyfin_url'].rstrip('/')}/Items/{movie.jellyfin_id}/Images/Primary",
+                    headers=_jellyfin_headers(s["jellyfin_api_key"]),
+                )
+        except Exception as e:
+            print(f"[artwork] JF delete failed: {e}", flush=True)
     db.commit()
     db.refresh(movie)
     return _movie_to_response(movie)

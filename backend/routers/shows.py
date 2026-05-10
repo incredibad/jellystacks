@@ -15,12 +15,14 @@ import models
 import schemas
 from auth import get_current_user
 from routers.settings import _get_settings_dict
-from routers.movies import _jellyfin_headers
+from routers.movies import _jellyfin_headers, _push_artwork_to_jf
 
 router = APIRouter()
 
 _ARTWORK_DIR = Path("/data/artwork/shows")
 _ARTWORK_DIR.mkdir(parents=True, exist_ok=True)
+
+_NO_STORE = {"Cache-Control": "no-store"}
 
 
 def _show_to_response(s: models.Show) -> schemas.ShowResponse:
@@ -104,13 +106,13 @@ async def show_poster(show_id: int, db: Session = Depends(get_db)):
         if show.custom_artwork_url.startswith('/data/'):
             p = Path(show.custom_artwork_url)
             if p.exists():
-                return FileResponse(str(p), media_type='image/jpeg')
+                return FileResponse(str(p), media_type='image/jpeg', headers=_NO_STORE)
         else:
             try:
                 async with httpx.AsyncClient(timeout=15) as client:
                     r = await client.get(show.custom_artwork_url)
                 if r.status_code == 200:
-                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'))
+                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'), headers=_NO_STORE)
             except Exception:
                 pass
 
@@ -161,6 +163,9 @@ async def upload_show_artwork(
     show.custom_artwork_url = str(path)
     db.commit()
     db.refresh(show)
+    s = _get_settings_dict(db)
+    if s.get("jellyfin_url") and s.get("jellyfin_api_key"):
+        await _push_artwork_to_jf(s["jellyfin_url"], s["jellyfin_api_key"], show.jellyfin_id, str(path))
     return _show_to_response(show)
 
 
@@ -169,7 +174,7 @@ class ArtworkUrlRequest(BaseModel):
 
 
 @router.put("/{show_id}/artwork", response_model=schemas.ShowResponse)
-def set_show_artwork_url(
+async def set_show_artwork_url(
     show_id: int,
     data: ArtworkUrlRequest,
     db: Session = Depends(get_db),
@@ -179,6 +184,37 @@ def set_show_artwork_url(
     if not show:
         raise HTTPException(404, "Show not found.")
     show.custom_artwork_url = data.url
+    db.commit()
+    db.refresh(show)
+    s = _get_settings_dict(db)
+    if s.get("jellyfin_url") and s.get("jellyfin_api_key"):
+        await _push_artwork_to_jf(s["jellyfin_url"], s["jellyfin_api_key"], show.jellyfin_id, data.url)
+    return _show_to_response(show)
+
+
+@router.delete("/{show_id}/artwork", response_model=schemas.ShowResponse)
+async def clear_show_artwork(
+    show_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    show = db.query(models.Show).filter(models.Show.id == show_id).first()
+    if not show:
+        raise HTTPException(404, "Show not found.")
+    show.custom_artwork_url = None
+    path = _ARTWORK_DIR / f"{show_id}.jpg"
+    if path.exists():
+        path.unlink()
+    s = _get_settings_dict(db)
+    if s.get("jellyfin_url") and s.get("jellyfin_api_key"):
+        try:
+            async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+                await client.delete(
+                    f"{s['jellyfin_url'].rstrip('/')}/Items/{show.jellyfin_id}/Images/Primary",
+                    headers=_jellyfin_headers(s["jellyfin_api_key"]),
+                )
+        except Exception as e:
+            print(f"[artwork] JF delete failed: {e}", flush=True)
     db.commit()
     db.refresh(show)
     return _show_to_response(show)

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Film, X, Upload, Image as ImageIcon, Loader } from 'lucide-react'
+import { Film, X, Upload, Image as ImageIcon, Loader, RotateCcw } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import { libraryColor } from '../utils/libraryColor'
@@ -22,7 +22,10 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
   const baseUrl = isShow
     ? `/api/shows/${movie.id}/poster`
     : `/api/movies/${movie.id}/poster`
-  const posterUrl = localPreview ?? (cacheBuster ? `${baseUrl}?t=${cacheBuster}` : baseUrl)
+  const stableBuster = movie.custom_artwork_url
+    ? (movie.custom_artwork_url.startsWith('/data/') ? 'local' : encodeURIComponent(movie.custom_artwork_url).slice(-24))
+    : null
+  const posterUrl = localPreview ?? (cacheBuster ? `${baseUrl}?t=${cacheBuster}` : stableBuster ? `${baseUrl}?t=${stableBuster}` : baseUrl)
 
   const analyzeImage = (file) => new Promise((resolve) => {
     const img = new Image()
@@ -102,6 +105,22 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
     setArtworkModal(false)
   }
 
+  const handleRevert = async (e) => {
+    e.stopPropagation()
+    setUploading(true)
+    try {
+      const endpoint = isShow ? `/shows/${movie.id}/artwork` : `/movies/${movie.id}/artwork`
+      const { data } = await api.delete(endpoint)
+      onArtworkChange(data)
+      setCacheBuster(Date.now())
+      toast.success('Reverted to original artwork.')
+    } catch {
+      toast.error('Failed to revert artwork.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <>
       <div className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
@@ -137,6 +156,15 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
               >
                 <Upload size={11} />
               </button>
+              {movie.custom_artwork_url && (
+                <button
+                  onClick={handleRevert}
+                  className="text-white hover:text-rose-300 transition-colors"
+                  title="Revert to original"
+                >
+                  <RotateCcw size={11} />
+                </button>
+              )}
             </div>
           )}
           {onArtworkChange && uploading && (
