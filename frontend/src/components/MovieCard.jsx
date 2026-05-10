@@ -163,6 +163,16 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
           )
         })()}
 
+        {/* Custom artwork badge — top-left */}
+        {movie.custom_artwork_url && (
+          <span
+            className="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-tight backdrop-blur-sm"
+            style={{ background: 'rgba(109, 40, 217, 0.9)', color: '#fff' }}
+          >
+            Custom
+          </span>
+        )}
+
         {/* Selection overlay */}
         {onToggle && (
           <div className={`absolute inset-0 transition-all ${

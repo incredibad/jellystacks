@@ -126,7 +126,7 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
     <>
       <div className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
         {/* Mini poster */}
-        <div className={`w-9 h-12 rounded overflow-hidden flex-shrink-0 bg-slate-800 ${onArtworkChange ? 'relative' : ''}`}>
+        <div className={`w-9 h-12 rounded overflow-hidden flex-shrink-0 bg-slate-800 relative`}>
           {imgFailed && !localPreview ? (
             <div className="w-full h-full flex items-center justify-center">
               <Film size={14} className="text-slate-600" />
@@ -139,6 +139,17 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
               className="w-full h-full object-cover"
               onError={() => { if (!localPreview) setImgFailed(true) }}
             />
+          )}
+
+          {/* Custom artwork badge — top-left corner of thumbnail */}
+          {movie.custom_artwork_url && (
+            <span
+              className="absolute top-0 left-0 z-10 w-3.5 h-3.5 flex items-center justify-center rounded-br"
+              style={{ background: 'rgba(109, 40, 217, 0.9)' }}
+              title="Custom artwork"
+            >
+              <ImageIcon size={7} className="text-white" />
+            </span>
           )}
 
           {onArtworkChange && !uploading && (

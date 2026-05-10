@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.12.3] — 2026-05-10
+
+### Added
+- "Custom" badge on poster cards (top-left) and a small icon badge on list-row thumbnails (top-left corner) to indicate that a custom artwork image is applied — same visual style as the library badge
+
+---
+
 ## [1.12.2] — 2026-05-10
 
 ### Fixed
