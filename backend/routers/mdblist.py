@@ -46,6 +46,23 @@ def _split_raw_response(raw) -> tuple[set, set, int]:
     return _extract(movies_raw), _extract(shows_raw), len(movies_raw) + len(shows_raw)
 
 
+@router.get("/top")
+async def top_lists(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    api_key = _get_api_key(db)
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(
+            f"{_MDBLIST_BASE}/lists/top",
+            params={"apikey": api_key},
+        )
+    if resp.status_code != 200:
+        raise HTTPException(502, "Failed to fetch top lists.")
+    raw = resp.json()
+    return raw if isinstance(raw, list) else raw.get("lists", raw.get("top", []))
+
+
 @router.get("/search")
 async def search_lists(
     query: str = Query(..., min_length=1),

@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.5] — 2026-05-10
+
+### Added
+- MDBList modal now loads Top Lists on open (via `GET /api/mdblist/top`); typing in the search box switches to search results
+
+---
+
 ## [1.8.4] — 2026-05-10
 
 ### Changed
