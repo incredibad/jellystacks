@@ -85,13 +85,20 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
             ) : null}
           </div>
 
-          {/* Movie count badge */}
+          {/* Item count badge */}
           <div className="absolute bottom-2 right-2">
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-black/60 text-slate-300">
-              {collection.tmdb_collection_id && collection.tmdb_total_parts
-                ? `${collection.movie_count}/${collection.tmdb_total_parts} movies`
-                : `${collection.movie_count} ${collection.movie_count === 1 ? 'movie' : 'movies'}`
-              }
+              {(() => {
+                const mc = collection.movie_count
+                const sc = collection.show_count || 0
+                if (collection.tmdb_collection_id && collection.tmdb_total_parts) {
+                  return `${mc}/${collection.tmdb_total_parts} movies${sc > 0 ? ` · ${sc}S` : ''}`
+                }
+                const parts = []
+                if (mc > 0) parts.push(`${mc} ${mc === 1 ? 'movie' : 'movies'}`)
+                if (sc > 0) parts.push(`${sc} ${sc === 1 ? 'show' : 'shows'}`)
+                return parts.join(' · ') || 'Empty'
+              })()}
             </span>
           </div>
         </div>
