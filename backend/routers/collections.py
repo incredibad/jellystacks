@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import mimetypes
 from datetime import datetime, timedelta
@@ -493,30 +494,38 @@ def get_show_suggestions(
     ]
 
 
+def _to_jpeg_bytes(path: Path) -> bytes:
+    """Read any image file and return JPEG bytes, converting format/mode as needed."""
+    from PIL import Image as PilImage
+    with PilImage.open(path) as img:
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=92)
+        return buf.getvalue()
+
+
 async def _upload_artwork(jf_url: str, api_key: str, jf_col_id: str, artwork_url: str, collection_id: int | None = None) -> str | None:
     """Push artwork to Jellyfin.
 
-    For local uploaded files: POST raw bytes to /Items/{id}/Images/Primary.
+    For local uploaded files: POST raw JPEG bytes to /Items/{id}/Images/Primary.
     For remote URLs: use RemoteImages/Download so Jellyfin fetches it itself.
 
     Returns None on success or an error string on failure.
     """
     try:
         headers = _jellyfin_headers(api_key)
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
             if artwork_url.startswith("/api/collections/") and collection_id is not None:
                 matches = list(_ARTWORK_DIR.glob(f"{collection_id}.*"))
                 if not matches:
                     return "Local artwork file not found on server."
-                path = matches[0]
-                content_type = mimetypes.guess_type(str(path))[0] or "image/jpeg"
-                # Extract raw API key from the Authorization header for the query param fallback
-                raw_api_key = api_key
+                image_bytes = _to_jpeg_bytes(matches[0])
                 resp = await client.post(
                     f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary",
-                    content=path.read_bytes(),
-                    headers={**headers, "Content-Type": content_type},
-                    params={"api_key": raw_api_key},
+                    content=image_bytes,
+                    headers={**headers, "Content-Type": "image/jpeg"},
+                    params={"api_key": api_key},
                 )
             else:
                 image_url = artwork_url.replace('/original/', '/w500/')
