@@ -171,9 +171,31 @@ async def search_tmdb_collections(
         )
     if resp.status_code != 200:
         raise HTTPException(502, f"TMDB error: {resp.status_code}")
-    results = resp.json().get("results", [])
-    return [
-        {
+    results = resp.json().get("results", [])[:20]
+    if not results:
+        return []
+
+    # Fetch collection details concurrently to get owned counts
+    owned_tmdb_ids = {
+        m.tmdb_id
+        for m in db.query(models.Movie).filter(models.Movie.tmdb_id.isnot(None)).all()
+    }
+    async with httpx.AsyncClient(timeout=15) as client:
+        detail_resps = await asyncio.gather(
+            *[client.get(f"{TMDB_BASE}/collection/{r['id']}", params={"api_key": api_key})
+              for r in results],
+            return_exceptions=True,
+        )
+
+    output = []
+    for r, detail in zip(results, detail_resps):
+        total_parts = 0
+        owned_count = 0
+        if not isinstance(detail, Exception) and detail.status_code == 200:
+            parts = detail.json().get("parts", [])
+            total_parts = len(parts)
+            owned_count = sum(1 for p in parts if str(p["id"]) in owned_tmdb_ids)
+        output.append({
             "id": r["id"],
             "name": r.get("name"),
             "overview": r.get("overview"),
@@ -181,9 +203,10 @@ async def search_tmdb_collections(
                 f"/api/tmdb/proxy-image?url={TMDB_IMG_BASE}/w185{r['poster_path']}"
                 if r.get("poster_path") else None
             ),
-        }
-        for r in results[:20]
-    ]
+            "total_parts": total_parts,
+            "owned_count": owned_count,
+        })
+    return output
 
 
 @router.get("/collection/{tmdb_collection_id}")

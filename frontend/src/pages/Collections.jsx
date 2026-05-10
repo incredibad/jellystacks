@@ -299,7 +299,7 @@ export default function Collections() {
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setOpsOpen(false)} />
                 <div
-                  className="absolute right-0 top-10 z-20 w-52 rounded-xl shadow-xl py-1"
+                  className="absolute right-0 top-10 z-20 w-60 rounded-xl shadow-xl py-1"
                   style={{ background: '#1e1e30', border: '1px solid var(--border)' }}
                 >
                   {[
@@ -350,7 +350,7 @@ export default function Collections() {
                             : 'text-slate-300 hover:bg-white/5 hover:text-white'
                         }`}
                       >
-                        {item.icon}
+                        <span className="w-4 flex-shrink-0 flex items-center justify-center">{item.icon}</span>
                         {item.label}
                       </button>
                     )
@@ -500,7 +500,12 @@ export default function Collections() {
                 onClick={() => { setShowNewChoice(false); setShowTmdbSearch(true) }}
                 className="flex flex-col items-center gap-2 p-4 rounded-xl text-center hover:bg-white/5 transition-colors border border-slate-700 hover:border-violet-500/40"
               >
-                <Film size={24} className="text-violet-400" />
+                <span
+                  className="px-2 py-1 rounded text-white text-sm font-black tracking-wider"
+                  style={{ background: 'linear-gradient(135deg, #90cea1, #01b4e4)' }}
+                >
+                  TMDB
+                </span>
                 <div>
                   <p className="text-sm font-medium text-white">From TMDB</p>
                   <p className="text-xs text-slate-500 mt-0.5">Import a known franchise</p>

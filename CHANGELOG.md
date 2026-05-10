@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.6.1] — 2026-05-10
+
+### Fixed
+- Operations dropdown items now have a fixed-width icon container so all labels align correctly; dropdown widened to prevent "Delete Jellyfin Collections" from wrapping
+- TMDB collection search results now show owned/total movie count on the right of each row (green when you own at least one, grey otherwise)
+- "From TMDB" option in the New Collection choice modal now shows the TMDB brand badge instead of a generic film icon
+
+---
+
 ## [1.6.0] — 2026-05-10
 
 ### Added
