@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.12.1] — 2026-05-10
+
+### Changed
+- Removed the Backdrops tab from the artwork picker modal — only posters are shown
+
+---
+
 ## [1.12.0] — 2026-05-10
 
 ### Fixed

@@ -5,7 +5,6 @@ import toast from 'react-hot-toast'
 
 export default function MediaArtworkModal({ item, mediaType, onClose, onUpdated }) {
   const [images, setImages] = useState(null)
-  const [activeTab, setActiveTab] = useState('posters')
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -21,7 +20,7 @@ export default function MediaArtworkModal({ item, mediaType, onClose, onUpdated 
       .finally(() => setLoading(false))
   }, []) // eslint-disable-line
 
-  const displayImages = images ? (activeTab === 'posters' ? images.posters : images.backdrops) : []
+  const displayImages = images ? images.posters : []
 
   const handleConfirm = async () => {
     if (!selected) return
@@ -61,23 +60,6 @@ export default function MediaArtworkModal({ item, mediaType, onClose, onUpdated 
           </button>
         </div>
 
-        {/* Tabs */}
-        {images && (
-          <div className="flex gap-1 p-3 border-b" style={{ borderColor: 'var(--border)' }}>
-            {['posters', 'backdrops'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => { setActiveTab(tab); setSelected(null) }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
-                  activeTab === tab ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {tab} ({(tab === 'posters' ? images.posters : images.backdrops).length})
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* Image grid */}
         <div className="flex-1 overflow-y-auto p-4">
           {loading && (
@@ -93,10 +75,10 @@ export default function MediaArtworkModal({ item, mediaType, onClose, onUpdated 
             </div>
           )}
           {!loading && images && displayImages.length === 0 && (
-            <p className="text-center text-sm text-slate-500 py-8">No {activeTab} available.</p>
+            <p className="text-center text-sm text-slate-500 py-8">No posters available.</p>
           )}
           {!loading && displayImages.length > 0 && (
-            <div className={`grid gap-2 ${activeTab === 'posters' ? 'grid-cols-4 sm:grid-cols-5' : 'grid-cols-2'}`}>
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
               {displayImages.map((img, i) => (
                 <button
                   key={i}
@@ -110,7 +92,7 @@ export default function MediaArtworkModal({ item, mediaType, onClose, onUpdated 
                   <img
                     src={img.thumb_url}
                     alt=""
-                    className={`w-full h-full object-cover ${activeTab === 'posters' ? 'aspect-[2/3]' : 'aspect-video'}`}
+                    className="w-full h-full object-cover aspect-[2/3]"
                   />
                   {selected?.file_path === img.file_path && (
                     <div className="absolute inset-0 bg-violet-600/20 flex items-center justify-center">
