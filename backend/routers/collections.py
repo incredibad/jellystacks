@@ -262,9 +262,14 @@ async def clear_jellyfin_native(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
-    """Delete all Jellyfin-auto-generated collections from Jellyfin and the local database."""
+    """Delete all Jellyfin-linked collections from Jellyfin and the local database.
+
+    Targets any collection with a jellyfin_collection_id — this covers both
+    collections marked is_jellyfin_native=True and older imports that predate
+    that column (which defaulted to False).
+    """
     cols = db.query(models.Collection).filter(
-        models.Collection.is_jellyfin_native == True  # noqa: E712
+        models.Collection.jellyfin_collection_id.isnot(None)
     ).all()
 
     s = _get_settings_dict(db)
@@ -638,6 +643,7 @@ async def import_from_jellyfin(
                 if existing.name != name:
                     existing.name = name
                     updated += 1
+                existing.is_jellyfin_native = True
 
                 # Re-sync movie membership so newly-added Jellyfin movies are picked up.
                 items_resp = await client.get(
