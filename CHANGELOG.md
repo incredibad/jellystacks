@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.15] — 2026-05-10
+
+### Changed
+- MDBList and TMDB auto-imports now deduplicate movies by TMDB ID, preferring the 4K/UHD library version when a movie exists in multiple libraries — manual collection management is unaffected and still shows all versions
+- Related movie recommendations also now prefer 4K versions when deduplicating
+
+---
+
 ## [1.8.14] — 2026-05-10
 
 ### Fixed
