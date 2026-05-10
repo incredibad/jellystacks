@@ -4,6 +4,16 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.7.2] — 2026-05-10
+
+### Fixed
+- **Bulk delete regression**: "Delete Jellyfin Collections" was incorrectly targeting all collections with any Jellyfin link (including user-created collections that had been pushed). Reverted to targeting only `is_jellyfin_native = True` — locally created collections are now safe even after being pushed to Jellyfin.
+- **Import regression**: `import_from_jellyfin` was stamping `is_jellyfin_native = True` on existing collections, wrongly marking user-created collections as Jellyfin-native when re-importing. The flag is now only set on newly imported collections, never on existing ones.
+- **Delete count**: Confirm modal and disabled-state logic now correctly count `is_jellyfin_native` collections, not all Jellyfin-linked ones.
+- **"Imported from Jellyfin" badge is now clickable**: Clicking it on any collection detail page marks that collection as local (`is_jellyfin_native = false`), allowing users to repair collections that were incorrectly flagged by the v1.7.1 regression.
+
+---
+
 ## [1.7.1] — 2026-05-10
 
 ### Fixed

@@ -366,10 +366,22 @@ export default function CollectionDetail() {
         <div className="flex-1 min-w-0 py-1">
           <div className="flex items-center gap-3 mb-1 flex-wrap">
             {collection.is_jellyfin_native && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-blue-900 text-white">
+              <button
+                onClick={async () => {
+                  try {
+                    const { data } = await api.put(`/collections/${id}`, { is_jellyfin_native: false })
+                    setCollection(data)
+                    toast.success('Marked as local — excluded from bulk Jellyfin delete.')
+                  } catch {
+                    toast.error('Failed to update.')
+                  }
+                }}
+                title="Click to mark as a locally-created collection (excludes it from bulk Jellyfin delete)"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-blue-900 text-white hover:bg-blue-800 transition-colors"
+              >
                 <Import size={12} />
                 Imported from Jellyfin
-              </span>
+              </button>
             )}
             {needsSync ? (
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-orange-600 text-white">

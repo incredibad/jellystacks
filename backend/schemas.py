@@ -111,6 +111,7 @@ class CollectionUpdate(BaseModel):
     description: Optional[str] = None
     artwork_url: Optional[str] = None
     tmdb_collection_id: Optional[str] = None
+    is_jellyfin_native: Optional[bool] = None
 
 
 class CollectionMoviesAdd(BaseModel):
