@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.6] — 2026-05-10
+
+### Added
+- MDBList preview now shows the full item list with owned items highlighted (green tick, subtle background) and unowned items dimmed; summary shows owned count out of total
+- Search results sorted by likes descending
+
+---
+
 ## [1.8.5] — 2026-05-10
 
 ### Added

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, X, ChevronLeft, Plus, List, Heart } from 'lucide-react'
+import { Search, X, ChevronLeft, Plus, List, Heart, Check } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -28,7 +28,8 @@ export default function MdblistModal({ onClose, onCreate }) {
     setSearching(true)
     try {
       const { data } = await api.get('/mdblist/search', { params: { query: q } })
-      setResults(Array.isArray(data) ? data : [])
+      const list = Array.isArray(data) ? data : []
+      setResults(list.sort((a, b) => (b.likes || 0) - (a.likes || 0)))
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Search failed.')
     } finally {
@@ -128,22 +129,42 @@ export default function MdblistModal({ onClose, onCreate }) {
                 </div>
               </div>
 
-              {/* Owned count */}
+              {/* Item list */}
               {loadingPreview ? (
-                <div className="flex items-center justify-center py-4">
+                <div className="flex items-center justify-center py-6">
                   <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : preview && (
-                <div className="rounded-lg p-3 space-y-1" style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}>
-                  {preview.movie_count > 0 && (
-                    <p className="text-sm text-emerald-400">{preview.movie_count} movie{preview.movie_count !== 1 ? 's' : ''} in your library</p>
-                  )}
-                  {preview.show_count > 0 && (
-                    <p className="text-sm text-emerald-400">{preview.show_count} show{preview.show_count !== 1 ? 's' : ''} in your library</p>
-                  )}
-                  {ownedCount === 0 && (
-                    <p className="text-sm text-slate-500">None of this list's items are in your library.</p>
-                  )}
+                <div>
+                  <p className="text-xs font-medium text-slate-500 mb-2">
+                    {ownedCount > 0
+                      ? <><span className="text-emerald-400">{ownedCount}</span> of {preview.total_items} items in your library</>
+                      : `${preview.total_items} items — none in your library`}
+                  </p>
+                  <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+                    {(preview.items || []).map((item, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-2 px-3 py-1.5 border-b last:border-b-0"
+                        style={{ borderColor: 'var(--border)', background: item.owned ? 'rgba(16,185,129,0.05)' : undefined }}
+                      >
+                        {item.owned
+                          ? <Check size={13} className="text-emerald-400 flex-shrink-0" />
+                          : <div className="w-[13px] flex-shrink-0" />}
+                        <span className={`flex-1 text-sm truncate ${item.owned ? 'text-slate-200' : 'text-slate-500'}`}>
+                          {item.title}
+                        </span>
+                        {item.year && (
+                          <span className="text-xs text-slate-600 tabular-nums">{item.year}</span>
+                        )}
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${
+                          item.mediatype === 'movie' ? 'bg-blue-500/15 text-blue-400' : 'bg-emerald-500/15 text-emerald-400'
+                        }`}>
+                          {item.mediatype === 'movie' ? 'Movie' : 'Show'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
