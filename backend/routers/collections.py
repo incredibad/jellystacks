@@ -431,6 +431,8 @@ def add_movies(
     _: models.User = Depends(get_current_user),
 ):
     col = _load_col(collection_id, db)
+    if col.tmdb_collection_id or col.mdblist_list_id:
+        raise HTTPException(400, "Managed collections cannot be manually modified.")
     existing_ids = {m.id for m in col.movies}
     for movie in db.query(models.Movie).filter(models.Movie.id.in_(data.movie_ids)).all():
         if movie.id not in existing_ids:
@@ -449,6 +451,8 @@ def remove_movie(
     _: models.User = Depends(get_current_user),
 ):
     col = _load_col(collection_id, db)
+    if col.tmdb_collection_id or col.mdblist_list_id:
+        raise HTTPException(400, "Managed collections cannot be manually modified.")
     col.movies = [m for m in col.movies if m.id != movie_id]
     col.updated_at = datetime.utcnow()
     db.commit()
@@ -464,6 +468,8 @@ def add_shows(
     _: models.User = Depends(get_current_user),
 ):
     col = _load_col(collection_id, db)
+    if col.tmdb_collection_id or col.mdblist_list_id:
+        raise HTTPException(400, "Managed collections cannot be manually modified.")
     existing_ids = {s.id for s in col.shows}
     for show in db.query(models.Show).filter(models.Show.id.in_(data.show_ids)).all():
         if show.id not in existing_ids:
@@ -482,6 +488,8 @@ def remove_show(
     _: models.User = Depends(get_current_user),
 ):
     col = _load_col(collection_id, db)
+    if col.tmdb_collection_id or col.mdblist_list_id:
+        raise HTTPException(400, "Managed collections cannot be manually modified.")
     col.shows = [s for s in col.shows if s.id != show_id]
     col.updated_at = datetime.utcnow()
     db.commit()
