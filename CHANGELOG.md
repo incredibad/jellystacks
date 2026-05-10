@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.7.1] — 2026-05-10
+
+### Fixed
+- "Delete Jellyfin Collections" now targets all collections with a Jellyfin ID, not just those flagged `is_jellyfin_native`. Collections imported before that column was introduced defaulted to `False` and were previously invisible to the bulk delete. The button is also no longer incorrectly disabled when unflagged Jellyfin collections exist.
+- `import_from_jellyfin` now sets `is_jellyfin_native = True` on existing collections when updating them, so re-importing correctly marks them for future bulk deletes.
+
+---
+
 ## [1.7.0] — 2026-05-10
 
 ### Added
