@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.7.3] — 2026-05-10
+
+### Fixed
+- Status badge (left) and type badge (right) on collection poster cards are now in a single shared flex row, so they always sit on the same horizontal line
+- "Custom" badge on poster cards no longer requires TMDB detection to have run — it now shows for any locally-created (non-Jellyfin-native) collection that isn't linked to a TMDB franchise
+
+---
+
 ## [1.7.2] — 2026-05-10
 
 ### Fixed
