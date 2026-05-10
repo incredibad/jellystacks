@@ -1,14 +1,107 @@
-import { useState } from 'react'
-import { Film } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Film, Upload, Image as ImageIcon, Loader } from 'lucide-react'
+import api from '../api/client'
+import toast from 'react-hot-toast'
 import { libraryColor } from '../utils/libraryColor'
+import MediaArtworkModal from './MediaArtworkModal'
 
-export default function MovieCard({ movie, selected, onToggle }) {
+const POSTER_MAX_DIM = 1000
+const SIZE_THRESHOLD = 2 * 1024 * 1024
+
+export default function MovieCard({ movie, selected, onToggle, onArtworkChange }) {
   const [imgFailed, setImgFailed] = useState(false)
+  const [cacheBuster, setCacheBuster] = useState(0)
+  const [artworkModal, setArtworkModal] = useState(false)
+  const [pendingUpload, setPendingUpload] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [localPreview, setLocalPreview] = useState(null)
+  const fileInputRef = useRef(null)
 
   const isShow = movie.media_type === 'show'
-  const posterUrl = isShow
+  const canEditArtwork = !!onArtworkChange && !onToggle
+
+  const baseUrl = isShow
     ? `/api/shows/${movie.id}/poster`
     : `/api/movies/${movie.id}/poster`
+  const posterUrl = localPreview ?? (cacheBuster ? `${baseUrl}?t=${cacheBuster}` : baseUrl)
+
+  const analyzeImage = (file) => new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const { width, height } = img
+      const scale = Math.min(POSTER_MAX_DIM / width, POSTER_MAX_DIM / height)
+      resolve({
+        file,
+        width,
+        height,
+        sizeBytes: file.size,
+        isLarge: file.size > SIZE_THRESHOLD || width > POSTER_MAX_DIM || height > POSTER_MAX_DIM,
+        targetWidth: Math.round(width * scale),
+        targetHeight: Math.round(height * scale),
+      })
+    }
+    img.src = url
+  })
+
+  const resizeImageFile = (file, targetW, targetH) => new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const canvas = document.createElement('canvas')
+      canvas.width = targetW
+      canvas.height = targetH
+      canvas.getContext('2d').drawImage(img, 0, 0, targetW, targetH)
+      canvas.toBlob(blob => resolve(new File([blob], 'poster.jpg', { type: 'image/jpeg' })), 'image/jpeg', 0.92)
+    }
+    img.src = url
+  })
+
+  const doUpload = async (file) => {
+    setUploading(true)
+    setPendingUpload(null)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const endpoint = isShow
+        ? `/shows/${movie.id}/artwork/upload`
+        : `/movies/${movie.id}/artwork/upload`
+      const { data } = await api.post(endpoint, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setLocalPreview(null)
+      onArtworkChange(data)
+      setCacheBuster(Date.now())
+      toast.success('Artwork saved.')
+    } catch {
+      toast.error('Upload failed.')
+      setLocalPreview(null)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    const previewUrl = URL.createObjectURL(file)
+    setLocalPreview(previewUrl)
+    const analysis = await analyzeImage(file)
+    if (analysis.isLarge) {
+      setPendingUpload(analysis)
+    } else {
+      doUpload(file)
+    }
+  }
+
+  const handleArtworkUpdated = (updated) => {
+    onArtworkChange(updated)
+    setCacheBuster(Date.now())
+    setArtworkModal(false)
+  }
 
   return (
     <div
@@ -20,7 +113,7 @@ export default function MovieCard({ movie, selected, onToggle }) {
     >
       {/* Poster */}
       <div className="aspect-[2/3] relative overflow-hidden bg-slate-800">
-        {imgFailed ? (
+        {imgFailed && !localPreview ? (
           <div className="w-full h-full flex items-center justify-center">
             <Film size={32} className="text-slate-600" />
           </div>
@@ -30,7 +123,7 @@ export default function MovieCard({ movie, selected, onToggle }) {
             alt={movie.title}
             loading="lazy"
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            onError={() => setImgFailed(true)}
+            onError={() => { if (!localPreview) setImgFailed(true) }}
           />
         )}
 
@@ -47,7 +140,7 @@ export default function MovieCard({ movie, selected, onToggle }) {
           )
         })()}
 
-        {/* Overlay on hover / selection */}
+        {/* Selection overlay */}
         {onToggle && (
           <div className={`absolute inset-0 transition-all ${
             selected ? 'bg-violet-600/40' : 'bg-black/0 group-hover:bg-black/30'
@@ -59,6 +152,31 @@ export default function MovieCard({ movie, selected, onToggle }) {
                 </svg>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Artwork edit overlay */}
+        {canEditArtwork && !uploading && (
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+            <button
+              onClick={e => { e.stopPropagation(); setArtworkModal(true) }}
+              className="flex flex-col items-center gap-1 text-white text-[10px] hover:text-violet-300 transition-colors"
+            >
+              <ImageIcon size={16} />
+              Browse
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); fileInputRef.current?.click() }}
+              className="flex flex-col items-center gap-1 text-white text-[10px] hover:text-violet-300 transition-colors"
+            >
+              <Upload size={16} />
+              Upload
+            </button>
+          </div>
+        )}
+        {canEditArtwork && uploading && (
+          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+            <Loader size={16} className="animate-spin text-white" />
           </div>
         )}
       </div>
@@ -78,6 +196,85 @@ export default function MovieCard({ movie, selected, onToggle }) {
           )}
         </div>
       </div>
+
+      {/* Hidden file input */}
+      {canEditArtwork && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      )}
+
+      {/* Resize modal */}
+      {pendingUpload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => { setPendingUpload(null); setLocalPreview(null) }}
+          />
+          <div
+            className="relative w-full max-w-sm rounded-2xl p-6 space-y-4"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+          >
+            <h3 className="text-base font-semibold text-white">Image is too large</h3>
+            <div
+              className="rounded-lg p-3 space-y-1.5"
+              style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
+            >
+              <p className="text-sm text-slate-400">
+                Current:{' '}
+                <span className="text-slate-200">
+                  {pendingUpload.width} × {pendingUpload.height}px · {(pendingUpload.sizeBytes / 1024 / 1024).toFixed(1)} MB
+                </span>
+              </p>
+              <p className="text-sm text-slate-400">
+                Resized to:{' '}
+                <span className="text-slate-200">
+                  {pendingUpload.targetWidth} × {pendingUpload.targetHeight}px
+                </span>
+                {' '}— optimal for Jellyfin poster display
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  const resized = await resizeImageFile(pendingUpload.file, pendingUpload.targetWidth, pendingUpload.targetHeight)
+                  doUpload(resized)
+                }}
+                className="flex-1 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-colors"
+              >
+                Resize &amp; Upload
+              </button>
+              <button
+                onClick={() => doUpload(pendingUpload.file)}
+                className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                style={{ border: '1px solid var(--border)' }}
+              >
+                Upload Original
+              </button>
+            </div>
+            <button
+              onClick={() => { setPendingUpload(null); setLocalPreview(null) }}
+              className="w-full text-center text-xs text-slate-600 hover:text-slate-400 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* TMDB artwork picker modal */}
+      {artworkModal && (
+        <MediaArtworkModal
+          item={movie}
+          mediaType={isShow ? 'show' : 'movie'}
+          onClose={() => setArtworkModal(false)}
+          onUpdated={handleArtworkUpdated}
+        />
+      )}
     </div>
   )
 }

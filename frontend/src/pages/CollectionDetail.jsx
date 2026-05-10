@@ -766,7 +766,16 @@ export default function CollectionDetail() {
             <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
               {sortedMovies.map(movie => (
                 <div key={movie.id} className="relative group">
-                  <MovieCard movie={movie} />
+                  <MovieCard
+                    movie={movie}
+                    onArtworkChange={(updated) => {
+                      const field = updated.media_type === 'show' ? 'shows' : 'movies'
+                      setCollection(prev => ({
+                        ...prev,
+                        [field]: prev[field].map(item => item.id === updated.id ? updated : item)
+                      }))
+                    }}
+                  />
                   {!isLocked && (
                     <button
                       onClick={() => handleRemoveMovie(movie.id)}
@@ -783,7 +792,17 @@ export default function CollectionDetail() {
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
               {sortedMovies.map((movie, i) => (
                 <div key={movie.id} style={i > 0 ? { borderTop: '1px solid var(--border)' } : {}}>
-                  <MovieListRow movie={movie} onRemove={isLocked ? null : handleRemoveMovie} />
+                  <MovieListRow
+                    movie={movie}
+                    onRemove={isLocked ? null : handleRemoveMovie}
+                    onArtworkChange={(updated) => {
+                      const field = updated.media_type === 'show' ? 'shows' : 'movies'
+                      setCollection(prev => ({
+                        ...prev,
+                        [field]: prev[field].map(item => item.id === updated.id ? updated : item)
+                      }))
+                    }}
+                  />
                 </div>
               ))}
             </div>
@@ -801,7 +820,16 @@ export default function CollectionDetail() {
             <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
               {sortedShows.map(show => (
                 <div key={show.id} className="relative group">
-                  <MovieCard movie={show} />
+                  <MovieCard
+                    movie={show}
+                    onArtworkChange={(updated) => {
+                      const field = updated.media_type === 'show' ? 'shows' : 'movies'
+                      setCollection(prev => ({
+                        ...prev,
+                        [field]: prev[field].map(item => item.id === updated.id ? updated : item)
+                      }))
+                    }}
+                  />
                   {!isLocked && (
                     <button
                       onClick={() => handleRemoveShow(show.id)}
@@ -818,7 +846,17 @@ export default function CollectionDetail() {
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
               {sortedShows.map((show, i) => (
                 <div key={show.id} style={i > 0 ? { borderTop: '1px solid var(--border)' } : {}}>
-                  <MovieListRow movie={show} onRemove={isLocked ? null : handleRemoveShow} />
+                  <MovieListRow
+                    movie={show}
+                    onRemove={isLocked ? null : handleRemoveShow}
+                    onArtworkChange={(updated) => {
+                      const field = updated.media_type === 'show' ? 'shows' : 'movies'
+                      setCollection(prev => ({
+                        ...prev,
+                        [field]: prev[field].map(item => item.id === updated.id ? updated : item)
+                      }))
+                    }}
+                  />
                 </div>
               ))}
             </div>

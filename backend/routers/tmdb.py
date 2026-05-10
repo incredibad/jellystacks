@@ -95,6 +95,27 @@ async def get_movie_images(
     }
 
 
+@router.get("/tv/{tmdb_id}/images")
+async def get_tv_images(
+    tmdb_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    api_key = _get_tmdb_key(db)
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"{TMDB_BASE}/tv/{tmdb_id}/images",
+            params={"api_key": api_key, "language": "en", "include_image_language": "en,null"},
+        )
+    if resp.status_code != 200:
+        raise HTTPException(502, f"TMDB error: {resp.status_code}")
+    data = resp.json()
+    return {
+        "posters": [_make_image_entry(p) for p in data.get("posters", [])[:30]],
+        "backdrops": [_make_image_entry(b, "w780") for b in data.get("backdrops", [])[:15]],
+    }
+
+
 class RelatedCollectionsRequest(BaseModel):
     tmdb_ids: List[int]
 

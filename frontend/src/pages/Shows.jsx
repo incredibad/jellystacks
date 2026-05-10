@@ -213,14 +213,21 @@ export default function Shows() {
           {view === 'grid' ? (
             <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
               {shows.map(show => (
-                <MovieCard key={show.id} movie={show} />
+                <MovieCard
+                  key={show.id}
+                  movie={show}
+                  onArtworkChange={(updated) => setShows(prev => prev.map(s => s.id === updated.id ? updated : s))}
+                />
               ))}
             </div>
           ) : (
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
               {shows.map((show, i) => (
                 <div key={show.id} style={i > 0 ? { borderTop: '1px solid var(--border)' } : {}}>
-                  <MovieListRow movie={show} />
+                  <MovieListRow
+                    movie={show}
+                    onArtworkChange={(updated) => setShows(prev => prev.map(s => s.id === updated.id ? updated : s))}
+                  />
                 </div>
               ))}
             </div>
