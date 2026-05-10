@@ -197,42 +197,43 @@ export default function MdblistModal({ onClose, onCreate }) {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {results.map(result => (
-                    <button
-                      key={result.id}
-                      onClick={() => handleSelect(result)}
-                      className="w-full flex items-center gap-3 p-2.5 rounded-lg text-left hover:bg-white/5 transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-violet-600/20 flex items-center justify-center flex-shrink-0">
-                        <List size={14} className="text-violet-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-200 truncate">{result.name}</p>
-                        <p className="text-xs text-slate-500 truncate mt-0.5">
-                          by {result.user_name}
-                          {result.description ? ` · ${result.description}` : ''}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <div className="flex items-center gap-1.5">
-                          {result.mediatype && result.mediatype !== 'both' && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-700 text-slate-300">
-                              {result.mediatype === 'movie' ? 'Movies' : 'Shows'}
-                            </span>
-                          )}
-                          {result.likes > 0 && (
-                            <span className="flex items-center gap-0.5 text-xs text-slate-500">
-                              <Heart size={10} />
-                              {result.likes}
-                            </span>
-                          )}
+                  {results.map(result => {
+                    const mt = result.mediatype
+                    const badge = mt === 'movie'
+                      ? { label: 'Movies', cls: 'bg-blue-500/20 text-blue-300' }
+                      : mt === 'show'
+                      ? { label: 'Shows', cls: 'bg-emerald-500/20 text-emerald-300' }
+                      : { label: 'Mixed', cls: 'bg-violet-500/20 text-violet-300' }
+                    return (
+                      <button
+                        key={result.id}
+                        onClick={() => handleSelect(result)}
+                        className="w-full flex items-center gap-3 p-2.5 rounded-lg text-left hover:bg-white/5 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-violet-600/20 flex items-center justify-center flex-shrink-0">
+                          <List size={14} className="text-violet-400" />
                         </div>
-                        {result.items != null && (
-                          <span className="text-xs text-slate-500 tabular-nums">{result.items} items</span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-200 truncate">{result.name}</p>
+                          <p className="text-xs text-slate-500 truncate mt-0.5">
+                            by {result.user_name}
+                            {result.description ? ` · ${result.description}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <span className={`w-14 text-center px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.cls}`}>
+                            {badge.label}
+                          </span>
+                          <span className="w-10 text-right text-xs text-slate-500 tabular-nums">
+                            {result.items != null ? `${result.items}` : ''}
+                          </span>
+                          <span className="w-8 text-right flex items-center justify-end gap-0.5 text-xs text-slate-500 tabular-nums">
+                            {result.likes > 0 ? <><Heart size={10} />{result.likes}</> : null}
+                          </span>
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>
