@@ -1,9 +1,11 @@
 import asyncio
 import json
+import mimetypes
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from pathlib import Path
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session, selectinload
 import httpx
 
@@ -18,6 +20,8 @@ from scoring import _tokenise, _parse_year_range, score_movie
 
 router = APIRouter()
 
+_ARTWORK_DIR = Path("/data/artwork")
+_ARTWORK_DIR.mkdir(parents=True, exist_ok=True)
 
 _TMDB_BASE = "https://api.themoviedb.org/3"
 _TMDB_IMG_BASE = "https://image.tmdb.org/t/p"
@@ -345,6 +349,47 @@ async def get_collection_poster(collection_id: int, db: Session = Depends(get_db
     return Response(content=resp.content, media_type=content_type)
 
 
+@router.post("/{collection_id}/artwork/upload")
+async def upload_artwork(
+    collection_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    col = db.query(models.Collection).filter(models.Collection.id == collection_id).first()
+    if not col:
+        raise HTTPException(404, "Collection not found.")
+
+    content_type = file.content_type or "image/jpeg"
+    if not content_type.startswith("image/"):
+        raise HTTPException(400, "File must be an image.")
+
+    ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}.get(content_type, "jpg")
+
+    for old in _ARTWORK_DIR.glob(f"{collection_id}.*"):
+        old.unlink(missing_ok=True)
+
+    dest = _ARTWORK_DIR / f"{collection_id}.{ext}"
+    dest.write_bytes(await file.read())
+
+    local_url = f"/api/collections/{collection_id}/artwork/local"
+    col.artwork_url = local_url
+    col.updated_at = datetime.utcnow()
+    db.commit()
+
+    return {"artwork_url": local_url}
+
+
+@router.get("/{collection_id}/artwork/local")
+def serve_local_artwork(collection_id: int, db: Session = Depends(get_db)):
+    matches = list(_ARTWORK_DIR.glob(f"{collection_id}.*"))
+    if not matches:
+        raise HTTPException(404, "No local artwork.")
+    path = matches[0]
+    media_type = mimetypes.guess_type(str(path))[0] or "image/jpeg"
+    return FileResponse(str(path), media_type=media_type)
+
+
 @router.post("/{collection_id}/movies", response_model=schemas.CollectionDetailResponse)
 def add_movies(
     collection_id: int,
@@ -448,27 +493,37 @@ def get_show_suggestions(
     ]
 
 
-async def _upload_artwork(jf_url: str, api_key: str, jf_col_id: str, artwork_url: str) -> str | None:
-    """Tell Jellyfin to fetch the artwork directly from TMDB via RemoteImages/Download.
+async def _upload_artwork(jf_url: str, api_key: str, jf_col_id: str, artwork_url: str, collection_id: int | None = None) -> str | None:
+    """Push artwork to Jellyfin.
 
-    This avoids raw-byte uploads (which return HTTP 500 on some Jellyfin
-    configurations) by letting Jellyfin's own image pipeline fetch and store
-    the image — the same mechanism it uses for metadata providers.
+    For local uploaded files: POST raw bytes to /Items/{id}/Images/Primary.
+    For remote URLs: use RemoteImages/Download so Jellyfin fetches it itself.
 
     Returns None on success or an error string on failure.
     """
     try:
-        image_url = artwork_url.replace('/original/', '/w500/')
         headers = _jellyfin_headers(api_key)
-
         async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(
-                f"{jf_url.rstrip('/')}/Items/{jf_col_id}/RemoteImages/Download",
-                headers=headers,
-                params={"Type": "Primary", "ImageUrl": image_url},
-            )
+            if artwork_url.startswith("/api/collections/") and collection_id is not None:
+                matches = list(_ARTWORK_DIR.glob(f"{collection_id}.*"))
+                if not matches:
+                    return "Local artwork file not found."
+                path = matches[0]
+                content_type = mimetypes.guess_type(str(path))[0] or "image/jpeg"
+                resp = await client.post(
+                    f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary",
+                    content=path.read_bytes(),
+                    headers={**headers, "Content-Type": content_type},
+                )
+            else:
+                image_url = artwork_url.replace('/original/', '/w500/')
+                resp = await client.post(
+                    f"{jf_url.rstrip('/')}/Items/{jf_col_id}/RemoteImages/Download",
+                    headers=headers,
+                    params={"Type": "Primary", "ImageUrl": image_url},
+                )
         if resp.status_code not in (200, 204):
-            return f"Jellyfin RemoteImages/Download returned HTTP {resp.status_code}: {resp.text[:200]}"
+            return f"Jellyfin image upload returned HTTP {resp.status_code}: {resp.text[:200]}"
         return None
     except Exception as exc:
         return str(exc)
@@ -539,7 +594,7 @@ async def push_collection(
 
                 artwork_err = None
                 if col.artwork_url:
-                    artwork_err = await _upload_artwork(base, api_key, old_jf_id, col.artwork_url)
+                    artwork_err = await _upload_artwork(base, api_key, old_jf_id, col.artwork_url, collection_id=col.id)
 
                 col.in_jellyfin = True
                 col.jellyfin_synced_at = datetime.utcnow()
@@ -573,7 +628,7 @@ async def push_collection(
             # collection before we attempt the image upload — BoxSet creation
             # is partially asynchronous and an immediate upload can return 500.
             await asyncio.sleep(1)
-            artwork_err = await _upload_artwork(base, api_key, jf_col_id, col.artwork_url)
+            artwork_err = await _upload_artwork(base, api_key, jf_col_id, col.artwork_url, collection_id=col.id)
 
         col.jellyfin_collection_id = jf_col_id
         col.in_jellyfin = True
