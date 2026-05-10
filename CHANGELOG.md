@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.19] — 2026-05-10
+
+### Fixed
+- MDBList collections no longer show the "Custom Collection" badge — that badge is now suppressed when `mdblist_list_id` is set
+
+---
+
 ## [1.8.18] — 2026-05-10
 
 ### Changed
