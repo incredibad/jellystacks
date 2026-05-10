@@ -4,6 +4,18 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.9] — 2026-05-10
+
+### Fixed
+- Artwork upload now returns `updated_at` and updates local state, enabling the "Needs Sync" badge and push button immediately after upload
+- Local artwork URLs (`/api/collections/.../artwork/local`) now display correctly on the collections grid and list screens instead of being passed through the broken TMDB proxy
+- Pushing to Jellyfin after an artwork upload now correctly sends the image (sync button was previously staying disabled)
+
+### Added
+- Resize prompt appears below the artwork when the selected image exceeds 1920px or 5 MB — offers Resize (canvas-downscaled JPEG), Keep original, or Cancel
+
+---
+
 ## [1.8.8] — 2026-05-10
 
 ### Added

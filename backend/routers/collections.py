@@ -377,7 +377,7 @@ async def upload_artwork(
     col.updated_at = datetime.utcnow()
     db.commit()
 
-    return {"artwork_url": local_url}
+    return {"artwork_url": local_url, "updated_at": col.updated_at.isoformat()}
 
 
 @router.get("/{collection_id}/artwork/local")

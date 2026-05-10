@@ -10,14 +10,12 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
     collection.jellyfin_synced_at &&
     new Date(collection.updated_at) > new Date(collection.jellyfin_synced_at)
 
-  // Prefer Jellyfin poster; fall back to TMDB artwork_url
-  const jfPoster = collection.jellyfin_collection_id && !jfImgError
-    ? `/api/collections/${collection.id}/poster`
-    : null
-  const tmdbPoster = collection.artwork_url
-    ? `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
-    : null
-  const artworkSrc = jfPoster || tmdbPoster
+  const artworkSrc = (() => {
+    if (collection.artwork_url?.startsWith('/api/')) return collection.artwork_url
+    if (collection.jellyfin_collection_id && !jfImgError) return `/api/collections/${collection.id}/poster`
+    if (collection.artwork_url) return `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
+    return null
+  })()
 
   return (
     <div

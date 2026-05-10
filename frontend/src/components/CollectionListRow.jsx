@@ -13,14 +13,12 @@ export default function CollectionListRow({ collection, onPush, onDelete }) {
     collection.jellyfin_synced_at &&
     new Date(collection.updated_at) > new Date(collection.jellyfin_synced_at)
 
-  // Prefer Jellyfin poster if the collection is synced; fall back to TMDB
-  const jfPoster = collection.jellyfin_collection_id && !imgError
-    ? `/api/collections/${collection.id}/poster`
-    : null
-  const tmdbPoster = collection.artwork_url
-    ? `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
-    : null
-  const posterSrc = jfPoster || tmdbPoster
+  const posterSrc = (() => {
+    if (collection.artwork_url?.startsWith('/api/')) return collection.artwork_url
+    if (collection.jellyfin_collection_id && !imgError) return `/api/collections/${collection.id}/poster`
+    if (collection.artwork_url) return `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
+    return null
+  })()
 
   const badge = needsSync ? (
     <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20">
