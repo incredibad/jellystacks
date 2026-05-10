@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.12] — 2026-05-10
+
+### Fixed
+- Artwork upload to Jellyfin now transcodes any image to JPEG via Pillow before sending, fixing HTTP 500 errors caused by Jellyfin's image processor rejecting WebP, PNG with transparency, progressive JPEG, and other formats
+- Added `follow_redirects=True` to the Jellyfin artwork upload request so installs behind a reverse proxy don't silently drop the POST
+
+---
+
 ## [1.8.11] — 2026-05-10
 
 ### Changed
