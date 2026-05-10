@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Layers, Upload, RefreshCw, Download, LayoutGrid, LayoutList, Film, ChevronDown, Loader, Search } from 'lucide-react'
+import { Plus, Layers, Upload, RefreshCw, Download, LayoutGrid, LayoutList, Film, ChevronDown, Loader, Search, Trash2 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import CollectionCard from '../components/CollectionCard'
 import CollectionListRow from '../components/CollectionListRow'
+import TmdbCollectionModal from '../components/TmdbCollectionModal'
 import { useOperations } from '../contexts/OperationsContext'
 
 const VIEW_KEY = 'jellystacks:collections-view'
@@ -112,6 +113,8 @@ export default function Collections() {
   const [collections, setCollections] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
+  const [showNewChoice, setShowNewChoice] = useState(false)
+  const [showTmdbSearch, setShowTmdbSearch] = useState(false)
   const [importing, setImporting] = useState(false)
   const [opsOpen, setOpsOpen] = useState(false)
   const [filter, setFilter] = useState('all') // 'all' | 'local' | 'jellyfin'
@@ -232,6 +235,17 @@ export default function Collections() {
     }
   }
 
+  const handleDeleteJfNative = async () => {
+    const tid = toast.loading('Deleting Jellyfin collections…')
+    try {
+      const { data } = await api.delete('/collections/jellyfin-native')
+      toast.success(`${data.deleted} collection${data.deleted === 1 ? '' : 's'} deleted.`, { id: tid })
+      fetchCollections()
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed.', { id: tid })
+    }
+  }
+
   const sortKey = (name) => name.replace(/^(the|a|an)\s+/i, '').toLowerCase()
 
   const filtered = useMemo(() => {
@@ -298,24 +312,29 @@ export default function Collections() {
                     {
                       label: 'Verify Status',
                       icon: <RefreshCw size={14} />,
-                      busy: false,
                       disabled: collections.length === 0 || isRunning,
-                      onClick: () => { handleVerifyAll(); setOpsOpen(false) },
+                      onClick: () => { setPendingConfirm('verify'); setOpsOpen(false) },
                     },
                     {
                       label: 'Detect TMDB',
                       icon: <Film size={14} />,
-                      busy: false,
                       disabled: collections.length === 0 || isRunning,
-                      onClick: () => { handleDetectTmdb(); setOpsOpen(false) },
+                      onClick: () => { setPendingConfirm('detect-tmdb'); setOpsOpen(false) },
                     },
-                    null, // divider
+                    null,
                     {
                       label: 'Push All to Jellyfin',
                       icon: <Upload size={14} />,
-                      busy: false,
                       disabled: collections.length === 0 || isRunning,
-                      onClick: () => { setPendingConfirm('pushAll'); setOpsOpen(false) },
+                      onClick: () => { setPendingConfirm('push-all'); setOpsOpen(false) },
+                    },
+                    null,
+                    {
+                      label: 'Delete Jellyfin Collections',
+                      icon: <Trash2 size={14} />,
+                      danger: true,
+                      disabled: jellyfinNative === 0 || isRunning,
+                      onClick: () => { setPendingConfirm('delete-jf-native'); setOpsOpen(false) },
                     },
                   ].map((item, i) =>
                     item === null ? (
@@ -325,7 +344,11 @@ export default function Collections() {
                         key={item.label}
                         onClick={item.onClick}
                         disabled={item.busy || item.disabled}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors ${
+                          item.danger
+                            ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
+                            : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                        }`}
                       >
                         {item.icon}
                         {item.label}
@@ -338,7 +361,7 @@ export default function Collections() {
           </div>
 
           <button
-            onClick={() => setShowCreate(true)}
+            onClick={() => setShowNewChoice(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
           >
             <Plus size={16} />
@@ -416,7 +439,7 @@ export default function Collections() {
           <p className="text-sm font-medium text-slate-400">No collections yet</p>
           <p className="text-xs mt-1 mb-4">Create a collection to start organizing your movies.</p>
           <button
-            onClick={() => setShowCreate(true)}
+            onClick={() => setShowNewChoice(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
           >
             <Plus size={16} />
@@ -453,6 +476,47 @@ export default function Collections() {
         </div>
       )}
 
+      {showNewChoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowNewChoice(false)} />
+          <div
+            className="relative w-full max-w-sm rounded-2xl p-6"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+          >
+            <h2 className="text-lg font-semibold text-white mb-1">New Collection</h2>
+            <p className="text-sm text-slate-400 mb-5">How would you like to create this collection?</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => { setShowNewChoice(false); setShowCreate(true) }}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl text-center hover:bg-white/5 transition-colors border border-slate-700 hover:border-violet-500/40"
+              >
+                <Plus size={24} className="text-violet-400" />
+                <div>
+                  <p className="text-sm font-medium text-white">Custom</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Build a collection manually</p>
+                </div>
+              </button>
+              <button
+                onClick={() => { setShowNewChoice(false); setShowTmdbSearch(true) }}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl text-center hover:bg-white/5 transition-colors border border-slate-700 hover:border-violet-500/40"
+              >
+                <Film size={24} className="text-violet-400" />
+                <div>
+                  <p className="text-sm font-medium text-white">From TMDB</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Import a known franchise</p>
+                </div>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowNewChoice(false)}
+              className="mt-3 w-full py-2 rounded-lg text-sm text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {showCreate && (
         <CreateModal
           onClose={() => setShowCreate(false)}
@@ -460,22 +524,59 @@ export default function Collections() {
         />
       )}
 
+      {showTmdbSearch && (
+        <TmdbCollectionModal
+          onClose={() => setShowTmdbSearch(false)}
+          onCreate={(col) => navigate(`/collections/${col.id}`)}
+        />
+      )}
+
       {pendingConfirm === 'import' && (
         <ConfirmModal
           title="Import from Jellyfin"
-          description="This will pull all collections currently in Jellyfin into Jellystacks. New collections will be created locally and existing ones will be updated to reflect their current Jellyfin state. Your local-only collections are not affected."
+          description="This will pull all collections currently in Jellyfin into Jellystacks. New collections will be created locally and existing ones will be updated to reflect their current Jellyfin membership. Your manually created collections are not affected."
           confirmLabel="Import"
           onConfirm={handleImport}
           onClose={() => setPendingConfirm(null)}
         />
       )}
 
-      {pendingConfirm === 'pushAll' && (
+      {pendingConfirm === 'verify' && (
+        <ConfirmModal
+          title="Verify Jellyfin Status"
+          description={`This will check all ${collections.filter(c => c.jellyfin_collection_id).length} synced collections against Jellyfin to confirm they still exist. No changes are made to your collections — only the sync status badge is updated.`}
+          confirmLabel="Verify"
+          onConfirm={handleVerifyAll}
+          onClose={() => setPendingConfirm(null)}
+        />
+      )}
+
+      {pendingConfirm === 'detect-tmdb' && (
+        <ConfirmModal
+          title="Detect TMDB Collections"
+          description={`This will scan all ${collections.filter(c => c.movie_count > 0).length} non-empty collections to identify whether they match a known TMDB franchise. No data is changed — only the TMDB badge on each collection is updated.`}
+          confirmLabel="Run Detection"
+          onConfirm={handleDetectTmdb}
+          onClose={() => setPendingConfirm(null)}
+        />
+      )}
+
+      {pendingConfirm === 'push-all' && (
         <ConfirmModal
           title="Push All to Jellyfin"
           description={`This will sync all ${collections.length} ${collections.length === 1 ? 'collection' : 'collections'} to Jellyfin — creating or updating each one with its current movies and artwork. Empty collections will be skipped.`}
           confirmLabel="Push All"
           onConfirm={handlePushAll}
+          onClose={() => setPendingConfirm(null)}
+        />
+      )}
+
+      {pendingConfirm === 'delete-jf-native' && (
+        <ConfirmModal
+          title="Delete Jellyfin Collections"
+          description={`This will permanently delete all ${jellyfinNative} collection${jellyfinNative === 1 ? '' : 's'} that were auto-generated by Jellyfin — from both Jellyfin and Jellystacks. Your manually created collections are not affected. Movies will not be deleted.`}
+          confirmLabel={`Delete ${jellyfinNative} Collection${jellyfinNative === 1 ? '' : 's'}`}
+          onConfirm={handleDeleteJfNative}
           onClose={() => setPendingConfirm(null)}
         />
       )}

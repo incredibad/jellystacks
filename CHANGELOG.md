@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.6.0] — 2026-05-10
+
+### Added
+- **Import from TMDB**: "New Collection" now opens a choice — Custom (manual) or From TMDB. The TMDB flow lets you search TMDB franchise collections, preview all parts with owned/unowned status, and import in one click. Owned movies are added automatically; artwork and TMDB metadata are set from the start.
+- **Delete Jellyfin Collections**: new entry in the Operations dropdown that bulk-deletes all Jellyfin auto-generated collections from both Jellyfin and Jellystacks. Shows a count in the confirmation prompt and is disabled when there are none.
+- All operations in the dropdown now show a confirmation modal explaining exactly what will happen before proceeding (Verify Status and Detect TMDB previously ran immediately without confirmation).
+
+---
+
 ## [1.5.9] — 2026-05-09
 
 ### Changed
