@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.10] — 2026-05-10
+
+### Fixed
+- Artwork upload failures from Jellyfin now show as a separate red error toast (8 s) instead of being buried in the green success message
+- Jellyfin image upload now also sends the API key as a query parameter, which some Jellyfin configurations require
+
+---
+
 ## [1.8.9] — 2026-05-10
 
 ### Fixed

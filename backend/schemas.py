@@ -159,6 +159,7 @@ class PushResult(BaseModel):
     success: bool
     jellyfin_collection_id: Optional[str]
     message: str
+    artwork_error: Optional[str] = None
 
 
 class ImportResult(BaseModel):

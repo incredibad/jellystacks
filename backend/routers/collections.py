@@ -507,13 +507,16 @@ async def _upload_artwork(jf_url: str, api_key: str, jf_col_id: str, artwork_url
             if artwork_url.startswith("/api/collections/") and collection_id is not None:
                 matches = list(_ARTWORK_DIR.glob(f"{collection_id}.*"))
                 if not matches:
-                    return "Local artwork file not found."
+                    return "Local artwork file not found on server."
                 path = matches[0]
                 content_type = mimetypes.guess_type(str(path))[0] or "image/jpeg"
+                # Extract raw API key from the Authorization header for the query param fallback
+                raw_api_key = api_key
                 resp = await client.post(
                     f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary",
                     content=path.read_bytes(),
                     headers={**headers, "Content-Type": content_type},
+                    params={"api_key": raw_api_key},
                 )
             else:
                 image_url = artwork_url.replace('/original/', '/w500/')
@@ -523,7 +526,7 @@ async def _upload_artwork(jf_url: str, api_key: str, jf_col_id: str, artwork_url
                     params={"Type": "Primary", "ImageUrl": image_url},
                 )
         if resp.status_code not in (200, 204):
-            return f"Jellyfin image upload returned HTTP {resp.status_code}: {resp.text[:200]}"
+            return f"HTTP {resp.status_code}: {resp.text[:300]}"
         return None
     except Exception as exc:
         return str(exc)
@@ -599,10 +602,12 @@ async def push_collection(
                 col.in_jellyfin = True
                 col.jellyfin_synced_at = datetime.utcnow()
                 db.commit()
-                msg = "Collection updated in Jellyfin."
-                if artwork_err:
-                    msg += f" (artwork upload failed: {artwork_err})"
-                return schemas.PushResult(success=True, jellyfin_collection_id=old_jf_id, message=msg)
+                return schemas.PushResult(
+                    success=True,
+                    jellyfin_collection_id=old_jf_id,
+                    message="Collection updated in Jellyfin.",
+                    artwork_error=artwork_err,
+                )
 
             # Name changed or collection not found in Jellyfin.
             # Always delete the old Jellyfin collection before recreating so we
@@ -634,10 +639,12 @@ async def push_collection(
         col.in_jellyfin = True
         col.jellyfin_synced_at = datetime.utcnow()
         db.commit()
-        msg = "Collection created in Jellyfin."
-        if artwork_err:
-            msg += f" (artwork upload failed: {artwork_err})"
-        return schemas.PushResult(success=True, jellyfin_collection_id=jf_col_id, message=msg)
+        return schemas.PushResult(
+            success=True,
+            jellyfin_collection_id=jf_col_id,
+            message="Collection created in Jellyfin.",
+            artwork_error=artwork_err,
+        )
 
 
 @router.post("/push-all")
