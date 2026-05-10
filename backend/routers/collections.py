@@ -780,7 +780,7 @@ async def create_from_mdblist(
     if resp.status_code != 200:
         raise HTTPException(502, "Failed to fetch MDBList items.")
 
-    movie_ids, show_ids, _ = _split_raw_response(resp.json())
+    movie_ids, show_ids, *_ = _split_raw_response(resp.json())
 
     movies = (
         db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).all()

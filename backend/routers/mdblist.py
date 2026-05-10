@@ -20,12 +20,8 @@ def _get_api_key(db: Session) -> str:
     return key
 
 
-def _split_raw_response(raw) -> tuple[set, set, int]:
-    """Return (tmdb_movie_ids, tmdb_show_ids, total_count) from a MDBList items response.
-
-    MDBList returns { movies: [...], shows: [...], seasons: [...], episodes: [...] }.
-    Each item has its TMDB ID at item['ids']['tmdb'] (with item['id'] as fallback).
-    """
+def _split_raw_response(raw) -> tuple[set, set, int, list, list]:
+    """Return (tmdb_movie_ids, tmdb_show_ids, total_count, movies_raw, shows_raw)."""
     if isinstance(raw, dict):
         movies_raw = raw.get("movies") or []
         shows_raw = raw.get("shows") or []
@@ -33,7 +29,7 @@ def _split_raw_response(raw) -> tuple[set, set, int]:
         movies_raw = [i for i in raw if (i.get("mediatype") or "").lower() == "movie"]
         shows_raw = [i for i in raw if (i.get("mediatype") or "").lower() in ("show", "tv")]
     else:
-        return set(), set(), 0
+        return set(), set(), 0, [], []
 
     def _extract(items):
         ids = set()
@@ -43,7 +39,13 @@ def _split_raw_response(raw) -> tuple[set, set, int]:
                 ids.add(str(tmdb))
         return ids
 
-    return _extract(movies_raw), _extract(shows_raw), len(movies_raw) + len(shows_raw)
+    return (
+        _extract(movies_raw),
+        _extract(shows_raw),
+        len(movies_raw) + len(shows_raw),
+        movies_raw,
+        shows_raw,
+    )
 
 
 @router.get("/top")
@@ -96,15 +98,32 @@ async def preview_list(
     if resp.status_code != 200:
         raise HTTPException(502, "Failed to fetch list items.")
 
-    movie_ids, show_ids, total = _split_raw_response(resp.json())
+    movie_ids, show_ids, total, movies_raw, shows_raw = _split_raw_response(resp.json())
 
-    movie_count = (
-        db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).count()
-        if movie_ids else 0
-    )
-    show_count = (
-        db.query(models.Show).filter(models.Show.tmdb_id.in_(show_ids)).count()
-        if show_ids else 0
+    owned_movie_ids = set(
+        r[0] for r in db.query(models.Movie.tmdb_id).filter(models.Movie.tmdb_id.in_(movie_ids)).all()
+    ) if movie_ids else set()
+    owned_show_ids = set(
+        r[0] for r in db.query(models.Show.tmdb_id).filter(models.Show.tmdb_id.in_(show_ids)).all()
+    ) if show_ids else set()
+
+    def make_item(item, mediatype, owned_set):
+        tmdb = str((item.get("ids") or {}).get("tmdb") or item.get("tmdb_id") or item.get("id") or 0)
+        return {
+            "title": item.get("title") or "",
+            "year": item.get("release_year"),
+            "mediatype": mediatype,
+            "owned": tmdb in owned_set,
+        }
+
+    items = (
+        [make_item(i, "movie", owned_movie_ids) for i in movies_raw] +
+        [make_item(i, "show", owned_show_ids) for i in shows_raw]
     )
 
-    return {"movie_count": movie_count, "show_count": show_count, "total_items": total}
+    return {
+        "movie_count": len(owned_movie_ids),
+        "show_count": len(owned_show_ids),
+        "total_items": total,
+        "items": items,
+    }
