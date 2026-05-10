@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import io
 import json
 import mimetypes
@@ -523,15 +524,23 @@ async def _upload_artwork(jf_url: str, api_key: str, jf_col_id: str, artwork_url
                     return "Local artwork file not found on server."
                 image_bytes = _to_jpeg_bytes(matches[0])
                 image_endpoint = f"{base_url}/Items/{jf_col_id}/Images/Primary"
-                # Delete any existing image first — some Jellyfin versions 500 on overwrite
-                await client.delete(image_endpoint, headers=headers)
-                print(f"[artwork] POST {image_endpoint} ({len(image_bytes)} bytes)", flush=True)
+                # Try raw bytes first (Jellyfin 10.9+); fall back to base64 (10.8 and older)
+                print(f"[artwork] POST {image_endpoint} ({len(image_bytes)} bytes, raw)", flush=True)
                 resp = await client.post(
                     image_endpoint,
                     content=image_bytes,
                     headers={**headers, "Content-Type": "image/jpeg"},
                 )
-                print(f"[artwork] response {resp.status_code}: {resp.text[:500]!r}", flush=True)
+                print(f"[artwork] raw response {resp.status_code}: {resp.text[:200]!r}", flush=True)
+                if resp.status_code == 500:
+                    b64_bytes = base64.b64encode(image_bytes)
+                    print(f"[artwork] retrying with base64 ({len(b64_bytes)} bytes)", flush=True)
+                    resp = await client.post(
+                        image_endpoint,
+                        content=b64_bytes,
+                        headers={**headers, "Content-Type": "image/jpeg"},
+                    )
+                    print(f"[artwork] base64 response {resp.status_code}: {resp.text[:200]!r}", flush=True)
             else:
                 image_url = artwork_url.replace('/original/', '/w500/')
                 resp = await client.post(
