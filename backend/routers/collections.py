@@ -521,12 +521,16 @@ async def _upload_artwork(jf_url: str, api_key: str, jf_col_id: str, artwork_url
                 if not matches:
                     return "Local artwork file not found on server."
                 image_bytes = _to_jpeg_bytes(matches[0])
+                upload_url = f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary"
+                print(f"[artwork] POST {upload_url} ({len(image_bytes)} bytes)", flush=True)
                 resp = await client.post(
-                    f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary",
+                    upload_url,
                     content=image_bytes,
                     headers={**headers, "Content-Type": "image/jpeg"},
                     params={"api_key": api_key},
                 )
+                print(f"[artwork] response {resp.status_code}: {resp.text[:500]!r}", flush=True)
+                print(f"[artwork] response headers: {dict(resp.headers)}", flush=True)
             else:
                 image_url = artwork_url.replace('/original/', '/w500/')
                 resp = await client.post(
