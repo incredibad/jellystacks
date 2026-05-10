@@ -83,6 +83,33 @@ def _collection_to_detail(c: models.Collection) -> schemas.CollectionDetailRespo
     )
 
 
+_4K_KEYWORDS = {"4k", "uhd", "2160"}
+
+
+def _is_4k(library_name: str | None) -> bool:
+    return any(k in (library_name or "").lower() for k in _4K_KEYWORDS)
+
+
+def _best_by_tmdb_id(movies: list) -> list:
+    """Deduplicate a list of Movie objects by TMDB ID.
+
+    When a movie exists in multiple libraries, prefer the 4K/UHD version.
+    Among equal-quality duplicates the first encountered is kept.
+    Movies without a TMDB ID are passed through unchanged.
+    """
+    best: dict[str, object] = {}
+    no_tmdb = []
+    for m in movies:
+        if not m.tmdb_id:
+            no_tmdb.append(m)
+            continue
+        if m.tmdb_id not in best:
+            best[m.tmdb_id] = m
+        elif _is_4k(m.library_name) and not _is_4k(best[m.tmdb_id].library_name):
+            best[m.tmdb_id] = m
+    return list(best.values()) + no_tmdb
+
+
 def _load_col(collection_id: int, db: Session) -> models.Collection:
     col = db.query(models.Collection).options(
         selectinload(models.Collection.movies),
@@ -209,7 +236,9 @@ async def get_related_movies(
 
     best: dict[str, models.Movie] = {}
     for m in library_movies:
-        if m.tmdb_id not in best or m.id < best[m.tmdb_id].id:
+        if m.tmdb_id not in best:
+            best[m.tmdb_id] = m
+        elif _is_4k(m.library_name) and not _is_4k(best[m.tmdb_id].library_name):
             best[m.tmdb_id] = m
 
     results = []
@@ -834,7 +863,7 @@ async def import_from_tmdb(
     poster_path = tmdb_col.get("poster_path")
     artwork_url = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else None
 
-    owned_movies = (
+    owned_movies = _best_by_tmdb_id(
         db.query(models.Movie).filter(models.Movie.tmdb_id.in_(tmdb_movie_ids)).all()
         if tmdb_movie_ids else []
     )
@@ -873,7 +902,7 @@ async def create_from_mdblist(
 
     movie_ids, show_ids, total, *_ = _split_raw_response(resp.json())
 
-    movies = (
+    movies = _best_by_tmdb_id(
         db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).all()
         if movie_ids else []
     )
