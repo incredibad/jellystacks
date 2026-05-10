@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.10.0] — 2026-05-10
+
+### Added
+- Scheduled refresh for managed collections — TMDB and MDBList collections are automatically re-scanned on a configurable interval (6h / 12h / 24h / weekly), adding any newly available library items
+- "Scheduled Collection Refresh" section in Settings → Sync with frequency dropdown and a "Refresh Now" button for immediate manual runs
+- `POST /api/collections/refresh-managed` endpoint called by both the scheduler and the manual button
+
+---
+
 ## [1.9.0] — 2026-05-10
 
 ### Added
