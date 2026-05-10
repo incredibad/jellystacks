@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.7.5] — 2026-05-10
+
+### Fixed
+- Related tab now shows a "Failed to load recommendations" error with a "Try again" button when the TMDB request fails (e.g. timeout), instead of silently getting stuck on "Loading related movies…"
+
+---
+
 ## [1.7.4] — 2026-05-10
 
 ### Fixed
