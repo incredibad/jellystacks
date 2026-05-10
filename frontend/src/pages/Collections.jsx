@@ -291,7 +291,8 @@ export default function Collections() {
           <div className="relative">
             <button
               onClick={() => setOpsOpen(v => !v)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all border border-slate-700"
+              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white transition-all"
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
             >
               {(importing || isRunning)
                 ? <Loader size={14} className="animate-spin" />
