@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.20] — 2026-05-10
+
+### Fixed
+- Collection cards now show the correct "MDBList" badge (orange) instead of "Custom" for MDBList collections
+
+---
+
 ## [1.8.19] — 2026-05-10
 
 ### Fixed

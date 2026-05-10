@@ -76,6 +76,10 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
                 <Film size={11} />
                 TMDB
               </span>
+            ) : collection.mdblist_list_id ? (
+              <span className="flex items-center px-2 py-0.5 rounded-full text-xs font-normal text-white backdrop-blur-sm" style={{ background: '#f97316' }}>
+                MDBList
+              </span>
             ) : !collection.is_jellyfin_native ? (
               <span className="flex items-center px-2 py-0.5 rounded-full text-xs font-normal bg-amber-500 text-white backdrop-blur-sm">
                 Custom
