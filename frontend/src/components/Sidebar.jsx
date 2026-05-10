@@ -1,11 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Film, Layers, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Film, Tv, Layers, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import pkg from '../../package.json'
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/movies', icon: Film, label: 'Movies' },
+  { to: '/shows', icon: Tv, label: 'Shows' },
   { to: '/collections', icon: Layers, label: 'Collections' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]

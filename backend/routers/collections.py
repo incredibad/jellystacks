@@ -13,6 +13,7 @@ import schemas
 from auth import get_current_user
 from routers.settings import _get_settings_dict
 from routers.movies import _jellyfin_headers, _movie_to_response
+from routers.shows import _show_to_response
 from scoring import _tokenise, _parse_year_range, score_movie
 
 router = APIRouter()
@@ -45,6 +46,7 @@ def _collection_to_response(c: models.Collection) -> schemas.CollectionResponse:
         created_at=c.created_at,
         updated_at=c.updated_at,
         movie_count=len(c.movies),
+        show_count=len(c.shows),
     )
 
 
@@ -64,13 +66,16 @@ def _collection_to_detail(c: models.Collection) -> schemas.CollectionDetailRespo
         created_at=c.created_at,
         updated_at=c.updated_at,
         movie_count=len(c.movies),
+        show_count=len(c.shows),
         movies=[_movie_to_response(m) for m in c.movies],
+        shows=[_show_to_response(s) for s in c.shows],
     )
 
 
 def _load_col(collection_id: int, db: Session) -> models.Collection:
     col = db.query(models.Collection).options(
-        selectinload(models.Collection.movies)
+        selectinload(models.Collection.movies),
+        selectinload(models.Collection.shows),
     ).filter(models.Collection.id == collection_id).first()
     if not col:
         raise HTTPException(404, "Collection not found.")
@@ -83,7 +88,8 @@ def list_collections(
     _: models.User = Depends(get_current_user),
 ):
     cols = db.query(models.Collection).options(
-        selectinload(models.Collection.movies)
+        selectinload(models.Collection.movies),
+        selectinload(models.Collection.shows),
     ).order_by(models.Collection.name).all()
     return [_collection_to_response(c) for c in cols]
 
@@ -364,6 +370,76 @@ def remove_movie(
     return _collection_to_detail(col)
 
 
+@router.post("/{collection_id}/shows", response_model=schemas.CollectionDetailResponse)
+def add_shows(
+    collection_id: int,
+    data: schemas.CollectionShowsAdd,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    col = _load_col(collection_id, db)
+    existing_ids = {s.id for s in col.shows}
+    for show in db.query(models.Show).filter(models.Show.id.in_(data.show_ids)).all():
+        if show.id not in existing_ids:
+            col.shows.append(show)
+    col.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(col)
+    return _collection_to_detail(col)
+
+
+@router.delete("/{collection_id}/shows/{show_id}", response_model=schemas.CollectionDetailResponse)
+def remove_show(
+    collection_id: int,
+    show_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    col = _load_col(collection_id, db)
+    col.shows = [s for s in col.shows if s.id != show_id]
+    col.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(col)
+    return _collection_to_detail(col)
+
+
+@router.get("/{collection_id}/show-suggestions", response_model=list[schemas.ShowSuggestionResponse])
+def get_show_suggestions(
+    collection_id: int,
+    limit: int = 500,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    col = _load_col(collection_id, db)
+    if not col.name.strip():
+        return []
+
+    unigrams, bigrams = _tokenise(col.name)
+    year_range = _parse_year_range(unigrams)
+
+    existing_ids = {s.id for s in col.shows}
+    all_shows = db.query(models.Show).all()
+
+    scored = []
+    for show in all_shows:
+        if show.id in existing_ids:
+            continue
+        s, breakdown = score_movie(show, unigrams, bigrams, year_range)
+        if s > 0:
+            scored.append((s, breakdown, show))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    return [
+        schemas.ShowSuggestionResponse(
+            show=_show_to_response(sh),
+            score=round(s, 1),
+            breakdown=breakdown,
+        )
+        for s, breakdown, sh in scored[:limit]
+    ]
+
+
 async def _upload_artwork(jf_url: str, api_key: str, jf_col_id: str, artwork_url: str) -> str | None:
     """Tell Jellyfin to fetch the artwork directly from TMDB via RemoteImages/Download.
 
@@ -398,7 +474,7 @@ async def push_collection(
 ):
     col = _load_col(collection_id, db)
 
-    if not col.movies:
+    if not col.movies and not col.shows:
         raise HTTPException(400, "Cannot push an empty collection to Jellyfin.")
 
     s = _get_settings_dict(db)
@@ -410,6 +486,8 @@ async def push_collection(
     headers = _jellyfin_headers(api_key)
     base = jf_url.rstrip("/")
     movie_jf_ids = [m.jellyfin_id for m in col.movies]
+    show_jf_ids = [s.jellyfin_id for s in col.shows]
+    all_jf_ids = movie_jf_ids + show_jf_ids
     user_id = s.get("jellyfin_user_id")
 
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
@@ -427,14 +505,14 @@ async def push_collection(
                 items_resp = await client.get(
                     f"{base}/Items",
                     headers=headers,
-                    params={"ParentId": old_jf_id, "IncludeItemTypes": "Movie",
+                    params={"ParentId": old_jf_id, "IncludeItemTypes": "Movie,Series",
                             "Recursive": "true", "Fields": "Id", "Limit": 1000},
                 )
                 current_ids = set()
                 if items_resp.status_code == 200:
                     current_ids = {item["Id"] for item in items_resp.json().get("Items", [])}
 
-                wanted = set(movie_jf_ids)
+                wanted = set(all_jf_ids)
                 to_remove = current_ids - wanted
                 to_add = wanted - current_ids
 
@@ -472,7 +550,7 @@ async def push_collection(
         resp = await client.post(
             f"{base}/Collections",
             headers=headers,
-            params={"name": col.name, "ids": ",".join(movie_jf_ids), "isLocked": "false"},
+            params={"name": col.name, "ids": ",".join(all_jf_ids), "isLocked": "false"},
         )
         if resp.status_code not in (200, 201):
             raise HTTPException(502, f"Jellyfin error {resp.status_code}: {resp.text}")
@@ -504,7 +582,10 @@ async def push_all_collections(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    cols = db.query(models.Collection).options(selectinload(models.Collection.movies)).all()
+    cols = db.query(models.Collection).options(
+        selectinload(models.Collection.movies),
+        selectinload(models.Collection.shows),
+    ).all()
     results = []
     for col in cols:
         if not col.movies:
@@ -737,7 +818,8 @@ async def detect_tmdb_all(
 ):
     """Run TMDB collection detection across every collection."""
     cols = db.query(models.Collection).options(
-        selectinload(models.Collection.movies)
+        selectinload(models.Collection.movies),
+        selectinload(models.Collection.shows),
     ).all()
     linked = 0
     custom = 0

@@ -53,6 +53,7 @@ class MovieResponse(BaseModel):
     library_name: Optional[str]
     library_id: Optional[str]
     last_synced: datetime
+    media_type: str = "movie"
 
     model_config = {"from_attributes": True}
 
@@ -64,6 +65,36 @@ class SyncResult(BaseModel):
 
 class SuggestionResponse(BaseModel):
     movie: "MovieResponse"
+    score: float
+    breakdown: Optional[dict] = None
+
+
+# ── Show ──────────────────────────────────────────────────────────────────────
+
+class ShowResponse(BaseModel):
+    id: int
+    jellyfin_id: str
+    title: str
+    sort_title: Optional[str]
+    year: Optional[int]
+    overview: Optional[str]
+    tmdb_id: Optional[str]
+    imdb_id: Optional[str]
+    genres: Optional[str]
+    seasons: Optional[int]
+    status: Optional[str]
+    community_rating: Optional[str]
+    has_poster: bool
+    library_name: Optional[str]
+    library_id: Optional[str]
+    last_synced: datetime
+    media_type: str = "show"
+
+    model_config = {"from_attributes": True}
+
+
+class ShowSuggestionResponse(BaseModel):
+    show: "ShowResponse"
     score: float
     breakdown: Optional[dict] = None
 
@@ -84,6 +115,10 @@ class CollectionUpdate(BaseModel):
 
 class CollectionMoviesAdd(BaseModel):
     movie_ids: List[int]
+
+
+class CollectionShowsAdd(BaseModel):
+    show_ids: List[int]
 
 
 class UnownedMovieResponse(BaseModel):
@@ -109,10 +144,12 @@ class CollectionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     movie_count: int
+    show_count: int
 
 
 class CollectionDetailResponse(CollectionResponse):
     movies: List[MovieResponse]
+    shows: List[ShowResponse]
 
 
 class PushResult(BaseModel):
