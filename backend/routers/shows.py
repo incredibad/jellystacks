@@ -207,14 +207,21 @@ async def clear_show_artwork(
         path.unlink()
     s = _get_settings_dict(db)
     if s.get("jellyfin_url") and s.get("jellyfin_api_key"):
+        base = s["jellyfin_url"].rstrip("/")
+        headers = _jellyfin_headers(s["jellyfin_api_key"])
         try:
             async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
                 await client.delete(
-                    f"{s['jellyfin_url'].rstrip('/')}/Items/{show.jellyfin_id}/Images/Primary",
-                    headers=_jellyfin_headers(s["jellyfin_api_key"]),
+                    f"{base}/Items/{show.jellyfin_id}/Images/Primary",
+                    headers=headers,
+                )
+                await client.post(
+                    f"{base}/Items/{show.jellyfin_id}/Refresh",
+                    headers=headers,
+                    params={"MetadataRefreshMode": "None", "ImageRefreshMode": "FullRefresh", "ReplaceAllImages": "false"},
                 )
         except Exception as e:
-            print(f"[artwork] JF delete failed: {e}", flush=True)
+            print(f"[artwork] JF revert failed: {e}", flush=True)
     db.commit()
     db.refresh(show)
     return _show_to_response(show)

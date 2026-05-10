@@ -115,8 +115,10 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
       const endpoint = isShow ? `/shows/${movie.id}/artwork` : `/movies/${movie.id}/artwork`
       const { data } = await api.delete(endpoint)
       onArtworkChange(data)
-      setCacheBuster(Date.now())
-      toast.success('Reverted to original artwork.')
+      // JF re-scrape is async — poll every 3s for up to 12s to pick up the new poster
+      const retry = (delay) => setTimeout(() => { setImgFailed(false); setCacheBuster(Date.now()) }, delay)
+      retry(2000); retry(5000); retry(9000)
+      toast.success('Reverted — fetching original poster…')
     } catch {
       toast.error('Failed to revert artwork.')
     } finally {

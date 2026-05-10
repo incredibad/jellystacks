@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.12.2] — 2026-05-10
+
+### Fixed
+- Reverting artwork now triggers a Jellyfin image-only refresh (`POST /Items/{id}/Refresh` with `ImageRefreshMode=FullRefresh`) so JF re-scrapes the original poster from TMDB instead of leaving the item posterless
+- Frontend polls for the restored poster at 2 s, 5 s, and 9 s after revert, auto-updating the card once JF's async refresh completes — no page reload needed
+
+---
+
 ## [1.12.1] — 2026-05-10
 
 ### Changed
