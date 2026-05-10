@@ -146,7 +146,7 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
             <span
               className="absolute top-0 left-0 z-10 w-3.5 h-3.5 flex items-center justify-center rounded-br"
               style={{ background: 'rgba(109, 40, 217, 0.9)' }}
-              title="Custom artwork"
+              title="Artwork override"
             >
               <ImageIcon size={7} className="text-white" />
             </span>

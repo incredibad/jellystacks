@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.12.4] — 2026-05-10
+
+### Changed
+- Artwork override badge label changed from "Custom" to "Override"
+
+---
+
 ## [1.12.3] — 2026-05-10
 
 ### Added
