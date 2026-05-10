@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.10.2] — 2026-05-10
+
+### Changed
+- Added a horizontal divider between the collection header and the items section on the collection detail page
+
+---
+
 ## [1.10.1] — 2026-05-10
 
 ### Fixed

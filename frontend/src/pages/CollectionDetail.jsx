@@ -437,7 +437,7 @@ export default function CollectionDetail() {
       </Link>
 
       {/* Collection header */}
-      <div className="flex items-start gap-6 mb-8" style={{ flexWrap: 'wrap' }}>
+      <div className="flex items-start gap-6 mb-6" style={{ flexWrap: 'wrap' }}>
         {/* Artwork */}
         <div className="relative group flex-shrink-0">
           <div
@@ -666,6 +666,9 @@ export default function CollectionDetail() {
           )}
         </div>
       </div>
+
+      {/* Section divider */}
+      <div className="border-t mb-8" style={{ borderColor: 'var(--border)' }} />
 
       {/* Movies + Shows controls */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
