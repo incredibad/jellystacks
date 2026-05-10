@@ -1043,6 +1043,18 @@ async def verify_jellyfin_status(
     return _collection_to_response(col)
 
 
+@router.post("/refresh-managed")
+async def refresh_managed(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    """Immediately refresh all TMDB and MDBList collections from their source."""
+    from refresh import refresh_all_managed
+    s = _get_settings_dict(db)
+    result = await refresh_all_managed(db, s.get("tmdb_api_key"), s.get("mdblist_api_key"))
+    return result
+
+
 @router.post("/verify-all")
 async def verify_all(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     cols = db.query(models.Collection).filter(

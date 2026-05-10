@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Server, Key, User, CheckCircle2, XCircle, Loader, ChevronDown,
-  ExternalLink, Trash2, Lock, Download, Upload,
+  ExternalLink, Trash2, Lock, Download, Upload, RefreshCw, Clock,
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -69,7 +69,9 @@ export default function Settings() {
     tmdb_api_key: '',
     tmdb_related_enabled: false,
     mdblist_api_key: '',
+    collection_refresh_interval: 'disabled',
   })
+  const [refreshing, setRefreshing] = useState(false)
   const [original, setOriginal] = useState({})
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -94,6 +96,7 @@ export default function Settings() {
         tmdb_api_key: '',
         tmdb_related_enabled: data.tmdb_related_enabled || false,
         mdblist_api_key: '',
+        collection_refresh_interval: data.collection_refresh_interval || 'disabled',
       })
       setOriginal(data)
     })
@@ -114,6 +117,7 @@ export default function Settings() {
       if (form.tmdb_api_key) payload.tmdb_api_key = form.tmdb_api_key
       if (form.mdblist_api_key) payload.mdblist_api_key = form.mdblist_api_key
       if (form.tmdb_related_enabled !== original.tmdb_related_enabled) payload.tmdb_related_enabled = form.tmdb_related_enabled
+      if (form.collection_refresh_interval !== original.collection_refresh_interval) payload.collection_refresh_interval = form.collection_refresh_interval
 
       if (Object.keys(payload).length === 0) {
         toast('No changes to save.', { icon: 'ℹ️' })
@@ -158,6 +162,23 @@ export default function Settings() {
       toast.error(err.response?.data?.detail || 'Failed to fetch Jellyfin users.')
     } finally {
       setLoadingUsers(false)
+    }
+  }
+
+  const handleRefreshNow = async () => {
+    setRefreshing(true)
+    const tid = toast.loading('Refreshing managed collections…')
+    try {
+      const { data } = await api.post('/collections/refresh-managed')
+      const parts = []
+      if (data.refreshed) parts.push(`${data.refreshed} refreshed`)
+      if (data.skipped) parts.push(`${data.skipped} skipped (missing API key)`)
+      if (data.failed) parts.push(`${data.failed} failed`)
+      toast.success(parts.join(', ') || 'Nothing to refresh.', { id: tid })
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Refresh failed.', { id: tid })
+    } finally {
+      setRefreshing(false)
     }
   }
 
@@ -468,6 +489,48 @@ export default function Settings() {
                 autoComplete="new-password"
               />
             </Field>
+          </Section>
+
+          <Section
+            title="Scheduled Collection Refresh"
+            description="Automatically update TMDB and MDBList collections from their source on a schedule."
+            icon={Clock}
+          >
+            <Field
+              label="Refresh frequency"
+              hint="When enabled, all TMDB and MDBList collections are re-scanned at the chosen interval, adding newly available movies and shows from your library."
+            >
+              <select
+                value={form.collection_refresh_interval}
+                onChange={e => set('collection_refresh_interval', e.target.value)}
+                className={inputClass}
+                style={inputStyle}
+              >
+                <option value="disabled">Disabled</option>
+                <option value="6h">Every 6 hours</option>
+                <option value="12h">Every 12 hours</option>
+                <option value="24h">Every 24 hours</option>
+                <option value="weekly">Weekly</option>
+              </select>
+            </Field>
+
+            <div className="flex items-center justify-between gap-4 pt-1">
+              <div>
+                <p className="text-sm text-slate-300 font-medium">Run now</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Immediately refresh all managed collections regardless of the schedule.
+                </p>
+              </div>
+              <button
+                onClick={handleRefreshNow}
+                disabled={refreshing}
+                className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-slate-300 border hover:text-white hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+                {refreshing ? 'Refreshing…' : 'Refresh Now'}
+              </button>
+            </div>
           </Section>
 
           <div className="flex justify-end">

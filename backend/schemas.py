@@ -176,6 +176,7 @@ class SettingsUpdate(BaseModel):
     tmdb_api_key: Optional[str] = None
     tmdb_related_enabled: Optional[bool] = None
     mdblist_api_key: Optional[str] = None
+    collection_refresh_interval: Optional[str] = None
 
 
 class SettingsResponse(BaseModel):
@@ -185,6 +186,7 @@ class SettingsResponse(BaseModel):
     tmdb_api_key_set: bool
     tmdb_related_enabled: bool
     mdblist_api_key_set: bool
+    collection_refresh_interval: str
 
 
 class JellyfinTestResult(BaseModel):

@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,8 +6,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy import text, inspect as sa_inspect
 
-from database import Base, engine
+from database import Base, engine, SessionLocal
 from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router
+import scheduler as collection_scheduler
 
 Base.metadata.create_all(bind=engine)
 
@@ -64,10 +66,19 @@ def _run_migrations():
 
 _run_migrations()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    collection_scheduler.start(SessionLocal)
+    yield
+    collection_scheduler.stop()
+
+
 app = FastAPI(
     title="JellyStacks API",
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
