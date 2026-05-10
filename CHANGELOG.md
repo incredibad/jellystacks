@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.10.3] — 2026-05-10
+
+### Changed
+- Operations dropdown button on the Collections page now has a solid surface background so it reads as a button at rest
+
+---
+
 ## [1.10.2] — 2026-05-10
 
 ### Changed
