@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.12.5] — 2026-05-10
+
+### Fixed
+- Data export now includes all custom artwork files (`/data/artwork/`) so collection, movie, and show poster overrides are preserved in the backup
+- Data import now restores artwork files from the zip; older backups without artwork are still accepted gracefully
+- Required-tables validation on import now includes `shows` (was missing, so a corrupt backup could have slipped through)
+
+---
+
 ## [1.12.4] — 2026-05-10
 
 ### Changed
