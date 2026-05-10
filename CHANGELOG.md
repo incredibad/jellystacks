@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.11] — 2026-05-10
+
+### Changed
+- Artwork resize prompt is now a proper full-screen modal showing current dimensions, file size, and target dimensions — triggers when image exceeds 2 MB or 1000px, targets 1000px max (Jellyfin poster quality tier)
+
+---
+
 ## [1.8.10] — 2026-05-10
 
 ### Fixed
