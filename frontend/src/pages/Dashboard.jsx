@@ -50,8 +50,11 @@ export default function Dashboard() {
   const handleSync = async () => {
     setSyncing(true)
     try {
-      const { data } = await api.post('/movies/sync')
-      toast.success(`Synced ${data.synced} movies from Jellyfin.`)
+      const [moviesRes, showsRes] = await Promise.all([
+        api.post('/movies/sync'),
+        api.post('/shows/sync'),
+      ])
+      toast.success(`Synced ${moviesRes.data.synced} movies and ${showsRes.data.synced} shows from Jellyfin.`)
       fetchStats()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Sync failed. Check your Jellyfin settings.')
@@ -61,7 +64,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-8">
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
