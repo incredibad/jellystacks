@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.4] — 2026-05-10
+
+### Changed
+- MDBList search result rows: right-side metadata (type badge, item count, likes) is now inline with fixed widths; type badge is colour-coded (blue = Movies, green = Shows, violet = Mixed) and all lists show a badge
+
+---
+
 ## [1.8.3] — 2026-05-10
 
 ### Fixed
