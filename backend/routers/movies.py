@@ -264,14 +264,22 @@ async def clear_movie_artwork(
         path.unlink()
     s = _get_settings_dict(db)
     if s.get("jellyfin_url") and s.get("jellyfin_api_key"):
+        base = s["jellyfin_url"].rstrip("/")
+        headers = _jellyfin_headers(s["jellyfin_api_key"])
         try:
             async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
                 await client.delete(
-                    f"{s['jellyfin_url'].rstrip('/')}/Items/{movie.jellyfin_id}/Images/Primary",
-                    headers=_jellyfin_headers(s["jellyfin_api_key"]),
+                    f"{base}/Items/{movie.jellyfin_id}/Images/Primary",
+                    headers=headers,
+                )
+                # Trigger JF to re-scrape missing images from providers
+                await client.post(
+                    f"{base}/Items/{movie.jellyfin_id}/Refresh",
+                    headers=headers,
+                    params={"MetadataRefreshMode": "None", "ImageRefreshMode": "FullRefresh", "ReplaceAllImages": "false"},
                 )
         except Exception as e:
-            print(f"[artwork] JF delete failed: {e}", flush=True)
+            print(f"[artwork] JF revert failed: {e}", flush=True)
     db.commit()
     db.refresh(movie)
     return _movie_to_response(movie)
