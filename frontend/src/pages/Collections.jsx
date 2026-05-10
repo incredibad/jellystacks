@@ -334,7 +334,7 @@ export default function Collections() {
                       label: 'Delete Jellyfin Collections',
                       icon: <Trash2 size={14} />,
                       danger: true,
-                      disabled: jellyfinLinked === 0 || isRunning,
+                      disabled: jellyfinNative === 0 || isRunning,
                       onClick: () => { setPendingConfirm('delete-jf-native'); setOpsOpen(false) },
                     },
                   ].map((item, i) =>
@@ -580,8 +580,8 @@ export default function Collections() {
       {pendingConfirm === 'delete-jf-native' && (
         <ConfirmModal
           title="Delete Jellyfin Collections"
-          description={`This will permanently delete all ${jellyfinLinked} collection${jellyfinLinked === 1 ? '' : 's'} that are linked to Jellyfin — from both Jellyfin and Jellystacks. Collections with no Jellyfin link are not affected. Movies and shows will not be deleted.`}
-          confirmLabel={`Delete ${jellyfinLinked} Collection${jellyfinLinked === 1 ? '' : 's'}`}
+          description={`This will permanently delete all ${jellyfinNative} collection${jellyfinNative === 1 ? '' : 's'} imported from Jellyfin — from both Jellyfin and Jellystacks. Collections you created locally in Jellystacks are not affected. Movies and shows will not be deleted.`}
+          confirmLabel={`Delete ${jellyfinNative} Collection${jellyfinNative === 1 ? '' : 's'}`}
           onConfirm={handleDeleteJfNative}
           onClose={() => setPendingConfirm(null)}
         />
