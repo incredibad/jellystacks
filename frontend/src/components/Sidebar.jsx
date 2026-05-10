@@ -6,10 +6,10 @@ import api from '../api/client'
 import pkg from '../../package.json'
 
 const NAV_ITEMS = [
-  { to: '/movies',      icon: Film,   label: 'Movies',      countKey: 'movies' },
-  { to: '/shows',       icon: Tv,     label: 'Shows',       countKey: 'shows' },
-  { to: '/collections', icon: Layers, label: 'Collections', countKey: 'collections' },
-  { to: '/settings',    icon: Settings, label: 'Settings',  countKey: null },
+  { to: '/collections', icon: Layers,  label: 'Collections', countKey: 'collections' },
+  { to: '/movies',      icon: Film,    label: 'Movies',      countKey: 'movies' },
+  { to: '/shows',       icon: Tv,      label: 'Shows',       countKey: 'shows' },
+  { to: '/settings',    icon: Settings, label: 'Settings',   countKey: null },
 ]
 
 export default function Sidebar() {
