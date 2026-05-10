@@ -112,7 +112,34 @@ export default function CollectionDetail() {
   const [showArtwork, setShowArtwork] = useState(false)
   const [uploadingArtwork, setUploadingArtwork] = useState(false)
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
+  const [pendingUpload, setPendingUpload] = useState(null) // { file, previewUrl, isLarge }
   const artworkFileRef = useRef(null)
+
+  const MAX_UPLOAD_DIMENSION = 1920
+  const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+
+  const resizeImageFile = (file) => new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(MAX_UPLOAD_DIMENSION / img.width, MAX_UPLOAD_DIMENSION / img.height)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(blob => resolve(new File([blob], file.name, { type: 'image/jpeg' })), 'image/jpeg', 0.92)
+    }
+    img.src = url
+  })
+
+  const checkIsLarge = (file) => new Promise((resolve) => {
+    if (file.size > MAX_UPLOAD_BYTES) return resolve(true)
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img.width > MAX_UPLOAD_DIMENSION || img.height > MAX_UPLOAD_DIMENSION) }
+    img.src = url
+  })
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
   const [jfImgError, setJfImgError] = useState(false)
   const [unownedMovies, setUnownedMovies] = useState([])
@@ -128,19 +155,16 @@ export default function CollectionDetail() {
     localStorage.setItem(VIEW_KEY, v)
   }
 
-  const handleArtworkFileChange = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const preview = URL.createObjectURL(file)
-    setLocalPreviewUrl(preview)
+  const doUpload = async (file) => {
     setUploadingArtwork(true)
+    setPendingUpload(null)
     try {
       const form = new FormData()
       form.append('file', file)
       const { data } = await api.post(`/collections/${id}/artwork/upload`, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      setCollection(prev => ({ ...prev, artwork_url: data.artwork_url }))
+      setCollection(prev => ({ ...prev, artwork_url: data.artwork_url, updated_at: data.updated_at }))
       setLocalPreviewUrl(null)
       toast.success('Artwork saved.')
     } catch {
@@ -148,7 +172,20 @@ export default function CollectionDetail() {
       setLocalPreviewUrl(null)
     } finally {
       setUploadingArtwork(false)
-      e.target.value = ''
+    }
+  }
+
+  const handleArtworkFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    const previewUrl = URL.createObjectURL(file)
+    setLocalPreviewUrl(previewUrl)
+    const isLarge = await checkIsLarge(file)
+    if (isLarge) {
+      setPendingUpload({ file, previewUrl, isLarge: true })
+    } else {
+      doUpload(file)
     }
   }
 
@@ -424,6 +461,40 @@ export default function CollectionDetail() {
             onChange={handleArtworkFileChange}
           />
         </div>
+
+        {/* Resize prompt */}
+        {pendingUpload && (
+          <div
+            className="mt-2 w-36 rounded-lg p-2.5 text-xs space-y-2"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+          >
+            <p className="text-slate-400 leading-snug">Image is large — resize to 1920px before uploading?</p>
+            <div className="flex gap-1.5">
+              <button
+                onClick={async () => {
+                  const resized = await resizeImageFile(pendingUpload.file)
+                  doUpload(resized)
+                }}
+                className="flex-1 px-2 py-1 rounded bg-violet-600 text-white hover:bg-violet-500 transition-colors"
+              >
+                Resize
+              </button>
+              <button
+                onClick={() => doUpload(pendingUpload.file)}
+                className="flex-1 px-2 py-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                style={{ border: '1px solid var(--border)' }}
+              >
+                Keep
+              </button>
+            </div>
+            <button
+              onClick={() => { setPendingUpload(null); setLocalPreviewUrl(null) }}
+              className="w-full text-center text-slate-600 hover:text-slate-400 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
         {/* Info */}
         <div className="flex-1 min-w-0 py-1">
