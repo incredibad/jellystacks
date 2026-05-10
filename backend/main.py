@@ -42,6 +42,10 @@ def _run_migrations():
             conn.execute(text(
                 "ALTER TABLE collections ADD COLUMN is_jellyfin_native BOOLEAN NOT NULL DEFAULT 0"
             ))
+        if "mdblist_list_id" not in col_cols:
+            conn.execute(text("ALTER TABLE collections ADD COLUMN mdblist_list_id INTEGER"))
+        if "mdblist_total_items" not in col_cols:
+            conn.execute(text("ALTER TABLE collections ADD COLUMN mdblist_total_items INTEGER"))
 
         # One-time fix: native collections imported before v0.2.22 have updated_at
         # a few microseconds ahead of jellyfin_synced_at due to SQLAlchemy insert

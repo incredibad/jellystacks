@@ -40,6 +40,8 @@ def _collection_to_response(c: models.Collection) -> schemas.CollectionResponse:
         tmdb_collection_id=c.tmdb_collection_id,
         tmdb_checked=bool(c.tmdb_checked),
         tmdb_total_parts=c.tmdb_total_parts,
+        mdblist_list_id=c.mdblist_list_id,
+        mdblist_total_items=c.mdblist_total_items,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
@@ -60,6 +62,8 @@ def _collection_to_detail(c: models.Collection) -> schemas.CollectionDetailRespo
         tmdb_collection_id=c.tmdb_collection_id,
         tmdb_checked=bool(c.tmdb_checked),
         tmdb_total_parts=c.tmdb_total_parts,
+        mdblist_list_id=c.mdblist_list_id,
+        mdblist_total_items=c.mdblist_total_items,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
@@ -780,7 +784,7 @@ async def create_from_mdblist(
     if resp.status_code != 200:
         raise HTTPException(502, "Failed to fetch MDBList items.")
 
-    movie_ids, show_ids, *_ = _split_raw_response(resp.json())
+    movie_ids, show_ids, total, *_ = _split_raw_response(resp.json())
 
     movies = (
         db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).all()
@@ -791,13 +795,64 @@ async def create_from_mdblist(
         if show_ids else []
     )
 
-    col = models.Collection(name=data.name)
+    col = models.Collection(
+        name=data.name,
+        mdblist_list_id=data.mdblist_list_id,
+        mdblist_total_items=total,
+    )
     col.movies = movies
     col.shows = shows
     db.add(col)
     db.commit()
     db.refresh(col)
     return _collection_to_detail(col)
+
+
+@router.get("/{collection_id}/mdblist-missing")
+async def get_mdblist_missing(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    col = _load_col(collection_id, db)
+    if not col.mdblist_list_id:
+        raise HTTPException(404, "Not an MDBList collection.")
+
+    from routers.mdblist import _get_api_key, _split_raw_response as _mdb_split
+    api_key = _get_api_key(db)
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"https://api.mdblist.com/lists/{col.mdblist_list_id}/items",
+            params={"apikey": api_key},
+        )
+    if resp.status_code != 200:
+        raise HTTPException(502, "Failed to fetch MDBList items.")
+
+    movie_ids, show_ids, total, movies_raw, shows_raw = _mdb_split(resp.json())
+
+    if total != col.mdblist_total_items:
+        col.mdblist_total_items = total
+        db.commit()
+
+    owned_movie_ids = set(
+        r[0] for r in db.query(models.Movie.tmdb_id).filter(models.Movie.tmdb_id.in_(movie_ids)).all()
+    ) if movie_ids else set()
+    owned_show_ids = set(
+        r[0] for r in db.query(models.Show.tmdb_id).filter(models.Show.tmdb_id.in_(show_ids)).all()
+    ) if show_ids else set()
+
+    missing = []
+    for item in movies_raw:
+        tmdb = str((item.get("ids") or {}).get("tmdb") or item.get("id") or 0)
+        if tmdb and tmdb not in owned_movie_ids:
+            missing.append({"title": item.get("title", ""), "year": item.get("release_year"), "mediatype": "movie"})
+    for item in shows_raw:
+        tmdb = str((item.get("ids") or {}).get("tmdb") or item.get("id") or 0)
+        if tmdb and tmdb not in owned_show_ids:
+            missing.append({"title": item.get("title", ""), "year": item.get("release_year"), "mediatype": "show"})
+
+    return missing
 
 
 @router.post("/{collection_id}/verify", response_model=schemas.CollectionResponse)

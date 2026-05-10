@@ -91,6 +91,9 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
               {(() => {
                 const mc = collection.movie_count
                 const sc = collection.show_count || 0
+                if (collection.mdblist_list_id && collection.mdblist_total_items) {
+                  return `${mc + sc}/${collection.mdblist_total_items} items`
+                }
                 if (collection.tmdb_collection_id && collection.tmdb_total_parts) {
                   return `${mc}/${collection.tmdb_total_parts} movies${sc > 0 ? ` · ${sc}S` : ''}`
                 }

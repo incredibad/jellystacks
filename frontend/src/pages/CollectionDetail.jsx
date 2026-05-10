@@ -114,6 +114,8 @@ export default function CollectionDetail() {
   const [jfImgError, setJfImgError] = useState(false)
   const [unownedMovies, setUnownedMovies] = useState([])
   const [showUnowned, setShowUnowned] = useState(true)
+  const [mdblistMissing, setMdblistMissing] = useState([])
+  const [showMdblistMissing, setShowMdblistMissing] = useState(true)
   const [detectionDone, setDetectionDone] = useState(false)
   const [sort, setSort] = useState('name-asc')
   const [libraryFilter, setLibraryFilter] = useState('')
@@ -141,6 +143,13 @@ export default function CollectionDetail() {
       if (data.jellyfin_collection_id) {
         api.post(`/collections/${id}/verify`)
           .then(res => setCollection(prev => prev ? { ...prev, in_jellyfin: res.data.in_jellyfin } : prev))
+          .catch(() => {})
+      }
+
+      // Fetch MDBList missing items if this is an MDBList collection
+      if (data.mdblist_list_id) {
+        api.get(`/collections/${id}/mdblist-missing`)
+          .then(res => setMdblistMissing(res.data))
           .catch(() => {})
       }
 
@@ -409,17 +418,26 @@ export default function CollectionDetail() {
                 Custom Collection
               </span>
             ) : null}
+            {collection.mdblist_list_id && (
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white" style={{ background: '#f97316' }}>
+                MDBList
+              </span>
+            )}
             <span className="text-xs text-slate-500">
               {(() => {
                 const mc = collection.movie_count
                 const sc = collection.show_count || 0
+                const total = collection.mdblist_total_items
                 const parts = []
-                if (collection.tmdb_collection_id && collection.tmdb_total_parts) {
+                if (collection.mdblist_list_id && total) {
+                  const owned = mc + sc
+                  parts.push(`${owned}/${total} items`)
+                } else if (collection.tmdb_collection_id && collection.tmdb_total_parts) {
                   parts.push(`${mc}/${collection.tmdb_total_parts} movies`)
-                } else if (mc > 0) {
-                  parts.push(`${mc} ${mc === 1 ? 'movie' : 'movies'}`)
+                } else {
+                  if (mc > 0) parts.push(`${mc} ${mc === 1 ? 'movie' : 'movies'}`)
+                  if (sc > 0) parts.push(`${sc} ${sc === 1 ? 'show' : 'shows'}`)
                 }
-                if (sc > 0) parts.push(`${sc} ${sc === 1 ? 'show' : 'shows'}`)
                 return parts.join(' · ') || 'Empty'
               })()}
             </span>
@@ -671,6 +689,43 @@ export default function CollectionDetail() {
             <Plus size={15} />
             Add Items
           </button>
+        </div>
+      )}
+
+      {/* MDBList missing items */}
+      {mdblistMissing.length > 0 && (
+        <div className="mt-10">
+          <button
+            onClick={() => setShowMdblistMissing(v => !v)}
+            className="flex items-center gap-2 mb-4 group"
+          >
+            <h2 className="text-lg font-normal text-slate-400 group-hover:text-slate-300 transition-colors">
+              Not in your library
+              <span className="text-slate-600 font-normal text-base ml-2">({mdblistMissing.length})</span>
+            </h2>
+            <span className="text-xs text-slate-600 group-hover:text-slate-500 transition-colors">
+              {showMdblistMissing ? '▲ hide' : '▼ show'}
+            </span>
+          </button>
+          {showMdblistMissing && (
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+              {mdblistMissing.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-4 py-2.5 border-b last:border-b-0"
+                  style={{ borderColor: 'var(--border)' }}
+                >
+                  <span className="flex-1 text-sm text-slate-500 truncate">{item.title}</span>
+                  {item.year && <span className="text-xs text-slate-600 tabular-nums flex-shrink-0">{item.year}</span>}
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${
+                    item.mediatype === 'movie' ? 'bg-blue-500/15 text-blue-400' : 'bg-emerald-500/15 text-emerald-400'
+                  }`}>
+                    {item.mediatype === 'movie' ? 'Movie' : 'Show'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

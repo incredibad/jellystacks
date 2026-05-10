@@ -255,7 +255,8 @@ export default function Collections() {
     if (filter === 'local') result = collections.filter(c => !c.is_jellyfin_native)
     else if (filter === 'jellyfin') result = collections.filter(c => c.is_jellyfin_native)
     else if (filter === 'incomplete') result = collections.filter(c =>
-      c.movie_count === 0 || (c.tmdb_total_parts && c.movie_count < c.tmdb_total_parts)
+      c.movie_count === 0 || (c.tmdb_total_parts && c.movie_count < c.tmdb_total_parts) ||
+      (c.mdblist_list_id && c.mdblist_total_items && (c.movie_count + (c.show_count || 0)) < c.mdblist_total_items)
     )
     else result = collections
     if (search.trim()) {
@@ -270,7 +271,8 @@ export default function Collections() {
   const localCount = collections.filter(c => !c.is_jellyfin_native).length
   const inJellyfin = collections.filter(c => c.in_jellyfin).length
   const incompleteCount = collections.filter(c =>
-    c.movie_count === 0 || (c.tmdb_total_parts && c.movie_count < c.tmdb_total_parts)
+    c.movie_count === 0 || (c.tmdb_total_parts && c.movie_count < c.tmdb_total_parts) ||
+    (c.mdblist_list_id && c.mdblist_total_items && (c.movie_count + (c.show_count || 0)) < c.mdblist_total_items)
   ).length
 
   return (

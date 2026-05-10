@@ -4,6 +4,17 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.7] — 2026-05-10
+
+### Added
+- MDBList collections are now tracked: `mdblist_list_id` and `mdblist_total_items` stored on the collection
+- Collection cards, list rows, and detail page show "X/Y items" for MDBList collections
+- Orange "MDBList" badge on collection detail page
+- "Not in your library" section on collection detail page lists items from the MDBList source that aren't in your library
+- Incomplete filter on collections page includes MDBList collections missing items
+
+---
+
 ## [1.8.6] — 2026-05-10
 
 ### Added
