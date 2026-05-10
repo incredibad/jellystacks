@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.13] — 2026-05-10
+
+### Fixed
+- Dashboard is now full-width, matching all other pages (removed `max-w-5xl` constraint)
+- "Sync Jellyfin" button on Dashboard, Movies, and Shows pages now syncs both movies and shows every time — previously each only synced its own type
+
+---
+
 ## [1.8.12] — 2026-05-10
 
 ### Fixed

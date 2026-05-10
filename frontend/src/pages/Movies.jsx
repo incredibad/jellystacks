@@ -90,8 +90,11 @@ export default function Movies() {
   const handleSync = async () => {
     setSyncing(true)
     try {
-      const { data } = await api.post('/movies/sync')
-      toast.success(`Synced ${data.synced} movies.`)
+      const [moviesRes, showsRes] = await Promise.all([
+        api.post('/movies/sync'),
+        api.post('/shows/sync'),
+      ])
+      toast.success(`Synced ${moviesRes.data.synced} movies and ${showsRes.data.synced} shows.`)
       api.get('/movies/count').then(({ data }) => setTotalCount(data.count)).catch(() => {})
       reload(search, activeLibrary)
     } catch (err) {
