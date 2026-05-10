@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.10.1] — 2026-05-10
+
+### Fixed
+- "Convert to Custom" moved into the settings dropdown alongside Verify, Remove from Jellyfin, and Delete Collection
+
+---
+
 ## [1.10.0] — 2026-05-10
 
 ### Added
