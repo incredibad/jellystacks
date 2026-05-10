@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.12.6] — 2026-05-10
+
+### Changed
+- Settings page is now full-width; Sync tab sections arranged in two columns (Jellyfin Server + Scheduled Refresh on the left, TMDB + MDBList on the right); Save button spans below both columns
+- Account, Backup, and System tabs remain single-column with a max width for readability
+
+---
+
 ## [1.12.5] — 2026-05-10
 
 ### Fixed
