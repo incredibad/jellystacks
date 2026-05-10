@@ -515,26 +515,27 @@ async def _upload_artwork(jf_url: str, api_key: str, jf_col_id: str, artwork_url
     """
     try:
         headers = _jellyfin_headers(api_key)
+        base_url = jf_url.rstrip('/')
         async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
             if artwork_url.startswith("/api/collections/") and collection_id is not None:
                 matches = list(_ARTWORK_DIR.glob(f"{collection_id}.*"))
                 if not matches:
                     return "Local artwork file not found on server."
                 image_bytes = _to_jpeg_bytes(matches[0])
-                upload_url = f"{jf_url.rstrip('/')}/Items/{jf_col_id}/Images/Primary"
-                print(f"[artwork] POST {upload_url} ({len(image_bytes)} bytes)", flush=True)
+                image_endpoint = f"{base_url}/Items/{jf_col_id}/Images/Primary"
+                # Delete any existing image first — some Jellyfin versions 500 on overwrite
+                await client.delete(image_endpoint, headers=headers)
+                print(f"[artwork] POST {image_endpoint} ({len(image_bytes)} bytes)", flush=True)
                 resp = await client.post(
-                    upload_url,
+                    image_endpoint,
                     content=image_bytes,
                     headers={**headers, "Content-Type": "image/jpeg"},
-                    params={"api_key": api_key},
                 )
                 print(f"[artwork] response {resp.status_code}: {resp.text[:500]!r}", flush=True)
-                print(f"[artwork] response headers: {dict(resp.headers)}", flush=True)
             else:
                 image_url = artwork_url.replace('/original/', '/w500/')
                 resp = await client.post(
-                    f"{jf_url.rstrip('/')}/Items/{jf_col_id}/RemoteImages/Download",
+                    f"{base_url}/Items/{jf_col_id}/RemoteImages/Download",
                     headers=headers,
                     params={"Type": "Primary", "ImageUrl": image_url},
                 )
