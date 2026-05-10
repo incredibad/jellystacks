@@ -112,32 +112,45 @@ export default function CollectionDetail() {
   const [showArtwork, setShowArtwork] = useState(false)
   const [uploadingArtwork, setUploadingArtwork] = useState(false)
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
-  const [pendingUpload, setPendingUpload] = useState(null) // { file, previewUrl, isLarge }
+  // pendingUpload: { file, width, height, sizeBytes, targetWidth, targetHeight } | null
+  const [pendingUpload, setPendingUpload] = useState(null)
   const artworkFileRef = useRef(null)
 
-  const MAX_UPLOAD_DIMENSION = 1920
-  const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+  // Jellyfin poster quality target — 1000px max dimension (e.g. 1000×1500 for 2:3 portrait)
+  const POSTER_MAX_DIM = 1000
+  const SIZE_THRESHOLD = 2 * 1024 * 1024  // 2 MB
 
-  const resizeImageFile = (file) => new Promise((resolve) => {
+  const analyzeImage = (file) => new Promise((resolve) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
     img.onload = () => {
       URL.revokeObjectURL(url)
-      const scale = Math.min(MAX_UPLOAD_DIMENSION / img.width, MAX_UPLOAD_DIMENSION / img.height)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-      canvas.toBlob(blob => resolve(new File([blob], file.name, { type: 'image/jpeg' })), 'image/jpeg', 0.92)
+      const { width, height } = img
+      const scale = Math.min(POSTER_MAX_DIM / width, POSTER_MAX_DIM / height)
+      resolve({
+        file,
+        width,
+        height,
+        sizeBytes: file.size,
+        isLarge: file.size > SIZE_THRESHOLD || width > POSTER_MAX_DIM || height > POSTER_MAX_DIM,
+        targetWidth: Math.round(width * scale),
+        targetHeight: Math.round(height * scale),
+      })
     }
     img.src = url
   })
 
-  const checkIsLarge = (file) => new Promise((resolve) => {
-    if (file.size > MAX_UPLOAD_BYTES) return resolve(true)
+  const resizeImageFile = (file, targetW, targetH) => new Promise((resolve) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
-    img.onload = () => { URL.revokeObjectURL(url); resolve(img.width > MAX_UPLOAD_DIMENSION || img.height > MAX_UPLOAD_DIMENSION) }
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const canvas = document.createElement('canvas')
+      canvas.width = targetW
+      canvas.height = targetH
+      canvas.getContext('2d').drawImage(img, 0, 0, targetW, targetH)
+      canvas.toBlob(blob => resolve(new File([blob], 'poster.jpg', { type: 'image/jpeg' })), 'image/jpeg', 0.92)
+    }
     img.src = url
   })
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
@@ -181,9 +194,9 @@ export default function CollectionDetail() {
     e.target.value = ''
     const previewUrl = URL.createObjectURL(file)
     setLocalPreviewUrl(previewUrl)
-    const isLarge = await checkIsLarge(file)
-    if (isLarge) {
-      setPendingUpload({ file, previewUrl, isLarge: true })
+    const analysis = await analyzeImage(file)
+    if (analysis.isLarge) {
+      setPendingUpload(analysis)
     } else {
       doUpload(file)
     }
@@ -464,40 +477,6 @@ export default function CollectionDetail() {
             onChange={handleArtworkFileChange}
           />
         </div>
-
-        {/* Resize prompt */}
-        {pendingUpload && (
-          <div
-            className="mt-2 w-36 rounded-lg p-2.5 text-xs space-y-2"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-          >
-            <p className="text-slate-400 leading-snug">Image is large — resize to 1920px before uploading?</p>
-            <div className="flex gap-1.5">
-              <button
-                onClick={async () => {
-                  const resized = await resizeImageFile(pendingUpload.file)
-                  doUpload(resized)
-                }}
-                className="flex-1 px-2 py-1 rounded bg-violet-600 text-white hover:bg-violet-500 transition-colors"
-              >
-                Resize
-              </button>
-              <button
-                onClick={() => doUpload(pendingUpload.file)}
-                className="flex-1 px-2 py-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                style={{ border: '1px solid var(--border)' }}
-              >
-                Keep
-              </button>
-            </div>
-            <button
-              onClick={() => { setPendingUpload(null); setLocalPreviewUrl(null) }}
-              className="w-full text-center text-slate-600 hover:text-slate-400 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
 
         {/* Info */}
         <div className="flex-1 min-w-0 py-1">
@@ -880,6 +859,64 @@ export default function CollectionDetail() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Resize modal */}
+      {pendingUpload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => { setPendingUpload(null); setLocalPreviewUrl(null) }}
+          />
+          <div
+            className="relative w-full max-w-sm rounded-2xl p-6 space-y-4"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+          >
+            <h3 className="text-base font-semibold text-white">Image is too large</h3>
+            <div
+              className="rounded-lg p-3 space-y-1.5"
+              style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
+            >
+              <p className="text-sm text-slate-400">
+                Current:{' '}
+                <span className="text-slate-200">
+                  {pendingUpload.width} × {pendingUpload.height}px · {(pendingUpload.sizeBytes / 1024 / 1024).toFixed(1)} MB
+                </span>
+              </p>
+              <p className="text-sm text-slate-400">
+                Resized to:{' '}
+                <span className="text-slate-200">
+                  {pendingUpload.targetWidth} × {pendingUpload.targetHeight}px
+                </span>
+                {' '}— optimal for Jellyfin poster display
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  const resized = await resizeImageFile(pendingUpload.file, pendingUpload.targetWidth, pendingUpload.targetHeight)
+                  doUpload(resized)
+                }}
+                className="flex-1 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-colors"
+              >
+                Resize &amp; Upload
+              </button>
+              <button
+                onClick={() => doUpload(pendingUpload.file)}
+                className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                style={{ border: '1px solid var(--border)' }}
+              >
+                Upload Original
+              </button>
+            </div>
+            <button
+              onClick={() => { setPendingUpload(null); setLocalPreviewUrl(null) }}
+              className="w-full text-center text-xs text-slate-600 hover:text-slate-400 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
