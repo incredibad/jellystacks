@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Search, X, ChevronLeft, Plus, List } from 'lucide-react'
+import { Search, X, ChevronLeft, Plus, List, Heart } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -213,9 +213,24 @@ export default function MdblistModal({ onClose, onCreate }) {
                           {result.description ? ` · ${result.description}` : ''}
                         </p>
                       </div>
-                      {result.items != null && (
-                        <span className="flex-shrink-0 text-xs text-slate-500 tabular-nums">{result.items}</span>
-                      )}
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <div className="flex items-center gap-1.5">
+                          {result.mediatype && result.mediatype !== 'both' && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-700 text-slate-300">
+                              {result.mediatype === 'movie' ? 'Movies' : 'Shows'}
+                            </span>
+                          )}
+                          {result.likes > 0 && (
+                            <span className="flex items-center gap-0.5 text-xs text-slate-500">
+                              <Heart size={10} />
+                              {result.likes}
+                            </span>
+                          )}
+                        </div>
+                        {result.items != null && (
+                          <span className="text-xs text-slate-500 tabular-nums">{result.items} items</span>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
