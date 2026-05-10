@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.14] — 2026-05-10
+
+### Fixed
+- Related movies tab now uses `db.merge()` (SQLAlchemy upsert) for the TMDB recommendation cache, eliminating the UNIQUE constraint IntegrityError that caused intermittent 500 errors when two requests raced to insert the same entry
+- Related tab shows a spinner immediately on first open instead of briefly flashing "Loading related movies…" before the spinner appeared
+
+---
+
 ## [1.8.13] — 2026-05-10
 
 ### Fixed

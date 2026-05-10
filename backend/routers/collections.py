@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from fastapi.responses import FileResponse, Response
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 import httpx
 
@@ -182,20 +183,21 @@ async def get_related_movies(
                 if resp.status_code != 200:
                     continue
                 related_ids = [str(r["id"]) for r in resp.json().get("results", [])]
-                if entry:
-                    entry.related_ids = json.dumps(related_ids)
-                    entry.cached_at = datetime.utcnow()
-                else:
-                    db.add(models.TmdbRelatedCache(
-                        tmdb_id=tmdb_id,
-                        related_ids=json.dumps(related_ids),
-                        cached_at=datetime.utcnow(),
-                    ))
+                # merge() does INSERT OR UPDATE by primary key — avoids UNIQUE
+                # constraint errors when two requests race on the same tmdb_id.
+                db.merge(models.TmdbRelatedCache(
+                    tmdb_id=tmdb_id,
+                    related_ids=json.dumps(related_ids),
+                    cached_at=datetime.utcnow(),
+                ))
 
             for rid in related_ids:
                 tally.setdefault(rid, []).append(title)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
 
     if not tally:
         return []
