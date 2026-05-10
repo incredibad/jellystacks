@@ -709,6 +709,11 @@ class TmdbImportRequest(BaseModel):
     tmdb_collection_id: int
 
 
+class MdblistImportRequest(BaseModel):
+    mdblist_list_id: int
+    name: str
+
+
 @router.post("/import-from-tmdb", response_model=schemas.CollectionDetailResponse)
 async def import_from_tmdb(
     data: TmdbImportRequest,
@@ -752,6 +757,44 @@ async def import_from_tmdb(
         tmdb_checked=True,
     )
     col.movies = owned_movies
+    db.add(col)
+    db.commit()
+    db.refresh(col)
+    return _collection_to_detail(col)
+
+
+@router.post("/from-mdblist", response_model=schemas.CollectionDetailResponse)
+async def create_from_mdblist(
+    data: MdblistImportRequest,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    from routers.mdblist import _get_api_key, _parse_items, _split_tmdb_ids
+    api_key = _get_api_key(db)
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"https://api.mdblist.com/lists/{data.mdblist_list_id}/items",
+            params={"apikey": api_key},
+        )
+    if resp.status_code != 200:
+        raise HTTPException(502, "Failed to fetch MDBList items.")
+
+    items = _parse_items(resp.json())
+    movie_ids, show_ids = _split_tmdb_ids(items)
+
+    movies = (
+        db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).all()
+        if movie_ids else []
+    )
+    shows = (
+        db.query(models.Show).filter(models.Show.tmdb_id.in_(show_ids)).all()
+        if show_ids else []
+    )
+
+    col = models.Collection(name=data.name)
+    col.movies = movies
+    col.shows = shows
     db.add(col)
     db.commit()
     db.refresh(col)

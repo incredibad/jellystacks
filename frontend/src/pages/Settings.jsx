@@ -68,6 +68,7 @@ export default function Settings() {
     jellyfin_user_id: '',
     tmdb_api_key: '',
     tmdb_related_enabled: false,
+    mdblist_api_key: '',
   })
   const [original, setOriginal] = useState({})
   const [saving, setSaving] = useState(false)
@@ -92,6 +93,7 @@ export default function Settings() {
         jellyfin_user_id: data.jellyfin_user_id || '',
         tmdb_api_key: '',
         tmdb_related_enabled: data.tmdb_related_enabled || false,
+        mdblist_api_key: '',
       })
       setOriginal(data)
     })
@@ -110,6 +112,7 @@ export default function Settings() {
       if (form.jellyfin_api_key) payload.jellyfin_api_key = form.jellyfin_api_key
       if (form.jellyfin_user_id !== original.jellyfin_user_id) payload.jellyfin_user_id = form.jellyfin_user_id
       if (form.tmdb_api_key) payload.tmdb_api_key = form.tmdb_api_key
+      if (form.mdblist_api_key) payload.mdblist_api_key = form.mdblist_api_key
       if (form.tmdb_related_enabled !== original.tmdb_related_enabled) payload.tmdb_related_enabled = form.tmdb_related_enabled
 
       if (Object.keys(payload).length === 0) {
@@ -119,7 +122,7 @@ export default function Settings() {
 
       const { data } = await api.put('/settings', payload)
       setOriginal(data)
-      setForm(prev => ({ ...prev, jellyfin_api_key: '', tmdb_api_key: '' }))
+      setForm(prev => ({ ...prev, jellyfin_api_key: '', tmdb_api_key: '', mdblist_api_key: '' }))
       toast.success('Settings saved.')
       setTestResult(null)
     } catch (err) {
@@ -432,6 +435,39 @@ export default function Settings() {
                 }`} />
               </button>
             </div>
+          </Section>
+
+          <Section
+            title="MDBList Integration"
+            description="Used to import curated public lists as collections."
+            icon={Key}
+          >
+            <Field
+              label={`API Key${original.mdblist_api_key_set ? ' (currently set — leave blank to keep)' : ''}`}
+              hint={
+                <span>
+                  Get a free API key at{' '}
+                  <a
+                    href="https://mdblist.com/preferences"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-violet-400 hover:underline inline-flex items-center gap-0.5"
+                  >
+                    mdblist.com/preferences <ExternalLink size={11} />
+                  </a>
+                </span>
+              }
+            >
+              <input
+                type="password"
+                value={form.mdblist_api_key}
+                onChange={e => set('mdblist_api_key', e.target.value)}
+                placeholder={original.mdblist_api_key_set ? '••••••••••••••••' : 'Enter your MDBList API key'}
+                className={inputClass}
+                style={inputStyle}
+                autoComplete="new-password"
+              />
+            </Field>
           </Section>
 
           <div className="flex justify-end">

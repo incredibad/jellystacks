@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.0] — 2026-05-10
+
+### Added
+- **From MDBList** — new "New Collection" source: search any public MDBList list by name, see how many items you own, and create a collection pre-populated with your library's movies and shows
+- MDBList API key field added to Settings (Sync tab) — get a free key at mdblist.com/preferences
+- New backend endpoints: `GET /api/mdblist/search`, `GET /api/mdblist/lists/{id}/preview`, `POST /api/collections/from-mdblist`
+
+---
+
 ## [1.7.5] — 2026-05-10
 
 ### Fixed
