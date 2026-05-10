@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Film, X } from 'lucide-react'
+import { libraryColor } from '../utils/libraryColor'
 
 export default function MovieListRow({ movie, onRemove }) {
   const [imgFailed, setImgFailed] = useState(false)
@@ -39,12 +40,17 @@ export default function MovieListRow({ movie, onRemove }) {
               <span className="text-xs text-slate-500">{movie.seasons}S</span>
             </>
           )}
-          {movie.library_name && (
-            <>
-              {(movie.year || (isShow && movie.seasons != null)) && <span className="text-slate-700 text-xs">·</span>}
-              <span className="text-xs text-slate-500">{movie.library_name}</span>
-            </>
-          )}
+          {movie.library_name && (() => {
+            const { bg, text } = libraryColor(movie.library_name)
+            return (
+              <span
+                className="px-1.5 py-0.5 rounded text-[9px] font-semibold leading-tight"
+                style={{ background: bg, color: text }}
+              >
+                {movie.library_name}
+              </span>
+            )
+          })()}
           {movie.community_rating && (
             <>
               <span className="text-slate-700 text-xs">·</span>

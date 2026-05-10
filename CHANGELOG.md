@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.16] — 2026-05-10
+
+### Changed
+- Library badges on movie/show cards and list rows are now colour-coded — each library name is hashed to a consistent colour from an 8-colour palette (violet, blue, emerald, amber, rose, cyan, fuchsia, indigo), so different libraries are visually distinct at a glance
+- Reverted MDBList and TMDB auto-imports to include all matching versions of a movie rather than deduplicating to one version — both 1080p and 4K entries are added so Jellyfin's per-user permissions determine what each user sees
+
+---
+
 ## [1.8.15] — 2026-05-10
 
 ### Changed
