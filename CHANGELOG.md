@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.2] — 2026-05-10
+
+### Fixed
+- MDBList preview debug logging added to diagnose zero-item responses
+
+---
+
 ## [1.8.1] — 2026-05-10
 
 ### Changed

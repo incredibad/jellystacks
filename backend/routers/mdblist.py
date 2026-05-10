@@ -75,7 +75,15 @@ async def preview_list(
     if resp.status_code != 200:
         raise HTTPException(502, "Failed to fetch list items.")
 
-    items = _parse_items(resp.json())
+    raw = resp.json()
+    print("MDBLIST RAW KEYS:", list(raw.keys()) if isinstance(raw, dict) else f"list of {len(raw)}")
+    if isinstance(raw, dict):
+        for k, v in raw.items():
+            if isinstance(v, list):
+                print(f"  key={k!r} len={len(v)} sample={v[:1]}")
+            else:
+                print(f"  key={k!r} val={v!r}")
+    items = _parse_items(raw)
     movie_ids, show_ids = _split_tmdb_ids(items)
 
     movie_count = (
@@ -87,4 +95,9 @@ async def preview_list(
         if show_ids else 0
     )
 
-    return {"movie_count": movie_count, "show_count": show_count, "total_items": len(items)}
+    return {
+        "movie_count": movie_count,
+        "show_count": show_count,
+        "total_items": len(items),
+        "_debug_sample": items[:3],
+    }
