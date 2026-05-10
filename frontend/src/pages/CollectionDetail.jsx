@@ -288,6 +288,9 @@ export default function CollectionDetail() {
     try {
       const { data } = await api.post(`/collections/${id}/push`)
       toast.success(data.message, { id: tid })
+      if (data.artwork_error) {
+        toast.error(`Artwork upload failed: ${data.artwork_error}`, { duration: 8000 })
+      }
       fetchCollection()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Push failed.', { id: tid })
