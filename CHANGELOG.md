@@ -4,6 +4,19 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.11.0] — 2026-05-10
+
+### Added
+- Custom poster artwork uploads for individual movies and shows: hover any card or list row to reveal Browse (TMDB image picker) and Upload buttons
+- `MediaArtworkModal` component: focused TMDB image picker for a single movie or show, supporting both posters and backdrops
+- Backend `POST /movies/{id}/artwork/upload` and `PUT /movies/{id}/artwork` endpoints to save custom artwork
+- Backend `POST /shows/{id}/artwork/upload` and `PUT /shows/{id}/artwork` endpoints to save custom artwork
+- TMDB `/tv/{tmdb_id}/images` endpoint for browsing TV show artwork
+- `custom_artwork_url` column on `movies` and `shows` tables; custom artwork takes priority over Jellyfin poster in the poster proxy
+- Cache-busting on poster URLs after artwork changes so the browser immediately shows the new image
+
+---
+
 ## [1.10.3] — 2026-05-10
 
 ### Changed

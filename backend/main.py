@@ -26,6 +26,12 @@ def _run_migrations():
         ]:
             if col not in movie_cols:
                 conn.execute(text(ddl))
+        if "custom_artwork_url" not in movie_cols:
+            conn.execute(text("ALTER TABLE movies ADD COLUMN custom_artwork_url TEXT"))
+
+        show_cols = {c["name"] for c in inspector.get_columns("shows")}
+        if "custom_artwork_url" not in show_cols:
+            conn.execute(text("ALTER TABLE shows ADD COLUMN custom_artwork_url TEXT"))
 
         col_cols = {c["name"] for c in inspector.get_columns("collections")}
         if "tmdb_collection_id" not in col_cols:

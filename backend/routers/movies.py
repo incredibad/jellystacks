@@ -1,10 +1,14 @@
+import io
 import json
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import Response
+from pathlib import Path
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
+from fastapi.responses import Response, FileResponse
+from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 import httpx
+from PIL import Image as PILImage
 
 from database import get_db
 import models
@@ -13,6 +17,9 @@ from auth import get_current_user
 from routers.settings import _get_settings_dict
 
 router = APIRouter()
+
+_ARTWORK_DIR = Path("/data/artwork/movies")
+_ARTWORK_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _jellyfin_headers(api_key: str) -> dict:
@@ -37,7 +44,8 @@ def _movie_to_response(m: models.Movie) -> schemas.MovieResponse:
         genres=m.genres,
         runtime=m.runtime,
         community_rating=m.community_rating,
-        has_poster=bool(m.primary_image_tag),
+        has_poster=bool(m.primary_image_tag) or bool(m.custom_artwork_url),
+        custom_artwork_url=m.custom_artwork_url,
         library_name=m.library_name,
         library_id=m.library_id,
         last_synced=m.last_synced,
@@ -105,6 +113,21 @@ async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
     if not movie:
         raise HTTPException(404, "Movie not found.")
 
+    # Check for custom artwork first
+    if movie.custom_artwork_url:
+        if movie.custom_artwork_url.startswith('/data/'):
+            p = Path(movie.custom_artwork_url)
+            if p.exists():
+                return FileResponse(str(p), media_type='image/jpeg')
+        else:
+            try:
+                async with httpx.AsyncClient(timeout=15) as client:
+                    r = await client.get(movie.custom_artwork_url)
+                if r.status_code == 200:
+                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'))
+            except Exception:
+                pass
+
     s = _get_settings_dict(db)
     jf_url = s.get("jellyfin_url")
     api_key = s.get("jellyfin_api_key")
@@ -125,6 +148,54 @@ async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(502, f"Failed to fetch poster: {e}")
+
+
+@router.post("/{movie_id}/artwork/upload", response_model=schemas.MovieResponse)
+async def upload_movie_artwork(
+    movie_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+    if not movie:
+        raise HTTPException(404, "Movie not found.")
+    contents = await file.read()
+    try:
+        img = PILImage.open(io.BytesIO(contents))
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, "JPEG", quality=92)
+        jpeg_bytes = buf.getvalue()
+    except Exception as e:
+        raise HTTPException(400, f"Invalid image: {e}")
+    path = _ARTWORK_DIR / f"{movie_id}.jpg"
+    path.write_bytes(jpeg_bytes)
+    movie.custom_artwork_url = str(path)
+    db.commit()
+    db.refresh(movie)
+    return _movie_to_response(movie)
+
+
+class ArtworkUrlRequest(BaseModel):
+    url: str
+
+
+@router.put("/{movie_id}/artwork", response_model=schemas.MovieResponse)
+def set_movie_artwork_url(
+    movie_id: int,
+    data: ArtworkUrlRequest,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+    if not movie:
+        raise HTTPException(404, "Movie not found.")
+    movie.custom_artwork_url = data.url
+    db.commit()
+    db.refresh(movie)
+    return _movie_to_response(movie)
 
 
 @router.post("/sync", response_model=schemas.SyncResult)

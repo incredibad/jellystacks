@@ -1,10 +1,14 @@
+import io
 import json
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import Response
+from pathlib import Path
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
+from fastapi.responses import Response, FileResponse
+from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 import httpx
+from PIL import Image as PILImage
 
 from database import get_db
 import models
@@ -14,6 +18,9 @@ from routers.settings import _get_settings_dict
 from routers.movies import _jellyfin_headers
 
 router = APIRouter()
+
+_ARTWORK_DIR = Path("/data/artwork/shows")
+_ARTWORK_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _show_to_response(s: models.Show) -> schemas.ShowResponse:
@@ -30,7 +37,8 @@ def _show_to_response(s: models.Show) -> schemas.ShowResponse:
         seasons=s.seasons,
         status=s.status,
         community_rating=s.community_rating,
-        has_poster=bool(s.primary_image_tag),
+        has_poster=bool(s.primary_image_tag) or bool(s.custom_artwork_url),
+        custom_artwork_url=s.custom_artwork_url,
         library_name=s.library_name,
         library_id=s.library_id,
         last_synced=s.last_synced,
@@ -91,6 +99,21 @@ async def show_poster(show_id: int, db: Session = Depends(get_db)):
     if not show:
         raise HTTPException(404, "Show not found.")
 
+    # Check for custom artwork first
+    if show.custom_artwork_url:
+        if show.custom_artwork_url.startswith('/data/'):
+            p = Path(show.custom_artwork_url)
+            if p.exists():
+                return FileResponse(str(p), media_type='image/jpeg')
+        else:
+            try:
+                async with httpx.AsyncClient(timeout=15) as client:
+                    r = await client.get(show.custom_artwork_url)
+                if r.status_code == 200:
+                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'))
+            except Exception:
+                pass
+
     s = _get_settings_dict(db)
     jf_url = s.get("jellyfin_url")
     api_key = s.get("jellyfin_api_key")
@@ -111,6 +134,54 @@ async def show_poster(show_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(502, f"Failed to fetch poster: {e}")
+
+
+@router.post("/{show_id}/artwork/upload", response_model=schemas.ShowResponse)
+async def upload_show_artwork(
+    show_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    show = db.query(models.Show).filter(models.Show.id == show_id).first()
+    if not show:
+        raise HTTPException(404, "Show not found.")
+    contents = await file.read()
+    try:
+        img = PILImage.open(io.BytesIO(contents))
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, "JPEG", quality=92)
+        jpeg_bytes = buf.getvalue()
+    except Exception as e:
+        raise HTTPException(400, f"Invalid image: {e}")
+    path = _ARTWORK_DIR / f"{show_id}.jpg"
+    path.write_bytes(jpeg_bytes)
+    show.custom_artwork_url = str(path)
+    db.commit()
+    db.refresh(show)
+    return _show_to_response(show)
+
+
+class ArtworkUrlRequest(BaseModel):
+    url: str
+
+
+@router.put("/{show_id}/artwork", response_model=schemas.ShowResponse)
+def set_show_artwork_url(
+    show_id: int,
+    data: ArtworkUrlRequest,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    show = db.query(models.Show).filter(models.Show.id == show_id).first()
+    if not show:
+        raise HTTPException(404, "Show not found.")
+    show.custom_artwork_url = data.url
+    db.commit()
+    db.refresh(show)
+    return _show_to_response(show)
 
 
 @router.post("/sync", response_model=schemas.SyncResult)

@@ -215,14 +215,21 @@ export default function Movies() {
           {view === 'grid' ? (
             <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
               {movies.map(movie => (
-                <MovieCard key={movie.id} movie={movie} />
+                <MovieCard
+                  key={movie.id}
+                  movie={movie}
+                  onArtworkChange={(updated) => setMovies(prev => prev.map(m => m.id === updated.id ? updated : m))}
+                />
               ))}
             </div>
           ) : (
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
               {movies.map((movie, i) => (
                 <div key={movie.id} style={i > 0 ? { borderTop: '1px solid var(--border)' } : {}}>
-                  <MovieListRow movie={movie} />
+                  <MovieListRow
+                    movie={movie}
+                    onArtworkChange={(updated) => setMovies(prev => prev.map(m => m.id === updated.id ? updated : m))}
+                  />
                 </div>
               ))}
             </div>
