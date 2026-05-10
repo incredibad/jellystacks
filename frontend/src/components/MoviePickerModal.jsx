@@ -173,6 +173,7 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
   const [related, setRelated] = useState([])
   const [relatedLoading, setRelatedLoading] = useState(false)
   const [relatedFetched, setRelatedFetched] = useState(false)
+  const [relatedError, setRelatedError] = useState(false)
   const [relatedEnabled, setRelatedEnabled] = useState(false)
 
   // ── Shows state ───────────────────────────────────────────────────────────
@@ -259,12 +260,13 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
   const fetchRelated = useCallback(async () => {
     if (relatedFetched) return
     setRelatedLoading(true)
+    setRelatedError(false)
     try {
       const { data } = await api.get(`/collections/${collection.id}/related`)
       setRelated(data)
       setRelatedFetched(true)
     } catch {
-      // silent
+      setRelatedError(true)
     } finally {
       setRelatedLoading(false)
     }
@@ -522,6 +524,17 @@ export default function MoviePickerModal({ collection, onClose, onAdded }) {
 
   const renderRelatedList = () => {
     if (relatedLoading) return <Spinner />
+    if (relatedError) return (
+      <div className="text-center py-12 space-y-3">
+        <p className="text-slate-500 text-sm">Failed to load recommendations.</p>
+        <button
+          onClick={() => { setRelatedError(false); fetchRelated() }}
+          className="px-3 py-1.5 rounded-lg text-sm text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 transition-colors"
+        >
+          Try again
+        </button>
+      </div>
+    )
     if (filteredRelated.length === 0) return (
       <Empty text={relatedFetched ? 'No related movies found in your library.' : 'Loading related movies…'} />
     )
