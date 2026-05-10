@@ -4,6 +4,21 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.7.0] — 2026-05-10
+
+### Added
+- **Full TV show support**: Shows are now a first-class media type alongside movies
+  - New **Shows** page with search, library filter pills, grid/list view, and Sync Jellyfin button
+  - Shows nav item in the sidebar
+  - Collections can now contain both movies and shows — collection detail shows each in separate labelled sections
+  - **Add Items** picker modal now has Movies / Shows toggle with per-type Search and Suggestions tabs
+  - Show cards display season count (e.g. "5S") in place of runtime
+  - Pushing a collection to Jellyfin includes both movies and shows
+  - Show suggestions use the same scoring engine as movies
+  - New API endpoints: `GET /shows`, `GET /shows/count`, `GET /shows/libraries`, `GET /shows/{id}/poster`, `POST /shows/sync`, `POST /collections/{id}/shows`, `DELETE /collections/{id}/shows/{id}`, `GET /collections/{id}/show-suggestions`
+
+---
+
 ## [1.6.1] — 2026-05-10
 
 ### Fixed

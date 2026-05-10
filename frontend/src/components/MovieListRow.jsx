@@ -4,6 +4,11 @@ import { Film, X } from 'lucide-react'
 export default function MovieListRow({ movie, onRemove }) {
   const [imgFailed, setImgFailed] = useState(false)
 
+  const isShow = movie.media_type === 'show'
+  const posterUrl = isShow
+    ? `/api/shows/${movie.id}/poster`
+    : `/api/movies/${movie.id}/poster`
+
   return (
     <div className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
       {/* Mini poster */}
@@ -14,7 +19,7 @@ export default function MovieListRow({ movie, onRemove }) {
           </div>
         ) : (
           <img
-            src={`/api/movies/${movie.id}/poster`}
+            src={posterUrl}
             alt={movie.title}
             loading="lazy"
             className="w-full h-full object-cover"
@@ -28,9 +33,15 @@ export default function MovieListRow({ movie, onRemove }) {
         <p className="text-sm font-medium text-slate-200 truncate">{movie.title}</p>
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
           {movie.year && <span className="text-xs text-slate-500">{movie.year}</span>}
-          {movie.library_name && (
+          {isShow && movie.seasons != null && (
             <>
               {movie.year && <span className="text-slate-700 text-xs">·</span>}
+              <span className="text-xs text-slate-500">{movie.seasons}S</span>
+            </>
+          )}
+          {movie.library_name && (
+            <>
+              {(movie.year || (isShow && movie.seasons != null)) && <span className="text-slate-700 text-xs">·</span>}
               <span className="text-xs text-slate-500">{movie.library_name}</span>
             </>
           )}

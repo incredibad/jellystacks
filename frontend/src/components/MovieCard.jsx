@@ -4,6 +4,11 @@ import { Film } from 'lucide-react'
 export default function MovieCard({ movie, selected, onToggle }) {
   const [imgFailed, setImgFailed] = useState(false)
 
+  const isShow = movie.media_type === 'show'
+  const posterUrl = isShow
+    ? `/api/shows/${movie.id}/poster`
+    : `/api/movies/${movie.id}/poster`
+
   return (
     <div
       onClick={onToggle ? () => onToggle(movie) : undefined}
@@ -20,7 +25,7 @@ export default function MovieCard({ movie, selected, onToggle }) {
           </div>
         ) : (
           <img
-            src={`/api/movies/${movie.id}/poster`}
+            src={posterUrl}
             alt={movie.title}
             loading="lazy"
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -57,6 +62,9 @@ export default function MovieCard({ movie, selected, onToggle }) {
         <div className="flex items-center gap-2 mt-1">
           {movie.year && (
             <span className="text-xs text-slate-500">{movie.year}</span>
+          )}
+          {isShow && movie.seasons != null && (
+            <span className="text-xs text-slate-500">{movie.seasons}S</span>
           )}
           {movie.community_rating && (
             <span className="text-xs text-amber-400">★ {movie.community_rating}</span>

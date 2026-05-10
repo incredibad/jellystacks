@@ -13,6 +13,13 @@ collection_movies = Table(
     Column("movie_id", Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
 )
 
+collection_shows = Table(
+    "collection_shows",
+    Base.metadata,
+    Column("collection_id", Integer, ForeignKey("collections.id", ondelete="CASCADE"), primary_key=True),
+    Column("show_id", Integer, ForeignKey("shows.id", ondelete="CASCADE"), primary_key=True),
+)
+
 
 class User(Base):
     __tablename__ = "users"
@@ -49,6 +56,31 @@ class Movie(Base):
     collections = relationship("Collection", secondary=collection_movies, back_populates="movies")
 
 
+class Show(Base):
+    __tablename__ = "shows"
+
+    id = Column(Integer, primary_key=True, index=True)
+    jellyfin_id = Column(String, unique=True, index=True, nullable=False)
+    title = Column(String, index=True, nullable=False)
+    sort_title = Column(String, nullable=True)
+    year = Column(Integer, nullable=True)
+    overview = Column(Text, nullable=True)
+    tmdb_id = Column(String, nullable=True)
+    imdb_id = Column(String, nullable=True)
+    genres = Column(String, nullable=True)
+    tags = Column(Text, nullable=True)
+    people = Column(Text, nullable=True)
+    seasons = Column(Integer, nullable=True)
+    status = Column(String, nullable=True)
+    community_rating = Column(String, nullable=True)
+    primary_image_tag = Column(String, nullable=True)
+    library_name = Column(String, nullable=True)
+    library_id = Column(String, nullable=True)
+    last_synced = Column(DateTime, default=datetime.utcnow)
+
+    collections = relationship("Collection", secondary=collection_shows, back_populates="shows")
+
+
 class Collection(Base):
     __tablename__ = "collections"
 
@@ -67,6 +99,7 @@ class Collection(Base):
     updated_at = Column(DateTime, default=datetime.utcnow)
 
     movies = relationship("Movie", secondary=collection_movies, back_populates="collections")
+    shows = relationship("Show", secondary=collection_shows, back_populates="collections")
 
 
 class AppSetting(Base):

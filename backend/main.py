@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy import text, inspect as sa_inspect
 
 from database import Base, engine
-from routers import auth, movies, collections, settings as settings_router, tmdb
+from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -77,6 +77,7 @@ app.add_middleware(
 # ── API Routes ────────────────────────────────────────────────────────────────
 app.include_router(auth.router,            prefix="/api/auth",        tags=["auth"])
 app.include_router(movies.router,          prefix="/api/movies",      tags=["movies"])
+app.include_router(shows_router.router,    prefix="/api/shows",       tags=["shows"])
 app.include_router(collections.router,     prefix="/api/collections", tags=["collections"])
 app.include_router(settings_router.router, prefix="/api/settings",    tags=["settings"])
 app.include_router(tmdb.router,            prefix="/api/tmdb",        tags=["tmdb"])

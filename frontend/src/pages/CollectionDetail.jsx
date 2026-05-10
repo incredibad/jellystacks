@@ -199,6 +199,16 @@ export default function CollectionDetail() {
     }
   }
 
+  const handleRemoveShow = async (showId) => {
+    try {
+      const { data } = await api.delete(`/collections/${id}/shows/${showId}`)
+      setCollection(data)
+      toast.success('Show removed.')
+    } catch {
+      toast.error('Failed to remove show.')
+    }
+  }
+
   const handlePush = async () => {
     setPushing(true)
     const tid = toast.loading('Pushing to Jellyfin…')
@@ -264,14 +274,14 @@ export default function CollectionDetail() {
 
   if (!collection) return null
 
-  const collectionLibraries = [...new Set((collection.movies || []).map(m => m.library_name).filter(Boolean))]
+  const collectionLibraries = [...new Set([
+    ...(collection.movies || []).map(m => m.library_name),
+    ...(collection.shows || []).map(s => s.library_name),
+  ].filter(Boolean))]
 
-  const sortedMovies = (() => {
+  const sortItems = (items) => {
     const [field, dir] = sort.split('-')
-    const base = libraryFilter
-      ? (collection.movies || []).filter(m => m.library_name === libraryFilter)
-      : (collection.movies || [])
-    return [...base].sort((a, b) => {
+    return [...items].sort((a, b) => {
       let cmp = 0
       if (field === 'name') {
         const ak = a.title.replace(/^(the|a|an)\s+/i, '').toLowerCase()
@@ -284,7 +294,19 @@ export default function CollectionDetail() {
       }
       return dir === 'asc' ? cmp : -cmp
     })
-  })()
+  }
+
+  const sortedMovies = sortItems(
+    libraryFilter
+      ? (collection.movies || []).filter(m => m.library_name === libraryFilter)
+      : (collection.movies || [])
+  )
+
+  const sortedShows = sortItems(
+    libraryFilter
+      ? (collection.shows || []).filter(s => s.library_name === libraryFilter)
+      : (collection.shows || [])
+  )
 
   const jfPoster = collection.jellyfin_collection_id
     ? `/api/collections/${collection.id}/poster`
@@ -376,10 +398,19 @@ export default function CollectionDetail() {
               </span>
             ) : null}
             <span className="text-xs text-slate-500">
-  {collection.tmdb_collection_id && collection.tmdb_total_parts
-    ? `${collection.movie_count}/${collection.tmdb_total_parts} movies`
-    : `${collection.movie_count} ${collection.movie_count === 1 ? 'movie' : 'movies'}`}
-</span>
+              {(() => {
+                const mc = collection.movie_count
+                const sc = collection.show_count || 0
+                const parts = []
+                if (collection.tmdb_collection_id && collection.tmdb_total_parts) {
+                  parts.push(`${mc}/${collection.tmdb_total_parts} movies`)
+                } else if (mc > 0) {
+                  parts.push(`${mc} ${mc === 1 ? 'movie' : 'movies'}`)
+                }
+                if (sc > 0) parts.push(`${sc} ${sc === 1 ? 'show' : 'shows'}`)
+                return parts.join(' · ') || 'Empty'
+              })()}
+            </span>
           </div>
 
           <h1 className="text-3xl font-bold text-white mb-2">
@@ -403,7 +434,7 @@ export default function CollectionDetail() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={handlePush}
-              disabled={pushing || collection.movie_count === 0 || (collection.in_jellyfin && !needsSync)}
+              disabled={pushing || (collection.movie_count + (collection.show_count || 0)) === 0 || (collection.in_jellyfin && !needsSync)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 pushing || collection.movie_count === 0
                   ? 'bg-violet-600 text-white opacity-50 cursor-not-allowed'
@@ -464,120 +495,172 @@ export default function CollectionDetail() {
         </div>
       </div>
 
-      {/* Movies section */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-normal text-white">
-            Movies <span className="text-slate-500 font-normal text-base">
-              {libraryFilter ? `${sortedMovies.length} of ${collection.movie_count}` : collection.movie_count}
-            </span>
-          </h2>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {/* Library pills */}
-            {collectionLibraries.length > 1 && (
-              <div className="flex items-center gap-1.5">
+      {/* Movies + Shows controls */}
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-normal text-white">Items</h2>
+          {collection.movie_count > 0 && (
+            <span className="text-xs text-slate-500">{collection.movie_count} {collection.movie_count === 1 ? 'movie' : 'movies'}</span>
+          )}
+          {(collection.show_count || 0) > 0 && (
+            <span className="text-xs text-slate-500">{collection.show_count} {collection.show_count === 1 ? 'show' : 'shows'}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Library pills */}
+          {collectionLibraries.length > 1 && (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setLibraryFilter('')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  libraryFilter === '' ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                }`}
+              >
+                All
+              </button>
+              {collectionLibraries.map(lib => (
                 <button
-                  onClick={() => setLibraryFilter('')}
+                  key={lib}
+                  onClick={() => setLibraryFilter(lib === libraryFilter ? '' : lib)}
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                    libraryFilter === '' ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                    libraryFilter === lib ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
                   }`}
                 >
-                  All
+                  {lib}
                 </button>
-                {collectionLibraries.map(lib => (
-                  <button
-                    key={lib}
-                    onClick={() => setLibraryFilter(lib === libraryFilter ? '' : lib)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                      libraryFilter === lib ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {lib}
-                  </button>
-                ))}
-              </div>
-            )}
-            {/* Sort */}
-            <select
-              value={sort}
-              onChange={e => setSort(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 outline-none cursor-pointer hover:text-white transition-colors"
-              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-            >
-              <option value="name-asc">Name A–Z</option>
-              <option value="name-desc">Name Z–A</option>
-              <option value="year-desc">Year (newest)</option>
-              <option value="year-asc">Year (oldest)</option>
-              <option value="rating-desc">Rating (highest)</option>
-              <option value="rating-asc">Rating (lowest)</option>
-            </select>
-
-            {/* View toggle */}
-            <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-              <button
-                onClick={() => switchView('grid')}
-                title="Grid view"
-                className={`p-2 transition-colors ${view === 'grid' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-              >
-                <LayoutGrid size={15} />
-              </button>
-              <button
-                onClick={() => switchView('list')}
-                title="List view"
-                className={`p-2 transition-colors ${view === 'list' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-              >
-                <LayoutList size={15} />
-              </button>
+              ))}
             </div>
-            <button
-              onClick={() => setShowPicker(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 transition-all border border-violet-500/20 hover:border-violet-500/40"
-            >
-              <Plus size={15} />
-              Add Movies
-            </button>
-          </div>
-        </div>
-
-        {collection.movies.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center py-16 rounded-xl text-slate-500"
-            style={{ background: 'var(--surface)', border: '1px dashed var(--border)' }}
+          )}
+          {/* Sort */}
+          <select
+            value={sort}
+            onChange={e => setSort(e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 outline-none cursor-pointer hover:text-white transition-colors"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
           >
-            <p className="text-sm">No movies in this collection yet.</p>
+            <option value="name-asc">Name A–Z</option>
+            <option value="name-desc">Name Z–A</option>
+            <option value="year-desc">Year (newest)</option>
+            <option value="year-asc">Year (oldest)</option>
+            <option value="rating-desc">Rating (highest)</option>
+            <option value="rating-asc">Rating (lowest)</option>
+          </select>
+          {/* View toggle */}
+          <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
             <button
-              onClick={() => setShowPicker(true)}
-              className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
+              onClick={() => switchView('grid')}
+              title="Grid view"
+              className={`p-2 transition-colors ${view === 'grid' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
             >
-              <Plus size={15} />
-              Add Movies
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              onClick={() => switchView('list')}
+              title="List view"
+              className={`p-2 transition-colors ${view === 'list' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              <LayoutList size={15} />
             </button>
           </div>
-        ) : view === 'grid' ? (
-          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
-            {sortedMovies.map(movie => (
-              <div key={movie.id} className="relative group">
-                <MovieCard movie={movie} />
-                <button
-                  onClick={() => handleRemoveMovie(movie.id)}
-                  className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-400 shadow-lg"
-                  title="Remove from collection"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-            {sortedMovies.map((movie, i) => (
-              <div key={movie.id} style={i > 0 ? { borderTop: '1px solid var(--border)' } : {}}>
-                <MovieListRow movie={movie} onRemove={handleRemoveMovie} />
-              </div>
-            ))}
-          </div>
-        )}
+          <button
+            onClick={() => setShowPicker(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 transition-all border border-violet-500/20 hover:border-violet-500/40"
+          >
+            <Plus size={15} />
+            Add Items
+          </button>
+        </div>
       </div>
+
+      {/* Movies section */}
+      {(collection.movies.length > 0 || collection.movie_count > 0) && (
+        <div className="mb-6">
+          {collection.movie_count > 0 && (
+            <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-3">Movies</h3>
+          )}
+          {collection.movies.length === 0 ? (
+            <div
+              className="flex flex-col items-center justify-center py-10 rounded-xl text-slate-500"
+              style={{ background: 'var(--surface)', border: '1px dashed var(--border)' }}
+            >
+              <p className="text-sm">No movies in this collection yet.</p>
+            </div>
+          ) : view === 'grid' ? (
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
+              {sortedMovies.map(movie => (
+                <div key={movie.id} className="relative group">
+                  <MovieCard movie={movie} />
+                  <button
+                    onClick={() => handleRemoveMovie(movie.id)}
+                    className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-400 shadow-lg"
+                    title="Remove from collection"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+              {sortedMovies.map((movie, i) => (
+                <div key={movie.id} style={i > 0 ? { borderTop: '1px solid var(--border)' } : {}}>
+                  <MovieListRow movie={movie} onRemove={handleRemoveMovie} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Shows section */}
+      {(collection.shows?.length > 0 || (collection.show_count || 0) > 0) && (
+        <div className="mb-6">
+          {(collection.show_count || 0) > 0 && (
+            <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-3">Shows</h3>
+          )}
+          {view === 'grid' ? (
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
+              {sortedShows.map(show => (
+                <div key={show.id} className="relative group">
+                  <MovieCard movie={show} />
+                  <button
+                    onClick={() => handleRemoveShow(show.id)}
+                    className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-400 shadow-lg"
+                    title="Remove from collection"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+              {sortedShows.map((show, i) => (
+                <div key={show.id} style={i > 0 ? { borderTop: '1px solid var(--border)' } : {}}>
+                  <MovieListRow movie={show} onRemove={handleRemoveShow} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty state — no movies and no shows */}
+      {collection.movies.length === 0 && !(collection.shows?.length > 0) && (
+        <div
+          className="flex flex-col items-center justify-center py-16 rounded-xl text-slate-500 mb-6"
+          style={{ background: 'var(--surface)', border: '1px dashed var(--border)' }}
+        >
+          <p className="text-sm">No items in this collection yet.</p>
+          <button
+            onClick={() => setShowPicker(true)}
+            className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
+          >
+            <Plus size={15} />
+            Add Items
+          </button>
+        </div>
+      )}
 
       {/* Unowned movies */}
       {unownedMovies.length > 0 && (
