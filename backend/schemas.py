@@ -139,6 +139,8 @@ class CollectionResponse(BaseModel):
     tmdb_collection_id: Optional[str]
     tmdb_checked: bool
     tmdb_total_parts: Optional[int]
+    mdblist_list_id: Optional[int]
+    mdblist_total_items: Optional[int]
     in_jellyfin: bool
     is_jellyfin_native: bool
     jellyfin_synced_at: Optional[datetime]

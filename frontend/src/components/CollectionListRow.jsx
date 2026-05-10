@@ -78,6 +78,12 @@ export default function CollectionListRow({ collection, onPush, onDelete }) {
           {(() => {
             const mc = collection.movie_count
             const sc = collection.show_count || 0
+            if (collection.mdblist_list_id && collection.mdblist_total_items) {
+              return `${mc + sc}/${collection.mdblist_total_items} items`
+            }
+            if (collection.tmdb_collection_id && collection.tmdb_total_parts) {
+              return `${mc}/${collection.tmdb_total_parts} movies`
+            }
             const parts = []
             if (mc > 0) parts.push(`${mc} ${mc === 1 ? 'movie' : 'movies'}`)
             if (sc > 0) parts.push(`${sc} ${sc === 1 ? 'show' : 'shows'}`)
