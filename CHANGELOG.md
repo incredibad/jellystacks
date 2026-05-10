@@ -4,6 +4,18 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.9.0] — 2026-05-10
+
+### Added
+- "Convert to Custom" button on TMDB and MDBList collection detail pages — clears the managed link and unlocks manual item editing
+- Settings dropdown (cog icon) on collection detail page containing Verify Status, Remove from Jellyfin, and Delete Collection actions
+
+### Changed
+- "Change Artwork" standalone button removed from collection actions — artwork is now changed by hovering the poster
+- Collection card now shows full "shows" label instead of the abbreviated "S" suffix
+
+---
+
 ## [1.8.20] — 2026-05-10
 
 ### Fixed
