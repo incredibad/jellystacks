@@ -601,16 +601,6 @@ export default function CollectionDetail() {
               {pushing ? 'Pushing…' : needsSync ? 'Update in Jellyfin' : collection.in_jellyfin ? 'Synced' : 'Push to Jellyfin'}
             </button>
 
-            {isLocked && (
-              <button
-                onClick={handleConvertToCustom}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 transition-all border border-transparent hover:border-amber-400/20"
-              >
-                <Shuffle size={14} />
-                Convert to Custom
-              </button>
-            )}
-
             {/* Settings dropdown */}
             <div className="relative">
               <button
@@ -644,6 +634,15 @@ export default function CollectionDetail() {
                       >
                         <X size={14} />
                         Remove from Jellyfin
+                      </button>
+                    )}
+                    {isLocked && (
+                      <button
+                        onClick={() => { handleConvertToCustom(); setSettingsOpen(false) }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-amber-500/10 hover:text-amber-400 transition-colors"
+                      >
+                        <Shuffle size={14} />
+                        Convert to Custom
                       </button>
                     )}
                     <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
