@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy import text, inspect as sa_inspect
 
 from database import Base, engine
-from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router
+from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -81,6 +81,7 @@ app.include_router(shows_router.router,    prefix="/api/shows",       tags=["sho
 app.include_router(collections.router,     prefix="/api/collections", tags=["collections"])
 app.include_router(settings_router.router, prefix="/api/settings",    tags=["settings"])
 app.include_router(tmdb.router,            prefix="/api/tmdb",        tags=["tmdb"])
+app.include_router(mdblist_router.router,  prefix="/api/mdblist",     tags=["mdblist"])
 
 # ── Static Frontend ───────────────────────────────────────────────────────────
 static_dir = Path("/app/static")

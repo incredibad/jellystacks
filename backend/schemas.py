@@ -172,6 +172,7 @@ class SettingsUpdate(BaseModel):
     jellyfin_user_id: Optional[str] = None
     tmdb_api_key: Optional[str] = None
     tmdb_related_enabled: Optional[bool] = None
+    mdblist_api_key: Optional[str] = None
 
 
 class SettingsResponse(BaseModel):
@@ -180,6 +181,7 @@ class SettingsResponse(BaseModel):
     jellyfin_user_id: Optional[str]
     tmdb_api_key_set: bool
     tmdb_related_enabled: bool
+    mdblist_api_key_set: bool
 
 
 class JellyfinTestResult(BaseModel):

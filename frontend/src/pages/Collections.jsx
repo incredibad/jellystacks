@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import CollectionCard from '../components/CollectionCard'
 import CollectionListRow from '../components/CollectionListRow'
 import TmdbCollectionModal from '../components/TmdbCollectionModal'
+import MdblistModal from '../components/MdblistModal'
 import { useOperations } from '../contexts/OperationsContext'
 
 const VIEW_KEY = 'jellystacks:collections-view'
@@ -115,6 +116,7 @@ export default function Collections() {
   const [showCreate, setShowCreate] = useState(false)
   const [showNewChoice, setShowNewChoice] = useState(false)
   const [showTmdbSearch, setShowTmdbSearch] = useState(false)
+  const [showMdblist, setShowMdblist] = useState(false)
   const [importing, setImporting] = useState(false)
   const [opsOpen, setOpsOpen] = useState(false)
   const [filter, setFilter] = useState('all') // 'all' | 'local' | 'jellyfin'
@@ -512,6 +514,21 @@ export default function Collections() {
                   <p className="text-xs text-slate-500 mt-0.5">Import a known franchise</p>
                 </div>
               </button>
+              <button
+                onClick={() => { setShowNewChoice(false); setShowMdblist(true) }}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl text-center hover:bg-white/5 transition-colors border border-slate-700 hover:border-violet-500/40"
+              >
+                <span
+                  className="px-2 py-1 rounded text-white text-xs font-black tracking-widest"
+                  style={{ background: 'linear-gradient(135deg, #f97316, #eab308)' }}
+                >
+                  MDB
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-white">From MDBList</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Import a curated list</p>
+                </div>
+              </button>
             </div>
             <button
               onClick={() => setShowNewChoice(false)}
@@ -533,6 +550,13 @@ export default function Collections() {
       {showTmdbSearch && (
         <TmdbCollectionModal
           onClose={() => setShowTmdbSearch(false)}
+          onCreate={(col) => navigate(`/collections/${col.id}`)}
+        />
+      )}
+
+      {showMdblist && (
+        <MdblistModal
+          onClose={() => setShowMdblist(false)}
           onCreate={(col) => navigate(`/collections/${col.id}`)}
         />
       )}
