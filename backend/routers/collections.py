@@ -769,7 +769,7 @@ async def create_from_mdblist(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
-    from routers.mdblist import _get_api_key, _parse_items, _split_tmdb_ids
+    from routers.mdblist import _get_api_key, _split_raw_response
     api_key = _get_api_key(db)
 
     async with httpx.AsyncClient(timeout=15) as client:
@@ -780,8 +780,7 @@ async def create_from_mdblist(
     if resp.status_code != 200:
         raise HTTPException(502, "Failed to fetch MDBList items.")
 
-    items = _parse_items(resp.json())
-    movie_ids, show_ids = _split_tmdb_ids(items)
+    movie_ids, show_ids, _ = _split_raw_response(resp.json())
 
     movies = (
         db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).all()

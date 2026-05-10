@@ -4,10 +4,10 @@ All notable changes are documented here, newest first.
 
 ---
 
-## [1.8.2] — 2026-05-10
+## [1.8.3] — 2026-05-10
 
 ### Fixed
-- MDBList preview debug logging added to diagnose zero-item responses
+- MDBList preview now correctly counts owned movies and shows — the items API returns separate `movies`/`shows` arrays with TMDB IDs nested under `ids.tmdb`, not a flat `items` array with a top-level `tmdb_id` field
 
 ---
 

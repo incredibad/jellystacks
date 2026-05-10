@@ -20,26 +20,30 @@ def _get_api_key(db: Session) -> str:
     return key
 
 
-def _parse_items(raw) -> list:
-    if isinstance(raw, list):
-        return raw
-    return raw.get("items", [])
+def _split_raw_response(raw) -> tuple[set, set, int]:
+    """Return (tmdb_movie_ids, tmdb_show_ids, total_count) from a MDBList items response.
 
+    MDBList returns { movies: [...], shows: [...], seasons: [...], episodes: [...] }.
+    Each item has its TMDB ID at item['ids']['tmdb'] (with item['id'] as fallback).
+    """
+    if isinstance(raw, dict):
+        movies_raw = raw.get("movies") or []
+        shows_raw = raw.get("shows") or []
+    elif isinstance(raw, list):
+        movies_raw = [i for i in raw if (i.get("mediatype") or "").lower() == "movie"]
+        shows_raw = [i for i in raw if (i.get("mediatype") or "").lower() in ("show", "tv")]
+    else:
+        return set(), set(), 0
 
-def _split_tmdb_ids(items: list) -> tuple[set, set]:
-    """Return (tmdb_movie_ids, tmdb_show_ids) as string sets."""
-    movie_ids, show_ids = set(), set()
-    for item in items:
-        raw_id = item.get("tmdb_id") or item.get("tmdb")
-        tmdb_id = str(raw_id) if raw_id and str(raw_id) != "0" else None
-        if not tmdb_id:
-            continue
-        mediatype = (item.get("mediatype") or "").lower()
-        if mediatype == "movie":
-            movie_ids.add(tmdb_id)
-        elif mediatype in ("show", "tv"):
-            show_ids.add(tmdb_id)
-    return movie_ids, show_ids
+    def _extract(items):
+        ids = set()
+        for item in items:
+            tmdb = (item.get("ids") or {}).get("tmdb") or item.get("tmdb_id") or item.get("id")
+            if tmdb and str(tmdb) != "0":
+                ids.add(str(tmdb))
+        return ids
+
+    return _extract(movies_raw), _extract(shows_raw), len(movies_raw) + len(shows_raw)
 
 
 @router.get("/search")
@@ -75,16 +79,7 @@ async def preview_list(
     if resp.status_code != 200:
         raise HTTPException(502, "Failed to fetch list items.")
 
-    raw = resp.json()
-    print("MDBLIST RAW KEYS:", list(raw.keys()) if isinstance(raw, dict) else f"list of {len(raw)}")
-    if isinstance(raw, dict):
-        for k, v in raw.items():
-            if isinstance(v, list):
-                print(f"  key={k!r} len={len(v)} sample={v[:1]}")
-            else:
-                print(f"  key={k!r} val={v!r}")
-    items = _parse_items(raw)
-    movie_ids, show_ids = _split_tmdb_ids(items)
+    movie_ids, show_ids, total = _split_raw_response(resp.json())
 
     movie_count = (
         db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).count()
@@ -95,9 +90,4 @@ async def preview_list(
         if show_ids else 0
     )
 
-    return {
-        "movie_count": movie_count,
-        "show_count": show_count,
-        "total_items": len(items),
-        "_debug_sample": items[:3],
-    }
+    return {"movie_count": movie_count, "show_count": show_count, "total_items": total}
