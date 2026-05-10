@@ -272,7 +272,7 @@ export default function Settings() {
   const inputStyle = { background: '#0d0d14', border: '1px solid var(--border)' }
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Settings</h1>
         <p className="text-sm text-slate-400 mt-1">Configure your Jellyfin server and system options.</p>
@@ -280,7 +280,7 @@ export default function Settings() {
 
       {/* Tab bar */}
       <div
-        className="flex gap-1 mb-6 p-1 rounded-lg"
+        className="flex gap-1 mb-6 p-1 rounded-lg max-w-sm"
         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
       >
         {['sync', 'account', 'backup', 'system'].map(tab => (
@@ -300,7 +300,9 @@ export default function Settings() {
 
       {/* ── Sync tab ───────────────────────────────────────────────────────── */}
       {activeTab === 'sync' && (
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left column */}
+          <div className="space-y-6">
           <Section title="Jellyfin Server" description="Connect to your Jellyfin media server." icon={Server}>
             <Field label="Server URL" hint="Include the protocol, e.g. http://192.168.1.10:8096">
               <input
@@ -405,6 +407,52 @@ export default function Settings() {
           </Section>
 
           <Section
+            title="Scheduled Collection Refresh"
+            description="Automatically update TMDB and MDBList collections from their source on a schedule."
+            icon={Clock}
+          >
+            <Field
+              label="Refresh frequency"
+              hint="When enabled, all TMDB and MDBList collections are re-scanned at the chosen interval, adding newly available movies and shows from your library."
+            >
+              <select
+                value={form.collection_refresh_interval}
+                onChange={e => set('collection_refresh_interval', e.target.value)}
+                className={inputClass}
+                style={inputStyle}
+              >
+                <option value="disabled">Disabled</option>
+                <option value="6h">Every 6 hours</option>
+                <option value="12h">Every 12 hours</option>
+                <option value="24h">Every 24 hours</option>
+                <option value="weekly">Weekly</option>
+              </select>
+            </Field>
+
+            <div className="flex items-center justify-between gap-4 pt-1">
+              <div>
+                <p className="text-sm text-slate-300 font-medium">Run now</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Immediately refresh all managed collections regardless of the schedule.
+                </p>
+              </div>
+              <button
+                onClick={handleRefreshNow}
+                disabled={refreshing}
+                className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-slate-300 border hover:text-white hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+                {refreshing ? 'Refreshing…' : 'Refresh Now'}
+              </button>
+            </div>
+          </Section>
+
+          </div>{/* end left column */}
+
+          {/* Right column */}
+          <div className="space-y-6">
+          <Section
             title="TMDB Integration"
             description="Used to fetch artwork for your collections."
             icon={Key}
@@ -490,65 +538,23 @@ export default function Settings() {
               />
             </Field>
           </Section>
-
-          <Section
-            title="Scheduled Collection Refresh"
-            description="Automatically update TMDB and MDBList collections from their source on a schedule."
-            icon={Clock}
+          </div>{/* end right column */}
+        </div>
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-60 transition-all shadow-lg shadow-violet-600/20"
           >
-            <Field
-              label="Refresh frequency"
-              hint="When enabled, all TMDB and MDBList collections are re-scanned at the chosen interval, adding newly available movies and shows from your library."
-            >
-              <select
-                value={form.collection_refresh_interval}
-                onChange={e => set('collection_refresh_interval', e.target.value)}
-                className={inputClass}
-                style={inputStyle}
-              >
-                <option value="disabled">Disabled</option>
-                <option value="6h">Every 6 hours</option>
-                <option value="12h">Every 12 hours</option>
-                <option value="24h">Every 24 hours</option>
-                <option value="weekly">Weekly</option>
-              </select>
-            </Field>
-
-            <div className="flex items-center justify-between gap-4 pt-1">
-              <div>
-                <p className="text-sm text-slate-300 font-medium">Run now</p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Immediately refresh all managed collections regardless of the schedule.
-                </p>
-              </div>
-              <button
-                onClick={handleRefreshNow}
-                disabled={refreshing}
-                className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-slate-300 border hover:text-white hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                style={{ borderColor: 'var(--border)' }}
-              >
-                <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-                {refreshing ? 'Refreshing…' : 'Refresh Now'}
-              </button>
-            </div>
-          </Section>
-
-          <div className="flex justify-end">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-60 transition-all shadow-lg shadow-violet-600/20"
-            >
-              {saving && <Loader size={15} className="animate-spin" />}
-              {saving ? 'Saving…' : 'Save Settings'}
-            </button>
-          </div>
+            {saving && <Loader size={15} className="animate-spin" />}
+            {saving ? 'Saving…' : 'Save Settings'}
+          </button>
         </div>
       )}
 
       {/* ── Account tab ────────────────────────────────────────────────────── */}
       {activeTab === 'account' && (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-2xl">
           <Section title="Change Password" description="Update your login password." icon={Lock}>
             <Field label="Current password">
               <input
@@ -599,7 +605,7 @@ export default function Settings() {
 
       {/* ── Backup tab ─────────────────────────────────────────────────────── */}
       {activeTab === 'backup' && (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-2xl">
           <Section
             title="Data Backup"
             description="Export or restore your JellyStacks data as a zip archive."
@@ -657,7 +663,7 @@ export default function Settings() {
 
       {/* ── System tab ─────────────────────────────────────────────────────── */}
       {activeTab === 'system' && (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-2xl">
           <Section title="Danger Zone" description="Destructive actions — use with care." icon={Trash2} danger>
             <DangerRow
               label="Clear Jellyfin collections"
