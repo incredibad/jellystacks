@@ -4,6 +4,17 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.12.0] — 2026-05-10
+
+### Fixed
+- Custom artwork is now pushed to Jellyfin immediately when set (upload or TMDB browse) — raw JPEG bytes with base64 fallback for older Jellyfin versions
+- Poster images on the Movies and Shows pages now update immediately after artwork is changed in a collection, without needing a full app refresh — stable cache-buster derived from `custom_artwork_url` ensures the browser fetches fresh content; local file responses now carry `Cache-Control: no-store` so re-uploads always show the latest image
+
+### Added
+- "Revert" button on the poster hover overlay (visible only when custom artwork is set) — clears the custom artwork in JellyStacks, deletes the local file if present, and removes the image from Jellyfin so it falls back to its original scraped poster
+
+---
+
 ## [1.11.0] — 2026-05-10
 
 ### Added

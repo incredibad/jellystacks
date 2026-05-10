@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Film, Upload, Image as ImageIcon, Loader } from 'lucide-react'
+import { Film, Upload, Image as ImageIcon, Loader, RotateCcw } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import { libraryColor } from '../utils/libraryColor'
@@ -23,7 +23,12 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
   const baseUrl = isShow
     ? `/api/shows/${movie.id}/poster`
     : `/api/movies/${movie.id}/poster`
-  const posterUrl = localPreview ?? (cacheBuster ? `${baseUrl}?t=${cacheBuster}` : baseUrl)
+  // Stable buster from prop data so artwork shows correctly after cross-page navigation.
+  // Local files use 'local' — backend returns Cache-Control: no-store so re-uploads always fetch fresh.
+  const stableBuster = movie.custom_artwork_url
+    ? (movie.custom_artwork_url.startsWith('/data/') ? 'local' : encodeURIComponent(movie.custom_artwork_url).slice(-24))
+    : null
+  const posterUrl = localPreview ?? (cacheBuster ? `${baseUrl}?t=${cacheBuster}` : stableBuster ? `${baseUrl}?t=${stableBuster}` : baseUrl)
 
   const analyzeImage = (file) => new Promise((resolve) => {
     const img = new Image()
@@ -103,6 +108,22 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
     setArtworkModal(false)
   }
 
+  const handleRevert = async (e) => {
+    e.stopPropagation()
+    setUploading(true)
+    try {
+      const endpoint = isShow ? `/shows/${movie.id}/artwork` : `/movies/${movie.id}/artwork`
+      const { data } = await api.delete(endpoint)
+      onArtworkChange(data)
+      setCacheBuster(Date.now())
+      toast.success('Reverted to original artwork.')
+    } catch {
+      toast.error('Failed to revert artwork.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <div
       onClick={onToggle ? () => onToggle(movie) : undefined}
@@ -172,6 +193,15 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
               <Upload size={16} />
               Upload
             </button>
+            {movie.custom_artwork_url && (
+              <button
+                onClick={handleRevert}
+                className="flex flex-col items-center gap-1 text-white text-[10px] hover:text-rose-300 transition-colors"
+              >
+                <RotateCcw size={16} />
+                Revert
+              </button>
+            )}
           </div>
         )}
         {canEditArtwork && uploading && (
