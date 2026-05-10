@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.8.1] — 2026-05-10
+
+### Changed
+- MDBList search results now show a media type badge ("Movies" or "Shows") and like count alongside the item total
+
+---
+
 ## [1.8.0] — 2026-05-10
 
 ### Added
