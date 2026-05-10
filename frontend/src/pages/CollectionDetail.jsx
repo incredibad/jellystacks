@@ -522,7 +522,7 @@ export default function CollectionDetail() {
                 <Film size={12} />
                 TMDB Collection
               </span>
-            ) : detectionDone ? (
+            ) : detectionDone && !collection.mdblist_list_id ? (
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-amber-500 text-white">
                 Custom Collection
               </span>
