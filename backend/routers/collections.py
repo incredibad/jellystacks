@@ -166,6 +166,23 @@ def update_collection(
     return _collection_to_detail(col)
 
 
+@router.post("/{collection_id}/convert-to-custom", response_model=schemas.CollectionDetailResponse)
+def convert_to_custom(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    col = _load_col(collection_id, db)
+    col.tmdb_collection_id = None
+    col.tmdb_total_parts = None
+    col.mdblist_list_id = None
+    col.mdblist_total_items = None
+    col.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(col)
+    return _collection_to_detail(col)
+
+
 @router.get("/{collection_id}/related", response_model=list[schemas.SuggestionResponse])
 async def get_related_movies(
     collection_id: int,

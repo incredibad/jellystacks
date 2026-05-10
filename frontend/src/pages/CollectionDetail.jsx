@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon,
   CheckCircle2, Circle, AlertCircle, Pencil, X, Check, RefreshCw,
-  LayoutGrid, LayoutList, Import, Film,
+  LayoutGrid, LayoutList, Import, Film, Settings2, Shuffle,
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -108,6 +108,7 @@ export default function CollectionDetail() {
   const [loading, setLoading] = useState(true)
   const [pushing, setPushing] = useState(false)
   const [verifying, setVerifying] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [showArtwork, setShowArtwork] = useState(false)
   const [uploadingArtwork, setUploadingArtwork] = useState(false)
@@ -353,6 +354,18 @@ export default function CollectionDetail() {
     }
   }
 
+  const handleConvertToCustom = async () => {
+    if (!confirm('Convert to custom collection? This removes the TMDB/MDBList link and allows manual editing.')) return
+    try {
+      const { data } = await api.post(`/collections/${id}/convert-to-custom`)
+      setCollection(data)
+      setDetectionDone(true)
+      toast.success('Converted to custom collection.')
+    } catch {
+      toast.error('Failed to convert.')
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full py-24">
@@ -588,42 +601,63 @@ export default function CollectionDetail() {
               {pushing ? 'Pushing…' : needsSync ? 'Update in Jellyfin' : collection.in_jellyfin ? 'Synced' : 'Push to Jellyfin'}
             </button>
 
-            {collection.jellyfin_collection_id && (
+            {isLocked && (
               <button
-                onClick={handleVerify}
-                disabled={verifying}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-slate-700"
+                onClick={handleConvertToCustom}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 transition-all border border-transparent hover:border-amber-400/20"
               >
-                <RefreshCw size={14} className={verifying ? 'animate-spin' : ''} />
-                Verify
+                <Shuffle size={14} />
+                Convert to Custom
               </button>
             )}
 
-            {collection.in_jellyfin && (
+            {/* Settings dropdown */}
+            <div className="relative">
               <button
-                onClick={handleRemoveFromJellyfin}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-all border border-transparent hover:border-red-400/20"
+                onClick={() => setSettingsOpen(v => !v)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-slate-700"
               >
-                <X size={14} />
-                Remove from Jellyfin
+                <Settings2 size={14} />
               </button>
-            )}
 
-            <button
-              onClick={() => setShowArtwork(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-slate-700"
-            >
-              <ImageIcon size={14} />
-              Change Artwork
-            </button>
-
-            <button
-              onClick={handleDeleteCollection}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-400/70 hover:text-red-400 hover:bg-red-400/10 transition-all border border-transparent hover:border-red-400/20 ml-auto"
-            >
-              <Trash2 size={14} />
-              Delete Collection
-            </button>
+              {settingsOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setSettingsOpen(false)} />
+                  <div
+                    className="absolute left-0 top-10 z-20 w-52 rounded-xl shadow-xl py-1"
+                    style={{ background: '#1e1e30', border: '1px solid var(--border)' }}
+                  >
+                    {collection.jellyfin_collection_id && (
+                      <button
+                        onClick={() => { handleVerify(); setSettingsOpen(false) }}
+                        disabled={verifying}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-40"
+                      >
+                        <RefreshCw size={14} className={verifying ? 'animate-spin' : ''} />
+                        Verify Status
+                      </button>
+                    )}
+                    {collection.in_jellyfin && (
+                      <button
+                        onClick={() => { handleRemoveFromJellyfin(); setSettingsOpen(false) }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                      >
+                        <X size={14} />
+                        Remove from Jellyfin
+                      </button>
+                    )}
+                    <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
+                    <button
+                      onClick={() => { handleDeleteCollection(); setSettingsOpen(false) }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                      Delete Collection
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {collection.jellyfin_synced_at && (
