@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.13.1] — 2026-05-10
+
+### Changed
+- Collections moved to the top of the sidebar nav; app now lands on Collections by default
+
+---
+
 ## [1.13.0] — 2026-05-10
 
 ### Changed

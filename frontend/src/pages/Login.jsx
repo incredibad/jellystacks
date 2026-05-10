@@ -12,7 +12,7 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = location.state?.from?.pathname || '/movies'
+  const from = location.state?.from?.pathname || '/collections'
 
   const handleSubmit = async (e) => {
     e.preventDefault()
