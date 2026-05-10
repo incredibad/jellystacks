@@ -39,7 +39,7 @@ export default function MovieCard({ movie, selected, onToggle }) {
           const { bg, text } = libraryColor(movie.library_name)
           return (
             <span
-              className="absolute top-1.5 right-1.5 z-10 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-tight truncate max-w-[80%]"
+              className="absolute top-1.5 right-1.5 z-10 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-tight truncate max-w-[80%] backdrop-blur-sm"
               style={{ background: bg, color: text }}
             >
               {movie.library_name}
