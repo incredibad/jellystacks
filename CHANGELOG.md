@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.17.2] — 2026-05-11
+
+### Added
+- Bulk artwork upload now fuzzy-matches images against collections as well as movies and shows
+- Search dropdown in bulk review table includes collections (shown with 🗂️), searchable by name
+- Applying artwork to a collection saves it locally and pushes it to Jellyfin if the collection is synced
+
+---
+
 ## [1.17.1] — 2026-05-11
 
 ### Changed
