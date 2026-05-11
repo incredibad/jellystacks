@@ -19,6 +19,7 @@ export default function Movies() {
   const [hasMore, setHasMore] = useState(false)
   const [libraries, setLibraries] = useState([])
   const [activeLibrary, setActiveLibrary] = useState('')
+  const [overrideOnly, setOverrideOnly] = useState(false)
   const [totalCount, setTotalCount] = useState(0)
 
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
@@ -31,9 +32,10 @@ export default function Movies() {
     localStorage.setItem(VIEW_KEY, v)
   }
 
-  const fetchPage = useCallback(async ({ q, lib, offset, append }) => {
+  const fetchPage = useCallback(async ({ q, lib, override, offset, append }) => {
     const params = { q, limit: PAGE_SIZE, offset }
     if (lib) params.library = lib
+    if (override) params.has_custom_artwork = true
     const { data } = await api.get('/movies', { params })
     if (append) {
       setMovies(prev => [...prev, ...data])
@@ -46,11 +48,11 @@ export default function Movies() {
   }, [])
 
   // Initial / filter-changed load
-  const reload = useCallback(async (q, lib) => {
+  const reload = useCallback(async (q, lib, override) => {
     setLoading(true)
     offsetRef.current = 0
     try {
-      await fetchPage({ q, lib, offset: 0, append: false })
+      await fetchPage({ q, lib, override, offset: 0, append: false })
     } catch {
       toast.error('Failed to load movies.')
     } finally {
@@ -66,13 +68,13 @@ export default function Movies() {
   useEffect(() => {
     if (!lastSynced) return
     api.get('/movies/count').then(({ data }) => setTotalCount(data.count)).catch(() => {})
-    reload(search, activeLibrary)
+    reload(search, activeLibrary, overrideOnly)
   }, [lastSynced]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const t = setTimeout(() => reload(search, activeLibrary), 250)
+    const t = setTimeout(() => reload(search, activeLibrary, overrideOnly), 250)
     return () => clearTimeout(t)
-  }, [search, activeLibrary]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, activeLibrary, overrideOnly]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Infinite scroll via IntersectionObserver
   useEffect(() => {
@@ -83,7 +85,7 @@ export default function Movies() {
       (entries) => {
         if (entries[0].isIntersecting && !loadingMore && !loading) {
           setLoadingMore(true)
-          fetchPage({ q: search, lib: activeLibrary, offset: offsetRef.current, append: true })
+          fetchPage({ q: search, lib: activeLibrary, override: overrideOnly, offset: offsetRef.current, append: true })
             .catch(() => toast.error('Failed to load more movies.'))
             .finally(() => setLoadingMore(false))
         }
@@ -146,33 +148,45 @@ export default function Movies() {
             </button>
           </div>
         </div>
-        {libraries.length > 1 && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setActiveLibrary('')}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                activeLibrary === ''
-                  ? 'bg-violet-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
-              }`}
-            >
-              All Libraries
-            </button>
-            {libraries.map(lib => (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setOverrideOnly(v => !v)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              overrideOnly
+                ? 'bg-violet-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+            }`}
+          >
+            Override
+          </button>
+          {libraries.length > 1 && (
+            <>
               <button
-                key={lib}
-                onClick={() => setActiveLibrary(lib === activeLibrary ? '' : lib)}
+                onClick={() => setActiveLibrary('')}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  activeLibrary === lib
+                  activeLibrary === ''
                     ? 'bg-violet-600 text-white'
                     : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
                 }`}
               >
-                {lib}
+                All Libraries
               </button>
-            ))}
-          </div>
-        )}
+              {libraries.map(lib => (
+                <button
+                  key={lib}
+                  onClick={() => setActiveLibrary(lib === activeLibrary ? '' : lib)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    activeLibrary === lib
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                  }`}
+                >
+                  {lib}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Grid */}

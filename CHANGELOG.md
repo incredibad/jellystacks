@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.18.1] — 2026-05-11
+
+### Added
+- Movies and Shows pages: "Override" filter pill — shows only items with custom artwork applied
+
+---
+
 ## [1.18.0] — 2026-05-11
 
 ### Added

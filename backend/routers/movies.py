@@ -70,6 +70,7 @@ def _dedup_subquery(db: Session):
 def list_movies(
     search: str = Query(default="", alias="q"),
     library: str = Query(default=""),
+    has_custom_artwork: bool = Query(default=False),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
@@ -81,6 +82,8 @@ def list_movies(
         query = query.filter(models.Movie.title.ilike(f"%{search}%"))
     if library:
         query = query.filter(models.Movie.library_name == library)
+    if has_custom_artwork:
+        query = query.filter(models.Movie.custom_artwork_url.isnot(None))
     movies = query.order_by(models.Movie.sort_title, models.Movie.title).offset(offset).limit(limit).all()
     return [_movie_to_response(m) for m in movies]
 
