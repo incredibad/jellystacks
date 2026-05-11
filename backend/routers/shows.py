@@ -35,6 +35,7 @@ def _show_to_response(s: models.Show) -> schemas.ShowResponse:
         overview=s.overview,
         tmdb_id=s.tmdb_id,
         imdb_id=s.imdb_id,
+        tvdb_id=s.tvdb_id,
         genres=s.genres,
         seasons=s.seasons,
         status=s.status,

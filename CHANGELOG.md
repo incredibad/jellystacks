@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.15.1] — 2026-05-11
+
+### Fixed
+- Shows page and collection detail broken after tvdb_id addition: `_show_to_response` was missing the new field, and `ShowResponse.tvdb_id` lacked a default causing Pydantic to treat it as required
+
+---
+
 ## [1.15.0] — 2026-05-11
 
 ### Added
