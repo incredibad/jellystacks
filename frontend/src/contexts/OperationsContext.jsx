@@ -44,6 +44,9 @@ const CONFIGS = {
 
 export function OperationsProvider({ children }) {
   const [progress, setProgress] = useState(null)
+  const [syncing, setSyncing] = useState(false)
+  const [lastSynced, setLastSynced] = useState(null)
+  const [lastOpAt, setLastOpAt] = useState(null)
   const runningRef = useRef(false)
 
   const _execute = useCallback(async (type, targets, startAt, onDone, onEach) => {
@@ -75,6 +78,7 @@ export function OperationsProvider({ children }) {
     setProgress(null)
     runningRef.current = false
     localStorage.removeItem(LS_KEY)
+    setLastOpAt(Date.now())
 
     if (onDone) {
       onDone(results)
@@ -113,8 +117,25 @@ export function OperationsProvider({ children }) {
     _execute(type, targets, 0, onDone, onEach)
   }, [_execute])
 
+  const syncLibraries = useCallback(async () => {
+    if (syncing) return
+    setSyncing(true)
+    try {
+      const [moviesRes, showsRes] = await Promise.all([
+        api.post('/movies/sync', null, { timeout: 0 }),
+        api.post('/shows/sync', null, { timeout: 0 }),
+      ])
+      toast.success(`Synced ${moviesRes.data.synced} movies and ${showsRes.data.synced} shows.`)
+      setLastSynced(Date.now())
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Sync failed. Check Settings.')
+    } finally {
+      setSyncing(false)
+    }
+  }, [syncing])
+
   return (
-    <OperationsContext.Provider value={{ progress, runOperation, isRunning: !!progress }}>
+    <OperationsContext.Provider value={{ progress, runOperation, isRunning: !!progress, syncing, syncLibraries, lastSynced, lastOpAt }}>
       {children}
     </OperationsContext.Provider>
   )

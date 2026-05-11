@@ -4,6 +4,19 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.16.0] — 2026-05-11
+
+### Added
+- Bulk Artwork Upload: drop images or a ZIP, review fuzzy-matched titles, reassign any mismatches, then apply in one go
+- Operations dropdown moved to sidebar — available on every page
+- Sync Jellyfin added to Operations dropdown; removed per-page sync buttons from Movies and Shows
+
+### Changed
+- Movies and Shows pages auto-refresh after a sync completes
+- Collections page auto-refreshes after any operation completes
+
+---
+
 ## [1.15.8] — 2026-05-11
 
 ### Changed
