@@ -433,7 +433,14 @@ export default function BulkArtworkModal({ onClose }) {
             <div>
               <p className="text-lg font-semibold text-white">{results.applied} artwork{results.applied !== 1 ? 's' : ''} applied</p>
               {results.errors?.length > 0 && (
-                <p className="text-sm text-amber-400 mt-1">{results.errors.length} failed</p>
+                <div className="mt-2">
+                  <p className="text-sm text-amber-400">{results.errors.length} failed:</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {results.errors.map((e, i) => (
+                      <li key={i} className="text-xs text-amber-300/70">{e}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
             <button
