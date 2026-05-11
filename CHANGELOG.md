@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.16.6] — 2026-05-11
+
+### Added
+- Bulk artwork review table shows a versions icon when multiple copies of a title exist; hovering lists each version's library name
+
+---
+
 ## [1.16.5] — 2026-05-11
 
 ### Fixed

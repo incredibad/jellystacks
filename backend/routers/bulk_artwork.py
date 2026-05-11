@@ -128,10 +128,30 @@ async def bulk_match(
 
         stem = Path(filename).stem
         match = _best_match(stem, movies, shows)
+
+        versions = []
+        if match["match_id"] and match["match_type"] == "movie":
+            ref = next((m for m in movies if m.id == match["match_id"]), None)
+            if ref:
+                versions = [
+                    {"id": m.id, "library_name": m.library_name or "Unknown"}
+                    for m in movies
+                    if m.title == ref.title and m.year == ref.year
+                ]
+        elif match["match_id"] and match["match_type"] == "show":
+            ref = next((s for s in shows if s.id == match["match_id"]), None)
+            if ref:
+                versions = [
+                    {"id": s.id, "library_name": s.library_name or "Unknown"}
+                    for s in shows
+                    if s.title == ref.title and s.year == ref.year
+                ]
+
         results.append({
             "filename": filename,
             "tmp_name": safe_name,
             "batch_id": batch_id,
+            "versions": versions,
             **match,
         })
 
