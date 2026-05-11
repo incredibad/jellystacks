@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from 'react'
-import { X, Upload, CheckCircle2, AlertCircle, Search, Loader, Copy } from 'lucide-react'
+import { useState, useRef, useCallback, useMemo } from 'react'
+import { X, Upload, CheckCircle2, AlertCircle, Search, Loader, Copy, ChevronUp, ChevronDown } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -89,6 +89,7 @@ export default function BulkArtworkModal({ onClose }) {
   const [overrides, setOverrides] = useState({})
   const [excluded, setExcluded] = useState(new Set())
   const [results, setResults] = useState(null)
+  const [sort, setSort] = useState({ col: null, dir: 'asc' })
 
   const processFiles = useCallback(async (fileList) => {
     if (!fileList.length) return
@@ -152,6 +153,42 @@ export default function BulkArtworkModal({ onClose }) {
 
   const pendingCount = matches.filter(m => !excluded.has(m.tmp_name) && (overrides[m.tmp_name] || m.match_id)).length
 
+  const allSelected = matches.length > 0 && matches.every(m => !excluded.has(m.tmp_name))
+  const someSelected = matches.some(m => !excluded.has(m.tmp_name))
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setExcluded(new Set(matches.map(m => m.tmp_name)))
+    } else {
+      setExcluded(new Set())
+    }
+  }
+
+  const cycleSort = (col) => {
+    setSort(prev =>
+      prev.col === col
+        ? { col, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { col, dir: 'asc' }
+    )
+  }
+
+  const sortedMatches = useMemo(() => {
+    if (!sort.col) return matches
+    return [...matches].sort((a, b) => {
+      let av, bv
+      if (sort.col === 'filename') {
+        av = a.filename.toLowerCase()
+        bv = b.filename.toLowerCase()
+      } else {
+        av = overrides[a.tmp_name] ? 1 : (a.confidence ?? 0)
+        bv = overrides[b.tmp_name] ? 1 : (b.confidence ?? 0)
+      }
+      if (av < bv) return sort.dir === 'asc' ? -1 : 1
+      if (av > bv) return sort.dir === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [matches, sort, overrides])
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={stage !== 'applying' ? onClose : undefined} />
@@ -214,16 +251,38 @@ export default function BulkArtworkModal({ onClose }) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs text-slate-500 uppercase tracking-wider" style={{ borderBottom: '1px solid var(--border)' }}>
-                    <th className="px-4 py-2.5 text-left font-medium w-8"></th>
+                    <th className="px-4 py-2.5 w-8">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={el => { if (el) el.indeterminate = !allSelected && someSelected }}
+                        onChange={toggleSelectAll}
+                        className="accent-violet-500"
+                      />
+                    </th>
                     <th className="px-4 py-2.5 text-left font-medium w-16">Upload</th>
-                    <th className="px-4 py-2.5 text-left font-medium">Filename</th>
+                    <th className="px-4 py-2.5 text-left font-medium cursor-pointer select-none hover:text-slate-300 transition-colors" onClick={() => cycleSort('filename')}>
+                      <span className="flex items-center gap-1">
+                        Filename
+                        {sort.col === 'filename'
+                          ? sort.dir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />
+                          : <ChevronUp size={11} className="opacity-20" />}
+                      </span>
+                    </th>
                     <th className="px-4 py-2.5 text-left font-medium w-16">Current</th>
                     <th className="px-4 py-2.5 text-left font-medium">Matched To</th>
-                    <th className="px-4 py-2.5 text-left font-medium w-20">Match</th>
+                    <th className="px-4 py-2.5 text-left font-medium w-20 cursor-pointer select-none hover:text-slate-300 transition-colors" onClick={() => cycleSort('confidence')}>
+                      <span className="flex items-center gap-1">
+                        Match
+                        {sort.col === 'confidence'
+                          ? sort.dir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />
+                          : <ChevronUp size={11} className="opacity-20" />}
+                      </span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {matches.map((m, i) => {
+                  {sortedMatches.map((m, i) => {
                     const isExcluded = excluded.has(m.tmp_name)
                     const override = overrides[m.tmp_name]
                     const hasMatch = override || m.match_id
