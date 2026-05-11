@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.18.7] — 2026-05-11
+
+### Fixed
+- "Delete Jellyfin-native collections" now also removes native collections whose Jellyfin ID was already cleared (e.g. after a prior "Delete from Jellyfin" run)
+
+---
+
 ## [1.18.6] — 2026-05-11
 
 ### Added

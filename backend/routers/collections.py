@@ -367,13 +367,12 @@ async def delete_native_from_jellyfin(
     """
     cols = db.query(models.Collection).filter(
         models.Collection.is_jellyfin_native == True,
-        models.Collection.jellyfin_collection_id.isnot(None),
     ).all()
 
     s = _get_settings_dict(db)
     jf_url = s.get("jellyfin_url")
     api_key = s.get("jellyfin_api_key")
-    jf_ids = [c.jellyfin_collection_id for c in cols]
+    jf_ids = [c.jellyfin_collection_id for c in cols if c.jellyfin_collection_id]
     if jf_url and api_key and jf_ids:
         async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
             await asyncio.gather(
