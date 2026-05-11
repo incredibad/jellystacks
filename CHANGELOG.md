@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.18.5] — 2026-05-11
+
+### Fixed
+- Sidebar collection count now updates immediately after "Import from Jellyfin", "Delete all from Jellyfin", and "Delete all local" without needing a page refresh
+
+---
+
 ## [1.18.4] — 2026-05-11
 
 ### Fixed

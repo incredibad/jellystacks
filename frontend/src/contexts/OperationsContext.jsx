@@ -134,8 +134,10 @@ export function OperationsProvider({ children }) {
     }
   }, [syncing])
 
+  const notifyCollectionsChanged = useCallback(() => setLastOpAt(Date.now()), [])
+
   return (
-    <OperationsContext.Provider value={{ progress, runOperation, isRunning: !!progress, syncing, syncLibraries, lastSynced, lastOpAt }}>
+    <OperationsContext.Provider value={{ progress, runOperation, isRunning: !!progress, syncing, syncLibraries, lastSynced, lastOpAt, notifyCollectionsChanged }}>
       {children}
     </OperationsContext.Provider>
   )

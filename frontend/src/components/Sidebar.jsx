@@ -41,7 +41,7 @@ function ConfirmModal({ title, description, confirmLabel, onConfirm, onClose }) 
 export default function Sidebar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const { runOperation, isRunning, syncing, syncLibraries, lastSynced, lastOpAt } = useOperations()
+  const { runOperation, isRunning, syncing, syncLibraries, lastSynced, lastOpAt, notifyCollectionsChanged } = useOperations()
   const [counts, setCounts] = useState({})
   const [mobileOpen, setMobileOpen] = useState(false)
   const [opsOpen, setOpsOpen] = useState(false)
@@ -87,6 +87,7 @@ export default function Sidebar() {
       if (data.updated > 0) msg += `${msg ? ', ' : ''}${data.updated} updated`
       if (!msg) msg = 'Nothing new to import'
       toast.success(msg, { id: tid })
+      notifyCollectionsChanged()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Import failed.', { id: tid })
     } finally {

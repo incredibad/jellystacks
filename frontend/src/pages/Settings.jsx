@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useOperations } from '../contexts/OperationsContext'
 import {
   Server, Key, User, CheckCircle2, XCircle, Loader, ChevronDown,
   ExternalLink, Trash2, Lock, Download, Upload, RefreshCw, Clock, RotateCcw,
@@ -59,6 +60,7 @@ function DangerRow({ label, description, buttonLabel, onClick, loading, loadingL
 }
 
 export default function Settings() {
+  const { notifyCollectionsChanged } = useOperations()
   const [activeTab, setActiveTab] = useState('sync')
 
   // ── Sync tab ──────────────────────────────────────────────────────────────
@@ -266,6 +268,7 @@ export default function Settings() {
     try {
       const { data } = await api.delete('/collections/all-in-jellyfin')
       toast.success(`Deleted ${data.deleted} collection${data.deleted !== 1 ? 's' : ''} from Jellyfin.`, { id: tid })
+      notifyCollectionsChanged()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed.', { id: tid })
     } finally {
@@ -282,6 +285,7 @@ export default function Settings() {
     try {
       const { data } = await api.delete('/collections/all-local')
       toast.success(`Deleted ${data.deleted} collection${data.deleted !== 1 ? 's' : ''} from JellyStacks.`, { id: tid })
+      notifyCollectionsChanged()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed.', { id: tid })
     } finally {
