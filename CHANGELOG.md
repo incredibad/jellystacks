@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.15.2] — 2026-05-11
+
+### Fixed
+- Sync running movies and shows concurrently caused SQLite write contention; now runs sequentially
+
+---
+
 ## [1.15.1] — 2026-05-11
 
 ### Fixed
