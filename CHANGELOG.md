@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.16.7] — 2026-05-11
+
+### Fixed
+- Bulk artwork versions tooltip no longer overflows the right edge of the modal
+
+---
+
 ## [1.16.6] — 2026-05-11
 
 ### Added
