@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.15.8] — 2026-05-11
+
+### Changed
+- Artwork modal "All" view now groups images by provider with a labelled divider between TMDB and TheTVDB sections
+
+---
+
 ## [1.15.7] — 2026-05-11
 
 ### Fixed
