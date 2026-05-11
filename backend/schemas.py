@@ -81,6 +81,7 @@ class ShowResponse(BaseModel):
     overview: Optional[str]
     tmdb_id: Optional[str]
     imdb_id: Optional[str]
+    tvdb_id: Optional[str]
     genres: Optional[str]
     seasons: Optional[int]
     status: Optional[str]

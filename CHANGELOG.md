@@ -4,6 +4,18 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.15.0] — 2026-05-11
+
+### Added
+- TheTVDB artwork provider: posters from TheTVDB are now fetched alongside TMDB when browsing artwork for a TV show or anime
+- Provider filter pills (All / TMDB / TheTVDB) appear in the artwork modal when multiple sources return results
+- Show sync now extracts and stores the TVDb ID from Jellyfin's ProviderIds — re-sync shows to populate
+
+### Changed
+- Artwork picker (collections) no longer shows a Backdrops tab — posters only
+
+---
+
 ## [1.14.0] — 2026-05-11
 
 ### Added
