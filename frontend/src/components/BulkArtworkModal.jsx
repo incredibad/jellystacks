@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { X, Upload, CheckCircle2, AlertCircle, Search, Loader } from 'lucide-react'
+import { X, Upload, CheckCircle2, AlertCircle, Search, Loader, Copy } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -219,7 +219,7 @@ export default function BulkArtworkModal({ onClose }) {
                     <th className="px-4 py-2.5 text-left font-medium">Filename</th>
                     <th className="px-4 py-2.5 text-left font-medium w-16">Current</th>
                     <th className="px-4 py-2.5 text-left font-medium">Matched To</th>
-                    <th className="px-4 py-2.5 text-left font-medium w-12">Match</th>
+                    <th className="px-4 py-2.5 text-left font-medium w-20">Match</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -277,10 +277,23 @@ export default function BulkArtworkModal({ onClose }) {
                           )}
                         </td>
                         <td className="px-4 py-2.5">
-                          {hasMatch
-                            ? <ConfidenceBadge value={override ? 1 : m.confidence} />
-                            : <AlertCircle size={14} className="text-amber-500" />
-                          }
+                          <div className="flex items-center gap-1.5">
+                            {hasMatch
+                              ? <ConfidenceBadge value={override ? 1 : m.confidence} />
+                              : <AlertCircle size={14} className="text-amber-500" />
+                            }
+                            {!override && m.versions?.length > 1 && (
+                              <div className="relative group">
+                                <Copy size={12} className="text-slate-500 cursor-default" />
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-30 hidden group-hover:block w-48 rounded-lg shadow-xl p-2.5" style={{ background: '#1e1e30', border: '1px solid var(--border)' }}>
+                                  <p className="text-xs font-medium text-slate-300 mb-1.5">{m.versions.length} versions — all will update:</p>
+                                  {m.versions.map(v => (
+                                    <p key={v.id} className="text-xs text-slate-400 truncate">{v.library_name}</p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )
