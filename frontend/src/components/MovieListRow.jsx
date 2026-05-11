@@ -141,16 +141,6 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
             />
           )}
 
-          {/* Custom artwork badge — top-left corner of thumbnail */}
-          {movie.custom_artwork_url && (
-            <span
-              className="absolute top-1 left-1 z-10 px-1 py-0.5 rounded text-[8px] font-semibold leading-tight backdrop-blur-sm"
-              style={{ background: 'rgba(109, 40, 217, 0.9)', color: '#fff' }}
-            >
-              Override
-            </span>
-          )}
-
           {onArtworkChange && !uploading && (
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded overflow-hidden flex items-center justify-center gap-1.5">
               <button
@@ -212,6 +202,14 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
                 <span className="text-slate-700 text-xs">·</span>
                 <span className="text-xs text-amber-400">★ {movie.community_rating}</span>
               </>
+            )}
+            {movie.custom_artwork_url && (
+              <span
+                className="px-1.5 py-0.5 rounded text-[9px] font-semibold leading-tight"
+                style={{ background: 'rgba(109, 40, 217, 0.9)', color: '#fff' }}
+              >
+                Override
+              </span>
             )}
           </div>
         </div>
