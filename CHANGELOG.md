@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.17.6] — 2026-05-11
+
+### Fixed
+- Sync (movies + shows): detect stale records caused by Jellyfin re-indexing a file with a new ID; update the existing DB record in-place instead of creating a duplicate, preserving collection memberships and custom artwork
+- Sync cleanup: remove DB records Jellyfin no longer reports, transferring any custom artwork file to a matching sibling record where possible
+
+---
+
 ## [1.17.5] — 2026-05-11
 
 ### Fixed

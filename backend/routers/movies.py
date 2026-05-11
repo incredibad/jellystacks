@@ -398,25 +398,78 @@ async def sync_movies(
             existing.library_id = lib_id
             existing.last_synced = datetime.utcnow()
         else:
-            db.add(models.Movie(
-                jellyfin_id=jf_id,
-                title=item.get("Name", "Unknown"),
-                sort_title=item.get("SortName"),
-                year=item.get("ProductionYear"),
-                overview=item.get("Overview"),
-                tmdb_id=provider_ids.get("Tmdb"),
-                imdb_id=provider_ids.get("Imdb"),
-                genres=json.dumps(genres),
-                tags=json.dumps(tags),
-                people=json.dumps(people),
-                runtime=runtime_min,
-                community_rating=rating_str,
-                primary_image_tag=primary_tag,
-                library_name=lib_name,
-                library_id=lib_id,
-                last_synced=datetime.utcnow(),
-            ))
+            # Before creating, check for a stale record with the same
+            # title+year+library whose jellyfin_id Jellyfin no longer reports
+            # (happens when Jellyfin re-indexes a file with a new ID).
+            # Update it in-place so collection memberships and artwork are kept.
+            title_val = item.get("Name", "Unknown")
+            year_val = item.get("ProductionYear")
+            stale = db.query(models.Movie).filter(
+                models.Movie.title == title_val,
+                models.Movie.year == year_val,
+                models.Movie.library_name == lib_name,
+                models.Movie.jellyfin_id.notin_(seen),
+            ).first()
+            if stale:
+                stale.jellyfin_id = jf_id
+                stale.sort_title = item.get("SortName")
+                stale.overview = item.get("Overview")
+                stale.tmdb_id = provider_ids.get("Tmdb")
+                stale.imdb_id = provider_ids.get("Imdb")
+                stale.genres = json.dumps(genres)
+                stale.tags = json.dumps(tags)
+                stale.people = json.dumps(people)
+                stale.runtime = runtime_min
+                stale.community_rating = rating_str
+                stale.primary_image_tag = primary_tag
+                stale.library_id = lib_id
+                stale.last_synced = datetime.utcnow()
+            else:
+                db.add(models.Movie(
+                    jellyfin_id=jf_id,
+                    title=item.get("Name", "Unknown"),
+                    sort_title=item.get("SortName"),
+                    year=item.get("ProductionYear"),
+                    overview=item.get("Overview"),
+                    tmdb_id=provider_ids.get("Tmdb"),
+                    imdb_id=provider_ids.get("Imdb"),
+                    genres=json.dumps(genres),
+                    tags=json.dumps(tags),
+                    people=json.dumps(people),
+                    runtime=runtime_min,
+                    community_rating=rating_str,
+                    primary_image_tag=primary_tag,
+                    library_name=lib_name,
+                    library_id=lib_id,
+                    last_synced=datetime.utcnow(),
+                ))
         synced += 1
+
+    # ── Cleanup: remove records Jellyfin no longer reports ────────────────────
+    # Transfer artwork to the matching sibling where possible.
+    for movie in db.query(models.Movie).filter(models.Movie.jellyfin_id.notin_(seen)).all():
+        if movie.custom_artwork_url:
+            sibling = db.query(models.Movie).filter(
+                models.Movie.title == movie.title,
+                models.Movie.year == movie.year,
+                models.Movie.library_name == movie.library_name,
+                models.Movie.jellyfin_id.in_(seen),
+            ).first()
+            if sibling and not sibling.custom_artwork_url:
+                old_path = Path(movie.custom_artwork_url)
+                new_path = _ARTWORK_DIR / f"{sibling.id}.jpg"
+                try:
+                    if old_path.exists():
+                        old_path.rename(new_path)
+                    sibling.custom_artwork_url = str(new_path)
+                except Exception:
+                    pass
+            else:
+                try:
+                    Path(movie.custom_artwork_url).unlink(missing_ok=True)
+                except Exception:
+                    pass
+        db.delete(movie)
 
     db.commit()
     return schemas.SyncResult(synced=synced, total=len(all_items))
