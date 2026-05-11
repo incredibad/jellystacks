@@ -686,12 +686,24 @@ async def push_collection(
 
     headers = _jellyfin_headers(api_key)
     base = jf_url.rstrip("/")
-    movie_jf_ids = [m.jellyfin_id for m in col.movies]
-    show_jf_ids = [s.jellyfin_id for s in col.shows]
+    movie_jf_ids = [m.jellyfin_id for m in col.movies if m.jellyfin_id]
+    show_jf_ids = [s.jellyfin_id for s in col.shows if s.jellyfin_id]
     all_jf_ids = movie_jf_ids + show_jf_ids
     user_id = s.get("jellyfin_user_id")
 
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+        # Drop any IDs Jellyfin no longer recognises — a single stale ID will
+        # cause the whole collection create/update to fail with 400.
+        if all_jf_ids:
+            id_check = await client.get(
+                f"{base}/Items",
+                headers=headers,
+                params={"Ids": ",".join(all_jf_ids), "Fields": "Id", "Limit": len(all_jf_ids) + 1},
+            )
+            if id_check.status_code == 200:
+                valid = {item["Id"] for item in id_check.json().get("Items", [])}
+                all_jf_ids = [jid for jid in all_jf_ids if jid in valid]
+
         if col.jellyfin_collection_id:
             old_jf_id = col.jellyfin_collection_id
             check_params = {"UserId": user_id} if user_id else {}
