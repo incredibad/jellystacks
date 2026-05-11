@@ -144,11 +144,10 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
           {/* Custom artwork badge — top-left corner of thumbnail */}
           {movie.custom_artwork_url && (
             <span
-              className="absolute top-0 left-0 z-10 w-3.5 h-3.5 flex items-center justify-center rounded-br"
-              style={{ background: 'rgba(109, 40, 217, 0.9)' }}
-              title="Artwork override"
+              className="absolute top-1 left-1 z-10 px-1 py-0.5 rounded text-[8px] font-semibold leading-tight backdrop-blur-sm"
+              style={{ background: 'rgba(109, 40, 217, 0.9)', color: '#fff' }}
             >
-              <ImageIcon size={7} className="text-white" />
+              Override
             </span>
           )}
 
@@ -194,7 +193,7 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
             {isShow && movie.seasons != null && (
               <>
                 {movie.year && <span className="text-slate-700 text-xs">·</span>}
-                <span className="text-xs text-slate-500">{movie.seasons}S</span>
+                <span className="text-xs text-slate-500">{movie.seasons} season{movie.seasons !== 1 ? 's' : ''}</span>
               </>
             )}
             {movie.library_name && (() => {

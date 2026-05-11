@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.18.2] — 2026-05-11
+
+### Fixed
+- List row: "Override" artwork badge now shows as a readable text pill (matching the card grid style) instead of a barely-visible 3.5px icon
+- Season count displayed as "N season(s)" instead of "NS" in both card and list row views
+
+---
+
 ## [1.18.1] — 2026-05-11
 
 ### Added

@@ -231,7 +231,7 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
             <span className="text-xs text-slate-500">{movie.year}</span>
           )}
           {isShow && movie.seasons != null && (
-            <span className="text-xs text-slate-500">{movie.seasons}S</span>
+            <span className="text-xs text-slate-500">{movie.seasons} season{movie.seasons !== 1 ? 's' : ''}</span>
           )}
           {movie.community_rating && (
             <span className="text-xs text-amber-400">★ {movie.community_rating}</span>
