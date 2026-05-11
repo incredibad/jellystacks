@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.17.4] — 2026-05-11
+
+### Added
+- Mobile: sidebar collapses by default; a floating hamburger button (bottom-left) slides it in as an overlay with a backdrop
+
+---
+
 ## [1.17.3] — 2026-05-11
 
 ### Fixed

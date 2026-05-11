@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Film, Tv, Layers, Settings, LogOut, RefreshCw, Upload, Download, LayoutGrid, Loader, ChevronDown, Image } from 'lucide-react'
+import { Film, Tv, Layers, Settings, LogOut, RefreshCw, Upload, Download, LayoutGrid, Loader, ChevronDown, Image, Menu, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useOperations } from '../contexts/OperationsContext'
 import { useState, useEffect } from 'react'
@@ -43,6 +43,7 @@ export default function Sidebar() {
   const navigate = useNavigate()
   const { runOperation, isRunning, syncing, syncLibraries, lastSynced, lastOpAt } = useOperations()
   const [counts, setCounts] = useState({})
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [opsOpen, setOpsOpen] = useState(false)
   const [importing, setImporting] = useState(false)
   const [pendingConfirm, setPendingConfirm] = useState(null)
@@ -205,8 +206,32 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="w-60 flex-shrink-0 flex flex-col h-screen sticky top-0"
-        style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
+      {/* Mobile hamburger */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed bottom-5 left-4 z-50 p-3 rounded-xl shadow-xl text-slate-300 hover:text-white transition-colors"
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+        aria-label="Open menu"
+      >
+        <Menu size={20} />
+      </button>
+
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`w-60 flex-shrink-0 flex flex-col h-screen
+          fixed inset-y-0 left-0 z-40 transition-transform duration-300 ease-in-out
+          md:sticky md:top-0 md:translate-x-0 md:z-auto
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+        style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}
+      >
 
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -223,6 +248,13 @@ export default function Sidebar() {
           >
             JellyStacks
           </span>
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden ml-auto p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-colors"
+            aria-label="Close menu"
+          >
+            <X size={16} />
+          </button>
         </div>
 
         {/* Nav */}
@@ -231,6 +263,7 @@ export default function Sidebar() {
             <NavLink
               key={to}
               to={to}
+              onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   isActive
@@ -296,6 +329,7 @@ export default function Sidebar() {
         <div className="px-3 pb-2 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
           <NavLink
             to="/settings"
+            onClick={() => setMobileOpen(false)}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 isActive
