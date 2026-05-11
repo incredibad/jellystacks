@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy import text, inspect as sa_inspect
 
 from database import Base, engine, SessionLocal
-from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router
+from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router, tvdb as tvdb_router
 import scheduler as collection_scheduler
 
 Base.metadata.create_all(bind=engine)
@@ -32,6 +32,8 @@ def _run_migrations():
         show_cols = {c["name"] for c in inspector.get_columns("shows")}
         if "custom_artwork_url" not in show_cols:
             conn.execute(text("ALTER TABLE shows ADD COLUMN custom_artwork_url TEXT"))
+        if "tvdb_id" not in show_cols:
+            conn.execute(text("ALTER TABLE shows ADD COLUMN tvdb_id TEXT"))
 
         col_cols = {c["name"] for c in inspector.get_columns("collections")}
         if "tmdb_collection_id" not in col_cols:
@@ -103,6 +105,7 @@ app.include_router(collections.router,     prefix="/api/collections", tags=["col
 app.include_router(settings_router.router, prefix="/api/settings",    tags=["settings"])
 app.include_router(tmdb.router,            prefix="/api/tmdb",        tags=["tmdb"])
 app.include_router(mdblist_router.router,  prefix="/api/mdblist",     tags=["mdblist"])
+app.include_router(tvdb_router.router,     prefix="/api/tvdb",        tags=["tvdb"])
 
 # ── Static Frontend ───────────────────────────────────────────────────────────
 static_dir = Path("/app/static")

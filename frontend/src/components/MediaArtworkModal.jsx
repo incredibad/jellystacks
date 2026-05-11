@@ -4,29 +4,58 @@ import api from '../api/client'
 import toast from 'react-hot-toast'
 
 export default function MediaArtworkModal({ item, mediaType, onClose, onUpdated }) {
-  const [images, setImages] = useState(null)
+  const [tmdbImages, setTmdbImages] = useState([])
+  const [tvdbImages, setTvdbImages] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [activeProvider, setActiveProvider] = useState('all')
+
+  const isShow = mediaType === 'show'
 
   useEffect(() => {
-    if (!item.tmdb_id) { setLoading(false); return }
-    const endpoint = mediaType === 'show'
-      ? `/tmdb/tv/${item.tmdb_id}/images`
-      : `/tmdb/movie/${item.tmdb_id}/images`
-    api.get(endpoint)
-      .then(({ data }) => setImages(data))
-      .catch(() => toast.error('Failed to load images.'))
-      .finally(() => setLoading(false))
+    if (!item.tmdb_id && !item.tvdb_id) { setLoading(false); return }
+
+    const fetches = []
+
+    if (item.tmdb_id) {
+      const endpoint = isShow
+        ? `/tmdb/tv/${item.tmdb_id}/images`
+        : `/tmdb/movie/${item.tmdb_id}/images`
+      fetches.push(
+        api.get(endpoint)
+          .then(({ data }) => setTmdbImages(data.posters || []))
+          .catch(() => {})
+      )
+    }
+
+    if (isShow && item.tvdb_id) {
+      fetches.push(
+        api.get(`/tvdb/show/${item.tvdb_id}/posters`)
+          .then(({ data }) => setTvdbImages(data || []))
+          .catch(() => {})
+      )
+    }
+
+    Promise.all(fetches).finally(() => setLoading(false))
   }, []) // eslint-disable-line
 
-  const displayImages = images ? images.posters : []
+  const providers = [
+    { key: 'all', label: 'All' },
+    ...(tmdbImages.length > 0 ? [{ key: 'tmdb', label: 'TMDB' }] : []),
+    ...(tvdbImages.length > 0 ? [{ key: 'tvdb', label: 'TheTVDB' }] : []),
+  ]
+
+  const displayImages =
+    activeProvider === 'tmdb' ? tmdbImages
+    : activeProvider === 'tvdb' ? tvdbImages
+    : [...tmdbImages, ...tvdbImages]
 
   const handleConfirm = async () => {
     if (!selected) return
     setSaving(true)
     try {
-      const endpoint = mediaType === 'show'
+      const endpoint = isShow
         ? `/shows/${item.id}/artwork`
         : `/movies/${item.id}/artwork`
       const { data } = await api.put(endpoint, { url: selected.full_url })
@@ -38,6 +67,9 @@ export default function MediaArtworkModal({ item, mediaType, onClose, onUpdated 
       setSaving(false)
     }
   }
+
+  const hasAnyId = item.tmdb_id || (isShow && item.tvdb_id)
+  const totalImages = tmdbImages.length + tvdbImages.length
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -60,6 +92,30 @@ export default function MediaArtworkModal({ item, mediaType, onClose, onUpdated 
           </button>
         </div>
 
+        {/* Provider filter */}
+        {!loading && providers.length > 1 && (
+          <div className="flex gap-1 px-4 pt-3 pb-1">
+            {providers.map(p => (
+              <button
+                key={p.key}
+                onClick={() => { setActiveProvider(p.key); setSelected(null) }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  activeProvider === p.key
+                    ? 'bg-violet-600 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {p.label}
+                {p.key !== 'all' && (
+                  <span className="ml-1.5 opacity-60">
+                    {p.key === 'tmdb' ? tmdbImages.length : tvdbImages.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Image grid */}
         <div className="flex-1 overflow-y-auto p-4">
           {loading && (
@@ -67,14 +123,14 @@ export default function MediaArtworkModal({ item, mediaType, onClose, onUpdated 
               <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
-          {!loading && !item.tmdb_id && (
+          {!loading && !hasAnyId && (
             <div className="flex flex-col items-center justify-center py-16 text-slate-500">
               <ImageIcon size={36} className="mb-3 opacity-30" />
-              <p className="text-sm">No TMDB ID — artwork browsing unavailable.</p>
+              <p className="text-sm">No provider ID — artwork browsing unavailable.</p>
               <p className="text-xs mt-1">You can still upload a custom image.</p>
             </div>
           )}
-          {!loading && images && displayImages.length === 0 && (
+          {!loading && hasAnyId && totalImages === 0 && (
             <p className="text-center text-sm text-slate-500 py-8">No posters available.</p>
           )}
           {!loading && displayImages.length > 0 && (

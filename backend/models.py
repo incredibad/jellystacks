@@ -68,6 +68,7 @@ class Show(Base):
     overview = Column(Text, nullable=True)
     tmdb_id = Column(String, nullable=True)
     imdb_id = Column(String, nullable=True)
+    tvdb_id = Column(String, nullable=True)
     genres = Column(String, nullable=True)
     tags = Column(Text, nullable=True)
     people = Column(Text, nullable=True)

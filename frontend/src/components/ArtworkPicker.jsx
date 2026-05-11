@@ -10,7 +10,6 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '', mo
   const [results, setResults] = useState([])
   const [images, setImages] = useState(null)
   const [selectedMovie, setSelectedMovie] = useState(null)
-  const [activeTab, setActiveTab] = useState('posters')
   const [searchLoading, setSearchLoading] = useState(false)
   const [imgLoading, setImgLoading] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null)
@@ -102,9 +101,7 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '', mo
     onSelect(selectedImage.full_url)
   }
 
-  const displayImages = images
-    ? (activeTab === 'posters' ? images.posters : images.backdrops)
-    : []
+  const displayImages = images ? images.posters : []
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -254,23 +251,6 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '', mo
 
           {/* Right: image grid */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {!isRelatedMode && selectedMovie && (
-              <div className="flex gap-1 p-3 border-b" style={{ borderColor: 'var(--border)' }}>
-                {['posters', 'backdrops'].map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setSelectedImage(null) }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
-                      activeTab === tab
-                        ? 'bg-violet-600 text-white'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    {tab} {images && `(${(tab === 'posters' ? images.posters : images.backdrops).length})`}
-                  </button>
-                ))}
-              </div>
-            )}
 
             <div className="flex-1 overflow-y-auto p-3">
               {isRelatedMode ? (
@@ -326,7 +306,7 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '', mo
                     </div>
                   )}
                   {!imgLoading && displayImages.length > 0 && (
-                    <div className={`grid gap-2 ${activeTab === 'posters' ? 'grid-cols-4' : 'grid-cols-2'}`}>
+                    <div className="grid gap-2 grid-cols-4">
                       {displayImages.map((img, i) => (
                         <button
                           key={i}
@@ -340,7 +320,7 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '', mo
                           <img
                             src={img.thumb_url}
                             alt=""
-                            className={`w-full h-full object-cover ${activeTab === 'posters' ? 'aspect-[2/3]' : 'aspect-video'}`}
+                            className="w-full h-full object-cover aspect-[2/3]"
                           />
                           {selectedImage?.file_path === img.file_path && (
                             <div className="absolute inset-0 bg-violet-600/20 flex items-center justify-center">
@@ -352,7 +332,7 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '', mo
                     </div>
                   )}
                   {!imgLoading && images && displayImages.length === 0 && (
-                    <p className="text-center text-sm text-slate-500 py-8">No {activeTab} available.</p>
+                    <p className="text-center text-sm text-slate-500 py-8">No posters available.</p>
                   )}
                 </>
               )}

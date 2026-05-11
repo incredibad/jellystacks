@@ -329,6 +329,7 @@ async def sync_shows(
             existing.overview = item.get("Overview")
             existing.tmdb_id = provider_ids.get("Tmdb")
             existing.imdb_id = provider_ids.get("Imdb")
+            existing.tvdb_id = provider_ids.get("Tvdb")
             existing.genres = json.dumps(genres)
             existing.tags = json.dumps(tags)
             existing.people = json.dumps(people)
@@ -348,6 +349,7 @@ async def sync_shows(
                 overview=item.get("Overview"),
                 tmdb_id=provider_ids.get("Tmdb"),
                 imdb_id=provider_ids.get("Imdb"),
+                tvdb_id=provider_ids.get("Tvdb"),
                 genres=json.dumps(genres),
                 tags=json.dumps(tags),
                 people=json.dumps(people),
