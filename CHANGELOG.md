@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.17.1] — 2026-05-11
+
+### Changed
+- Settings → System Danger Zone now has three distinct operations: delete all collections from Jellyfin (keeps them in JellyStacks), delete all collections from JellyStacks (keeps them in Jellyfin), and restore original artwork
+
+---
+
 ## [1.17.0] — 2026-05-11
 
 ### Added
