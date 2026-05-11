@@ -69,6 +69,7 @@ export default function Settings() {
     tmdb_api_key: '',
     tmdb_related_enabled: false,
     mdblist_api_key: '',
+    tvdb_api_key: '',
     collection_refresh_interval: 'disabled',
   })
   const [refreshing, setRefreshing] = useState(false)
@@ -96,6 +97,7 @@ export default function Settings() {
         tmdb_api_key: '',
         tmdb_related_enabled: data.tmdb_related_enabled || false,
         mdblist_api_key: '',
+        tvdb_api_key: '',
         collection_refresh_interval: data.collection_refresh_interval || 'disabled',
       })
       setOriginal(data)
@@ -116,6 +118,7 @@ export default function Settings() {
       if (form.jellyfin_user_id !== original.jellyfin_user_id) payload.jellyfin_user_id = form.jellyfin_user_id
       if (form.tmdb_api_key) payload.tmdb_api_key = form.tmdb_api_key
       if (form.mdblist_api_key) payload.mdblist_api_key = form.mdblist_api_key
+      if (form.tvdb_api_key) payload.tvdb_api_key = form.tvdb_api_key
       if (form.tmdb_related_enabled !== original.tmdb_related_enabled) payload.tmdb_related_enabled = form.tmdb_related_enabled
       if (form.collection_refresh_interval !== original.collection_refresh_interval) payload.collection_refresh_interval = form.collection_refresh_interval
 
@@ -126,7 +129,7 @@ export default function Settings() {
 
       const { data } = await api.put('/settings', payload)
       setOriginal(data)
-      setForm(prev => ({ ...prev, jellyfin_api_key: '', tmdb_api_key: '', mdblist_api_key: '' }))
+      setForm(prev => ({ ...prev, jellyfin_api_key: '', tmdb_api_key: '', mdblist_api_key: '', tvdb_api_key: '' }))
       toast.success('Settings saved.')
       setTestResult(null)
     } catch (err) {
@@ -280,14 +283,14 @@ export default function Settings() {
 
       {/* Tab bar */}
       <div
-        className="flex gap-1 mb-6 p-1 rounded-lg max-w-sm"
+        className="flex gap-1 mb-6 p-1 rounded-lg max-w-xl"
         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
       >
-        {['sync', 'account', 'backup', 'system'].map(tab => (
+        {['sync', 'providers', 'account', 'backup', 'system'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium capitalize transition-all ${
+            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium capitalize transition-all ${
               activeTab === tab
                 ? 'bg-violet-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white'
@@ -302,7 +305,6 @@ export default function Settings() {
       {activeTab === 'sync' && (
         <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left column */}
           <div className="space-y-6">
           <Section title="Jellyfin Server" description="Connect to your Jellyfin media server." icon={Server}>
             <Field label="Server URL" hint="Include the protocol, e.g. http://192.168.1.10:8096">
@@ -409,12 +411,12 @@ export default function Settings() {
 
           <Section
             title="Scheduled Collection Refresh"
-            description="Automatically update TMDB and MDBList collections from their source on a schedule."
+            description="Automatically update managed collections from their source on a schedule."
             icon={Clock}
           >
             <Field
               label="Refresh frequency"
-              hint="When enabled, all TMDB and MDBList collections are re-scanned at the chosen interval, adding newly available movies and shows from your library."
+              hint="All managed collections are re-scanned at the chosen interval, adding newly available movies and shows from your library."
             >
               <select
                 value={form.collection_refresh_interval}
@@ -448,98 +450,158 @@ export default function Settings() {
               </button>
             </div>
           </Section>
-
-          </div>{/* end left column */}
-
-          {/* Right column */}
-          <div className="space-y-6">
-          <Section
-            title="TMDB Integration"
-            description="Used to fetch artwork for your collections."
-            icon={Key}
+          </div>
+        </div>
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-60 transition-all shadow-lg shadow-violet-600/20"
           >
-            <Field
-              label={`API Key${original.tmdb_api_key_set ? ' (currently set — leave blank to keep)' : ''}`}
-              hint={
-                <span>
-                  Get a free API key at{' '}
-                  <a
-                    href="https://www.themoviedb.org/settings/api"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-violet-400 hover:underline inline-flex items-center gap-0.5"
-                  >
-                    themoviedb.org <ExternalLink size={11} />
-                  </a>
-                </span>
-              }
-            >
-              <input
-                type="password"
-                value={form.tmdb_api_key}
-                onChange={e => set('tmdb_api_key', e.target.value)}
-                placeholder={original.tmdb_api_key_set ? '••••••••••••••••' : 'Enter your TMDB API key (v3 auth)'}
-                className={inputClass}
-                style={inputStyle}
-                autoComplete="new-password"
-              />
-            </Field>
+            {saving && <Loader size={15} className="animate-spin" />}
+            {saving ? 'Saving…' : 'Save Settings'}
+          </button>
+        </div>
+        </>
+      )}
 
-            <div className="flex items-center justify-between gap-4 pt-1">
-              <div>
-                <p className="text-sm text-slate-300 font-medium">Related Movies</p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Show a "Related" tab when adding movies — fetches TMDB recommendations based on what's already in the collection. Results are cached for 2 weeks.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => set('tmdb_related_enabled', !form.tmdb_related_enabled)}
-                disabled={!original.tmdb_api_key_set && !form.tmdb_api_key}
-                className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
-                  form.tmdb_related_enabled ? 'bg-violet-600' : 'bg-slate-700'
-                }`}
+      {/* ── Providers tab ──────────────────────────────────────────────────── */}
+      {activeTab === 'providers' && (
+        <>
+        <div className="space-y-8">
+
+          {/* List Providers */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">List Providers</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Section
+                title="TMDB"
+                description="Powers franchise collection detection and syncing, plus posters and backdrops."
+                icon={Key}
               >
-                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
-                  form.tmdb_related_enabled ? 'translate-x-4' : 'translate-x-0'
-                }`} />
-              </button>
-            </div>
-          </Section>
+                <Field
+                  label={`API Key${original.tmdb_api_key_set ? ' (currently set — leave blank to keep)' : ''}`}
+                  hint={
+                    <span>
+                      Get a free API key at{' '}
+                      <a
+                        href="https://www.themoviedb.org/settings/api"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-violet-400 hover:underline inline-flex items-center gap-0.5"
+                      >
+                        themoviedb.org <ExternalLink size={11} />
+                      </a>
+                    </span>
+                  }
+                >
+                  <input
+                    type="password"
+                    value={form.tmdb_api_key}
+                    onChange={e => set('tmdb_api_key', e.target.value)}
+                    placeholder={original.tmdb_api_key_set ? '••••••••••••••••' : 'Enter your TMDB API key (v3 auth)'}
+                    className={inputClass}
+                    style={inputStyle}
+                    autoComplete="new-password"
+                  />
+                </Field>
 
-          <Section
-            title="MDBList Integration"
-            description="Used to import curated public lists as collections."
-            icon={Key}
-          >
-            <Field
-              label={`API Key${original.mdblist_api_key_set ? ' (currently set — leave blank to keep)' : ''}`}
-              hint={
-                <span>
-                  Get a free API key at{' '}
-                  <a
-                    href="https://mdblist.com/preferences"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-violet-400 hover:underline inline-flex items-center gap-0.5"
+                <div className="flex items-center justify-between gap-4 pt-1">
+                  <div>
+                    <p className="text-sm text-slate-300 font-medium">Related Movies</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Show a "Related" tab when adding movies — fetches TMDB recommendations based on what's already in the collection. Results are cached for 2 weeks.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => set('tmdb_related_enabled', !form.tmdb_related_enabled)}
+                    disabled={!original.tmdb_api_key_set && !form.tmdb_api_key}
+                    className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
+                      form.tmdb_related_enabled ? 'bg-violet-600' : 'bg-slate-700'
+                    }`}
                   >
-                    mdblist.com/preferences <ExternalLink size={11} />
-                  </a>
-                </span>
-              }
-            >
-              <input
-                type="password"
-                value={form.mdblist_api_key}
-                onChange={e => set('mdblist_api_key', e.target.value)}
-                placeholder={original.mdblist_api_key_set ? '••••••••••••••••' : 'Enter your MDBList API key'}
-                className={inputClass}
-                style={inputStyle}
-                autoComplete="new-password"
-              />
-            </Field>
-          </Section>
-          </div>{/* end right column */}
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
+                      form.tmdb_related_enabled ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+              </Section>
+
+              <Section
+                title="MDBList"
+                description="Import curated public lists as managed collections."
+                icon={Key}
+              >
+                <Field
+                  label={`API Key${original.mdblist_api_key_set ? ' (currently set — leave blank to keep)' : ''}`}
+                  hint={
+                    <span>
+                      Get a free API key at{' '}
+                      <a
+                        href="https://mdblist.com/preferences"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-violet-400 hover:underline inline-flex items-center gap-0.5"
+                      >
+                        mdblist.com/preferences <ExternalLink size={11} />
+                      </a>
+                    </span>
+                  }
+                >
+                  <input
+                    type="password"
+                    value={form.mdblist_api_key}
+                    onChange={e => set('mdblist_api_key', e.target.value)}
+                    placeholder={original.mdblist_api_key_set ? '••••••••••••••••' : 'Enter your MDBList API key'}
+                    className={inputClass}
+                    style={inputStyle}
+                    autoComplete="new-password"
+                  />
+                </Field>
+              </Section>
+            </div>
+          </div>
+
+          {/* Artwork Providers */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">Artwork Providers</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Section
+                title="TheTVDB"
+                description="Additional poster options for TV shows and anime."
+                icon={Key}
+              >
+                <Field
+                  label={`API Key${original.tvdb_api_key_set ? ' (currently set — leave blank to keep)' : ''}`}
+                  hint={
+                    <span>
+                      Register a free project at{' '}
+                      <a
+                        href="https://thetvdb.com/api-information"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-violet-400 hover:underline inline-flex items-center gap-0.5"
+                      >
+                        thetvdb.com/api-information <ExternalLink size={11} />
+                      </a>
+                    </span>
+                  }
+                >
+                  <input
+                    type="password"
+                    value={form.tvdb_api_key}
+                    onChange={e => set('tvdb_api_key', e.target.value)}
+                    placeholder={original.tvdb_api_key_set ? '••••••••••••••••' : 'Enter your TheTVDB API key'}
+                    className={inputClass}
+                    style={inputStyle}
+                    autoComplete="new-password"
+                  />
+                </Field>
+              </Section>
+            </div>
+          </div>
+
         </div>
         <div className="flex justify-end mt-6">
           <button

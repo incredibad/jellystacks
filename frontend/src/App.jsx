@@ -55,13 +55,13 @@ function AppRoutes() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Navigate to="/movies" replace />} />
+        <Route path="/" element={<Navigate to="/collections" replace />} />
         <Route path="/movies" element={<Movies />} />
         <Route path="/shows" element={<Shows />} />
         <Route path="/collections" element={<Collections />} />
         <Route path="/collections/:id" element={<CollectionDetail />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="*" element={<Navigate to="/movies" replace />} />
+        <Route path="*" element={<Navigate to="/collections" replace />} />
       </Routes>
     </Layout>
   )
