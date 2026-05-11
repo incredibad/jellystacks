@@ -355,6 +355,57 @@ async def clear_jellyfin_native(
     return {"deleted": deleted}
 
 
+@router.delete("/all-in-jellyfin")
+async def delete_all_from_jellyfin(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    """Remove all JellyStacks collections from the Jellyfin server.
+
+    Calls the Jellyfin API to delete every collection that has a
+    jellyfin_collection_id, then clears the Jellyfin-side fields locally.
+    Collections are kept in JellyStacks and can be re-pushed afterwards.
+    """
+    cols = db.query(models.Collection).filter(
+        models.Collection.jellyfin_collection_id.isnot(None)
+    ).all()
+
+    s = _get_settings_dict(db)
+    jf_url = s.get("jellyfin_url")
+    api_key = s.get("jellyfin_api_key")
+    jf_ids = [c.jellyfin_collection_id for c in cols]
+    if jf_url and api_key and jf_ids:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            await asyncio.gather(
+                *[client.delete(
+                    f"{jf_url.rstrip('/')}/Items/{jid}",
+                    headers=_jellyfin_headers(api_key),
+                ) for jid in jf_ids],
+                return_exceptions=True,
+            )
+
+    for col in cols:
+        col.jellyfin_collection_id = None
+        col.in_jellyfin = False
+        col.jellyfin_synced_at = None
+    db.commit()
+    return {"deleted": len(cols)}
+
+
+@router.delete("/all-local")
+async def delete_all_local(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    """Delete all collections from JellyStacks without touching Jellyfin."""
+    cols = db.query(models.Collection).all()
+    deleted = len(cols)
+    for col in cols:
+        db.delete(col)
+    db.commit()
+    return {"deleted": deleted}
+
+
 @router.delete("/{collection_id}")
 async def delete_collection(collection_id: int, db: Session = Depends(get_db), _: models.User = Depends(get_current_user)):
     col = db.query(models.Collection).filter(models.Collection.id == collection_id).first()

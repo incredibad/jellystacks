@@ -86,6 +86,7 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [clearingJf, setClearingJf] = useState(false)
+  const [clearingLocal, setClearingLocal] = useState(false)
   const [resettingArtwork, setResettingArtwork] = useState(false)
   const importInputRef = useRef(null)
 
@@ -256,19 +257,35 @@ export default function Settings() {
     }
   }
 
-  const handleClearJellyfinCollections = async () => {
+  const handleDeleteAllFromJellyfin = async () => {
     if (!confirm(
-      'Remove all Jellyfin-imported collections from JellyStacks? This only affects the local database — nothing is deleted from Jellyfin. You can re-import them afterwards.'
+      'Delete all collections from your Jellyfin server? JellyStacks keeps them — you can re-push them afterwards. This cannot be undone.'
     )) return
     setClearingJf(true)
+    const tid = toast.loading('Deleting from Jellyfin…')
     try {
-      const { data } = await api.delete('/collections/jellyfin-native')
-      toast.success(`Removed ${data.deleted} Jellyfin collection${data.deleted !== 1 ? 's' : ''}.`)
+      const { data } = await api.delete('/collections/all-in-jellyfin')
+      toast.success(`Deleted ${data.deleted} collection${data.deleted !== 1 ? 's' : ''} from Jellyfin.`, { id: tid })
     } catch (err) {
-      const detail = err.response?.data?.detail
-      toast.error(typeof detail === 'string' ? detail : 'Failed to clear collections.')
+      toast.error(err.response?.data?.detail || 'Failed.', { id: tid })
     } finally {
       setClearingJf(false)
+    }
+  }
+
+  const handleDeleteAllLocal = async () => {
+    if (!confirm(
+      'Delete all collections from JellyStacks? Nothing is changed in Jellyfin. This cannot be undone.'
+    )) return
+    setClearingLocal(true)
+    const tid = toast.loading('Deleting local collections…')
+    try {
+      const { data } = await api.delete('/collections/all-local')
+      toast.success(`Deleted ${data.deleted} collection${data.deleted !== 1 ? 's' : ''} from JellyStacks.`, { id: tid })
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed.', { id: tid })
+    } finally {
+      setClearingLocal(false)
     }
   }
 
@@ -753,12 +770,21 @@ export default function Settings() {
           <Section title="Danger Zone" description="Destructive actions — use with care." icon={Trash2} danger>
             <div className="space-y-5">
               <DangerRow
-                label="Delete imported Jellyfin collections"
-                description="Removes all Jellyfin-imported collections from JellyStacks. Nothing is deleted from Jellyfin — you can re-import them at any time."
-                buttonLabel="Delete Collections"
+                label="Delete all collections from Jellyfin"
+                description="Removes every collection from your Jellyfin server. JellyStacks keeps them — you can re-push them afterwards."
+                buttonLabel="Delete from Jellyfin"
                 loadingLabel="Deleting…"
-                onClick={handleClearJellyfinCollections}
+                onClick={handleDeleteAllFromJellyfin}
                 loading={clearingJf}
+              />
+              <div className="border-t" style={{ borderColor: '#7f1d1d40' }} />
+              <DangerRow
+                label="Delete all collections from JellyStacks"
+                description="Removes every collection from JellyStacks only. Nothing is changed in Jellyfin."
+                buttonLabel="Delete from JellyStacks"
+                loadingLabel="Deleting…"
+                onClick={handleDeleteAllLocal}
+                loading={clearingLocal}
               />
               <div className="border-t" style={{ borderColor: '#7f1d1d40' }} />
               <DangerRow
