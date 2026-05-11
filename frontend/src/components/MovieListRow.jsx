@@ -187,7 +187,7 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
 
         {/* Title + meta */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-200 truncate">{movie.title}</p>
+          <p className="text-sm font-medium text-slate-200 truncate" title={movie.title}>{movie.title}</p>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {movie.year && <span className="text-xs text-slate-500">{movie.year}</span>}
             {isShow && movie.seasons != null && (
