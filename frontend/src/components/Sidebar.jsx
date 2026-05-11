@@ -105,30 +105,6 @@ export default function Sidebar() {
     }
   }
 
-  const handleDetectTmdb = async () => {
-    try {
-      const collections = await fetchCollections()
-      const targets = collections.filter(c => c.movie_count > 0)
-      if (!targets.length) { toast('No collections to scan.', { icon: 'ℹ️' }); return }
-      runOperation({
-        type: 'detect-tmdb',
-        targets,
-        onDone: (results) => {
-          const linked = results.filter(r => r.ok && r.data?.tmdb_collection_id).length
-          const custom = results.filter(r => r.ok && !r.data?.tmdb_collection_id).length
-          const skipped = results.filter(r => !r.ok).length
-          const parts = []
-          if (linked) parts.push(`${linked} TMDB`)
-          if (custom) parts.push(`${custom} Custom`)
-          if (skipped) parts.push(`${skipped} skipped`)
-          toast.success(parts.join(', '))
-        },
-      })
-    } catch {
-      toast.error('Failed to fetch collections.')
-    }
-  }
-
   const handlePushAll = async () => {
     try {
       const collections = await fetchCollections()
@@ -167,51 +143,63 @@ export default function Sidebar() {
 
   const busy = importing || isRunning || syncing || deletingJf
 
-  const ops = [
+  const opsGroups = [
     {
-      label: 'Sync Jellyfin',
-      icon: syncing ? <Loader size={14} className="animate-spin" /> : <RefreshCw size={14} />,
-      busy: syncing,
-      onClick: () => { setPendingConfirm('sync'); setOpsOpen(false) },
+      label: 'Library',
+      items: [
+        {
+          label: 'Sync Jellyfin',
+          icon: syncing ? <Loader size={14} className="animate-spin" /> : <RefreshCw size={14} />,
+          busy: syncing,
+          onClick: () => setPendingConfirm('sync'),
+        },
+        {
+          label: 'Import from Jellyfin',
+          icon: importing ? <Loader size={14} className="animate-spin" /> : <Download size={14} />,
+          busy: importing,
+          onClick: () => setPendingConfirm('import'),
+        },
+      ],
     },
     {
-      label: 'Bulk Artwork Upload',
-      icon: <Image size={14} />,
-      onClick: () => { setShowBulkUpload(true); setOpsOpen(false) },
-    },
-    null,
-    {
-      label: 'Import from Jellyfin',
-      icon: importing ? <Loader size={14} className="animate-spin" /> : <Download size={14} />,
-      busy: importing,
-      onClick: () => { setPendingConfirm('import'); setOpsOpen(false) },
+      label: 'Artwork',
+      items: [
+        {
+          label: 'Bulk Artwork Upload',
+          icon: <Image size={14} />,
+          onClick: () => { setShowBulkUpload(true); setOpsOpen(false) },
+        },
+      ],
     },
     {
-      label: 'Verify Collection Status',
-      icon: <RefreshCw size={14} />,
-      disabled: isRunning,
-      onClick: () => { setPendingConfirm('verify'); setOpsOpen(false) },
+      label: 'Collections',
+      items: [
+        {
+          label: 'Verify Collection Status',
+          icon: <RefreshCw size={14} />,
+          disabled: isRunning,
+          onClick: () => setPendingConfirm('verify'),
+        },
+        {
+          label: 'Push All to Jellyfin',
+          icon: <Upload size={14} />,
+          disabled: isRunning,
+          onClick: () => setPendingConfirm('push-all'),
+        },
+      ],
     },
     {
-      label: 'Detect TMDB',
-      icon: <Film size={14} />,
-      disabled: isRunning,
-      onClick: () => { setPendingConfirm('detect-tmdb'); setOpsOpen(false) },
-    },
-    null,
-    {
-      label: 'Push All to Jellyfin',
-      icon: <Upload size={14} />,
-      disabled: isRunning,
-      onClick: () => { setPendingConfirm('push-all'); setOpsOpen(false) },
-    },
-    null,
-    {
-      label: 'Delete Jellyfin Collections',
-      icon: <Trash2 size={14} />,
+      label: 'Danger',
       danger: true,
-      disabled: isRunning || deletingJf,
-      onClick: () => { setPendingConfirm('delete-jf-native'); setOpsOpen(false) },
+      items: [
+        {
+          label: 'Delete Jellyfin Collections',
+          icon: <Trash2 size={14} />,
+          danger: true,
+          disabled: isRunning || deletingJf,
+          onClick: () => setPendingConfirm('delete-jf-native'),
+        },
+      ],
     },
   ]
 
@@ -233,12 +221,6 @@ export default function Sidebar() {
       description: 'Check all collections against Jellyfin to update their sync status.',
       confirmLabel: 'Verify',
       onConfirm: handleVerifyAll,
-    },
-    'detect-tmdb': {
-      title: 'Detect TMDB Collections',
-      description: 'Scan all collections to detect and link TMDB collection data.',
-      confirmLabel: 'Detect',
-      onConfirm: handleDetectTmdb,
     },
     'push-all': {
       title: 'Push All to Jellyfin',
@@ -300,8 +282,8 @@ export default function Sidebar() {
             </NavLink>
           ))}
 
-          {/* Operations dropdown */}
-          <div className="relative pt-1">
+          {/* Operations accordion */}
+          <div className="pt-1">
             <button
               onClick={() => setOpsOpen(v => !v)}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-white/5"
@@ -315,33 +297,30 @@ export default function Sidebar() {
             </button>
 
             {opsOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setOpsOpen(false)} />
-                <div
-                  className="absolute left-0 top-full z-20 w-56 rounded-xl shadow-xl py-1 mt-1"
-                  style={{ background: '#1e1e30', border: '1px solid var(--border)' }}
-                >
-                  {ops.map((item, i) =>
-                    item === null ? (
-                      <div key={i} className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
-                    ) : (
+              <div className="mt-1 mb-1">
+                {opsGroups.map((group) => (
+                  <div key={group.label} className="mb-2">
+                    <p className={`px-3 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wider ${group.danger ? 'text-red-900' : 'text-slate-600'}`}>
+                      {group.label}
+                    </p>
+                    {group.items.map((item) => (
                       <button
                         key={item.label}
                         onClick={item.onClick}
                         disabled={item.busy || item.disabled}
-                        className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors ${
+                        className={`w-full flex items-center gap-2.5 pl-5 pr-3 py-2 text-sm rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors ${
                           item.danger
                             ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
-                            : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
                         }`}
                       >
                         <span className="w-4 flex-shrink-0 flex items-center justify-center">{item.icon}</span>
                         {item.label}
                       </button>
-                    )
-                  )}
-                </div>
-              </>
+                    ))}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </nav>
