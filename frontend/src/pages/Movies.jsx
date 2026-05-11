@@ -91,8 +91,8 @@ export default function Movies() {
     setSyncing(true)
     try {
       const [moviesRes, showsRes] = await Promise.all([
-        api.post('/movies/sync', null, { timeout: 300000 }),
-        api.post('/shows/sync', null, { timeout: 300000 }),
+        api.post('/movies/sync', null, { timeout: 0 }),
+        api.post('/shows/sync', null, { timeout: 0 }),
       ])
       toast.success(`Synced ${moviesRes.data.synced} movies and ${showsRes.data.synced} shows.`)
       api.get('/movies/count').then(({ data }) => setTotalCount(data.count)).catch(() => {})
