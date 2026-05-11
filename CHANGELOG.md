@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.16.3] — 2026-05-11
+
+### Fixed
+- TMDB and MDBList collections falsely showing "Needs Sync": the refresh logic was always bumping `updated_at` even when membership hadn't changed — now only updates the timestamp when the movie/show set actually changes
+
+---
+
 ## [1.16.2] — 2026-05-11
 
 ### Changed

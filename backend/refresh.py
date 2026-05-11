@@ -34,9 +34,12 @@ async def _refresh_tmdb(col: models.Collection, api_key: str, db: Session) -> di
 
     owned = db.query(models.Movie).filter(models.Movie.tmdb_id.in_(tmdb_ids)).all() if tmdb_ids else []
 
+    current_ids = {m.id for m in col.movies}
+    new_ids = {m.id for m in owned}
     col.movies = owned
     col.tmdb_total_parts = len(parts)
-    col.updated_at = datetime.utcnow()
+    if current_ids != new_ids:
+        col.updated_at = datetime.utcnow()
     db.commit()
     return {"ok": True, "movies": len(owned), "total": len(parts)}
 
@@ -55,10 +58,13 @@ async def _refresh_mdblist(col: models.Collection, api_key: str, db: Session) ->
     movies = db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).all() if movie_ids else []
     shows = db.query(models.Show).filter(models.Show.tmdb_id.in_(show_ids)).all() if show_ids else []
 
+    current_movie_ids = {m.id for m in col.movies}
+    current_show_ids = {s.id for s in col.shows}
     col.movies = movies
     col.shows = shows
     col.mdblist_total_items = total
-    col.updated_at = datetime.utcnow()
+    if {m.id for m in movies} != current_movie_ids or {s.id for s in shows} != current_show_ids:
+        col.updated_at = datetime.utcnow()
     db.commit()
     return {"ok": True, "movies": len(movies), "shows": len(shows), "total": total}
 
