@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.18.6] — 2026-05-11
+
+### Added
+- Danger Zone: "Delete Jellyfin-native collections" removes auto-created Jellyfin collections from both Jellyfin and JellyStacks, while preserving collections you built in JellyStacks
+
+---
+
 ## [1.18.5] — 2026-05-11
 
 ### Fixed

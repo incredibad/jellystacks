@@ -89,6 +89,7 @@ export default function Settings() {
   const [importing, setImporting] = useState(false)
   const [clearingJf, setClearingJf] = useState(false)
   const [clearingLocal, setClearingLocal] = useState(false)
+  const [clearingNative, setClearingNative] = useState(false)
   const [resettingArtwork, setResettingArtwork] = useState(false)
   const importInputRef = useRef(null)
 
@@ -256,6 +257,28 @@ export default function Settings() {
       toast.error(err.response?.data?.detail || 'Import failed.')
     } finally {
       setImporting(false)
+    }
+  }
+
+  const handleDeleteNativeCollections = async () => {
+    if (!confirm(
+      'Delete all Jellyfin-native collections from both Jellyfin and JellyStacks? Collections you created in JellyStacks are untouched. This cannot be undone.'
+    )) return
+    setClearingNative(true)
+    const tid = toast.loading('Deleting Jellyfin-native collections…')
+    try {
+      const { data } = await api.delete('/collections/native-from-jellyfin')
+      toast.success(
+        data.deleted > 0
+          ? `Deleted ${data.deleted} Jellyfin-native collection${data.deleted !== 1 ? 's' : ''}.`
+          : 'No Jellyfin-native collections found.',
+        { id: tid }
+      )
+      notifyCollectionsChanged()
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed.', { id: tid })
+    } finally {
+      setClearingNative(false)
     }
   }
 
@@ -773,6 +796,15 @@ export default function Settings() {
         <div className="space-y-6 max-w-2xl">
           <Section title="Danger Zone" description="Destructive actions — use with care." icon={Trash2} danger>
             <div className="space-y-5">
+              <DangerRow
+                label="Delete Jellyfin-native collections"
+                description="Removes collections that Jellyfin created automatically (not ones you built in JellyStacks). Deletes them from both Jellyfin and JellyStacks."
+                buttonLabel="Delete Native Collections"
+                loadingLabel="Deleting…"
+                onClick={handleDeleteNativeCollections}
+                loading={clearingNative}
+              />
+              <div className="border-t" style={{ borderColor: '#7f1d1d40' }} />
               <DangerRow
                 label="Delete all collections from Jellyfin"
                 description="Removes every collection from your Jellyfin server. JellyStacks keeps them — you can re-push them afterwards."

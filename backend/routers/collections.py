@@ -355,6 +355,42 @@ async def clear_jellyfin_native(
     return {"deleted": deleted}
 
 
+@router.delete("/native-from-jellyfin")
+async def delete_native_from_jellyfin(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    """Delete Jellyfin-native collections from both Jellyfin and JellyStacks.
+
+    Only targets collections where is_jellyfin_native=True (imported from Jellyfin,
+    not created by JellyStacks). JellyStacks-created collections are untouched.
+    """
+    cols = db.query(models.Collection).filter(
+        models.Collection.is_jellyfin_native == True,
+        models.Collection.jellyfin_collection_id.isnot(None),
+    ).all()
+
+    s = _get_settings_dict(db)
+    jf_url = s.get("jellyfin_url")
+    api_key = s.get("jellyfin_api_key")
+    jf_ids = [c.jellyfin_collection_id for c in cols]
+    if jf_url and api_key and jf_ids:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            await asyncio.gather(
+                *[client.delete(
+                    f"{jf_url.rstrip('/')}/Items/{jid}",
+                    headers=_jellyfin_headers(api_key),
+                ) for jid in jf_ids],
+                return_exceptions=True,
+            )
+
+    deleted = len(cols)
+    for col in cols:
+        db.delete(col)
+    db.commit()
+    return {"deleted": deleted}
+
+
 @router.delete("/all-in-jellyfin")
 async def delete_all_from_jellyfin(
     db: Session = Depends(get_db),
