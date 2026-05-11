@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.16.8] — 2026-05-11
+
+### Added
+- Bulk artwork review: select/deselect all checkbox in table header
+- Bulk artwork review: sortable Filename and Match columns
+
+---
+
 ## [1.16.7] — 2026-05-11
 
 ### Fixed
