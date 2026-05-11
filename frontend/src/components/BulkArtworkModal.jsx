@@ -91,7 +91,6 @@ export default function BulkArtworkModal({ onClose }) {
   const [dragging, setDragging] = useState(false)
   const [matching, setMatching] = useState(false)
   const [matches, setMatches] = useState([])
-  const [batchId, setBatchId] = useState(null)
   const [searchValues, setSearchValues] = useState({})
   const [overrides, setOverrides] = useState({})
   const [excluded, setExcluded] = useState(new Set())
@@ -101,15 +100,45 @@ export default function BulkArtworkModal({ onClose }) {
   const processFiles = useCallback(async (fileList) => {
     if (!fileList.length) return
     setMatching(true)
-    const form = new FormData()
-    for (const f of fileList) form.append('files', f)
+
+    // Split into ~50 MB batches to stay under Cloudflare's 100 MB request limit
+    const BATCH_BYTES = 50 * 1024 * 1024
+    const batches = []
+    let current = [], currentSize = 0
+    for (const f of fileList) {
+      if (f.name.toLowerCase().endsWith('.zip')) {
+        // ZIPs go alone — backend extracts them server-side
+        if (f.size > 90 * 1024 * 1024) {
+          toast.error(`${f.name} is too large to upload via your domain (>90 MB). Extract it and drop the images directly instead.`)
+          continue
+        }
+        batches.push([f])
+      } else {
+        if (currentSize + f.size > BATCH_BYTES && current.length) {
+          batches.push(current)
+          current = []; currentSize = 0
+        }
+        current.push(f)
+        currentSize += f.size
+      }
+    }
+    if (current.length) batches.push(current)
+
+    if (!batches.length) { setMatching(false); return }
+
     try {
-      const { data } = await api.post('/artwork/bulk/match', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      setBatchId(data.batch_id)
-      setMatches(data.matches)
-      setSearchValues(Object.fromEntries(data.matches.map(m => [m.tmp_name, m.match_title || ''])))
+      const allMatches = []
+      for (const batch of batches) {
+        const form = new FormData()
+        for (const f of batch) form.append('files', f)
+        const { data } = await api.post('/artwork/bulk/match', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 0,
+        })
+        allMatches.push(...data.matches)
+      }
+      setMatches(allMatches)
+      setSearchValues(Object.fromEntries(allMatches.map(m => [m.tmp_name, m.match_title || ''])))
       setStage('review')
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to process files.')
@@ -138,7 +167,7 @@ export default function BulkArtworkModal({ onClose }) {
       .map(m => {
         const override = overrides[m.tmp_name]
         return {
-          batch_id: batchId,
+          batch_id: m.batch_id,
           tmp_name: m.tmp_name,
           match_type: override?.type ?? m.match_type,
           match_id: override?.id ?? m.match_id,
