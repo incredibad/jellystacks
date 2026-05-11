@@ -4,6 +4,25 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.14.0] — 2026-05-11
+
+### Added
+- New **Providers** tab in Settings, replacing the inline provider sections on the Sync tab
+- Providers tab organises integrations into **List Providers** (TMDB, MDBList) and **Artwork Providers** (TheTVDB) sections
+- TheTVDB API key field added — groundwork for fetching TV/anime poster artwork
+
+### Changed
+- Sync tab now contains only Jellyfin connection and scheduled refresh settings
+
+---
+
+## [1.13.3] — 2026-05-11
+
+### Fixed
+- Home screen now correctly defaults to Collections (root `/` and unknown routes were still redirecting to `/movies`)
+
+---
+
 ## [1.13.2] — 2026-05-10
 
 ### Fixed

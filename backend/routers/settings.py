@@ -18,7 +18,7 @@ from auth import get_current_user
 
 router = APIRouter()
 
-SETTING_KEYS = ["jellyfin_url", "jellyfin_api_key", "jellyfin_user_id", "tmdb_api_key", "tmdb_related_enabled", "mdblist_api_key", "collection_refresh_interval"]
+SETTING_KEYS = ["jellyfin_url", "jellyfin_api_key", "jellyfin_user_id", "tmdb_api_key", "tmdb_related_enabled", "mdblist_api_key", "tvdb_api_key", "collection_refresh_interval"]
 
 
 def _get_settings_dict(db: Session) -> dict:
@@ -47,6 +47,7 @@ def get_settings(
         tmdb_api_key_set=bool(s.get("tmdb_api_key")),
         tmdb_related_enabled=s.get("tmdb_related_enabled") == "true",
         mdblist_api_key_set=bool(s.get("mdblist_api_key")),
+        tvdb_api_key_set=bool(s.get("tvdb_api_key")),
         collection_refresh_interval=s.get("collection_refresh_interval", "disabled"),
     )
 
