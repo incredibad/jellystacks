@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.15.5] — 2026-05-11
+
+### Changed
+- Sync requests now have no client-side timeout (timeout: 0) so very large libraries can't be cut off
+
+---
+
 ## [1.15.4] — 2026-05-11
 
 ### Changed
