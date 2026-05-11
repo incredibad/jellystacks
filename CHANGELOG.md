@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.16.4] — 2026-05-11
+
+### Fixed
+- Collection detail page now refreshes automatically after any operation (e.g. Push All from sidebar) completes
+
+---
+
 ## [1.16.3] — 2026-05-11
 
 ### Fixed
