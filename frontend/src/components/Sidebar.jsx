@@ -9,10 +9,9 @@ import pkg from '../../package.json'
 import BulkArtworkModal from './BulkArtworkModal'
 
 const NAV_ITEMS = [
-  { to: '/collections', icon: Layers,  label: 'Collections', countKey: 'collections' },
-  { to: '/movies',      icon: Film,    label: 'Movies',      countKey: 'movies' },
-  { to: '/shows',       icon: Tv,      label: 'Shows',       countKey: 'shows' },
-  { to: '/settings',    icon: Settings, label: 'Settings',   countKey: null },
+  { to: '/collections', icon: Layers, label: 'Collections', countKey: 'collections' },
+  { to: '/movies',      icon: Film,   label: 'Movies',      countKey: 'movies' },
+  { to: '/shows',       icon: Tv,     label: 'Shows',       countKey: 'shows' },
 ]
 
 function ConfirmModal({ title, description, confirmLabel, onConfirm, onClose }) {
@@ -173,7 +172,7 @@ export default function Sidebar() {
       label: 'Sync Jellyfin',
       icon: syncing ? <Loader size={14} className="animate-spin" /> : <RefreshCw size={14} />,
       busy: syncing,
-      onClick: () => { syncLibraries(); setOpsOpen(false) },
+      onClick: () => { setPendingConfirm('sync'); setOpsOpen(false) },
     },
     {
       label: 'Bulk Artwork Upload',
@@ -217,6 +216,12 @@ export default function Sidebar() {
   ]
 
   const confirms = {
+    sync: {
+      title: 'Sync Jellyfin',
+      description: 'Fetch all movies and TV shows from your Jellyfin library and update the local database. New items are added, existing ones are updated. This may take a while for large libraries.',
+      confirmLabel: 'Sync',
+      onConfirm: syncLibraries,
+    },
     import: {
       title: 'Import from Jellyfin',
       description: 'Import collections that exist in Jellyfin but not yet in JellyStacks.',
@@ -340,6 +345,23 @@ export default function Sidebar() {
             )}
           </div>
         </nav>
+
+        {/* Settings */}
+        <div className="px-3 pb-2 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                isActive
+                  ? 'bg-violet-600/20 text-violet-400'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+              }`
+            }
+          >
+            <Settings size={18} />
+            <span>Settings</span>
+          </NavLink>
+        </div>
 
         {/* User */}
         <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>

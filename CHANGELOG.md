@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.16.2] — 2026-05-11
+
+### Changed
+- All Operations dropdown actions (except Bulk Artwork Upload) now require a confirmation modal describing what the action does
+- Settings moved to bottom of sidebar nav, just above the user section
+
+---
+
 ## [1.16.1] — 2026-05-11
 
 ### Fixed
