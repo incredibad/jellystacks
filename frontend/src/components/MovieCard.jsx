@@ -225,7 +225,7 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
 
       {/* Info */}
       <div className="p-2.5">
-        <p className="text-sm font-medium text-slate-200 truncate leading-snug">{movie.title}</p>
+        <p className="text-sm font-medium text-slate-200 truncate leading-snug" title={movie.title}>{movie.title}</p>
         <div className="flex items-center gap-2 mt-1">
           {movie.year && (
             <span className="text-xs text-slate-500">{movie.year}</span>

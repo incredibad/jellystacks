@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.18.3] — 2026-05-11
+
+### Fixed
+- Movie/show card and list row: hovering a truncated title now shows the full name in a native browser tooltip
+
+---
+
 ## [1.18.2] — 2026-05-11
 
 ### Fixed
