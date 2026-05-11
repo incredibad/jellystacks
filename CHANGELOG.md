@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.15.3] — 2026-05-11
+
+### Fixed
+- Sync timing out on large libraries: axios timeout raised to 5 minutes for sync requests; httpx backend timeout raised to 5 minutes for Jellyfin fetches
+
+---
+
 ## [1.15.2] — 2026-05-11
 
 ### Fixed

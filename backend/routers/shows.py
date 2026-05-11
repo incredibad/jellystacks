@@ -245,7 +245,7 @@ async def sync_shows(
     base = jf_url.rstrip("/")
     items_url = f"{base}/Users/{user_id}/Items" if user_id else f"{base}/Items"
 
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=300) as client:
         # ── Step 1: fetch TV show libraries ───────────────────────────────────
         libraries = []
         try:
