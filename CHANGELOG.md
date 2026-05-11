@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.15.6] — 2026-05-11
+
+### Fixed
+- TheTVDB artwork 500 error: `/series/{id}/artworks` returns a nested object (`data.artworks[]`), not a flat array — fixed the response parsing
+
+---
+
 ## [1.15.5] — 2026-05-11
 
 ### Changed

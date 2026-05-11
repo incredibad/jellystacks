@@ -77,6 +77,7 @@ async def get_show_posters(
     if resp.status_code != 200:
         raise HTTPException(502, f"TheTVDB error: {resp.status_code}")
 
-    artworks = resp.json().get("data", []) or []
+    raw = resp.json().get("data") or {}
+    artworks = (raw.get("artworks") if isinstance(raw, dict) else raw) or []
     posters = [_make_poster_entry(a) for a in artworks[:30]]
     return posters
