@@ -6,6 +6,7 @@ import zipfile
 from difflib import SequenceMatcher
 from pathlib import Path
 
+import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -16,7 +17,7 @@ from database import get_db
 import models
 from auth import get_current_user
 from routers.settings import _get_settings_dict
-from routers.movies import _push_artwork_to_jf
+from routers.movies import _push_artwork_to_jf, _jellyfin_headers
 
 router = APIRouter()
 
@@ -257,3 +258,42 @@ async def bulk_apply(
         shutil.rmtree(_TMP_DIR / bid, ignore_errors=True)
 
     return {"applied": applied, "errors": errors}
+
+
+@router.delete("/reset-all")
+async def reset_all_artwork(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    s = _get_settings_dict(db)
+    jf_url = (s.get("jellyfin_url") or "").rstrip("/")
+    jf_key = s.get("jellyfin_api_key")
+
+    movies = db.query(models.Movie).filter(models.Movie.custom_artwork_url.isnot(None)).all()
+    shows = db.query(models.Show).filter(models.Show.custom_artwork_url.isnot(None)).all()
+    records = movies + shows
+
+    if not records:
+        return {"reset": 0}
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        for record in records:
+            if jf_url and jf_key and record.jellyfin_id:
+                try:
+                    await client.delete(
+                        f"{jf_url}/Items/{record.jellyfin_id}/Images/Primary",
+                        headers=_jellyfin_headers(jf_key),
+                    )
+                except Exception:
+                    pass
+
+            if record.custom_artwork_url:
+                try:
+                    Path(record.custom_artwork_url).unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+            record.custom_artwork_url = None
+
+    db.commit()
+    return {"reset": len(records)}
