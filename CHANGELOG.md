@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.18.4] — 2026-05-11
+
+### Fixed
+- List row: "Override" badge moved from thumbnail overlay to the metadata row inline with year, library, and rating
+
+---
+
 ## [1.18.3] — 2026-05-11
 
 ### Fixed
