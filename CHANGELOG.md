@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.17.7] — 2026-05-11
+
+### Changed
+- Sidebar: moved "Import from Jellyfin" from the Library section to the Collections section in the Operations accordion
+
+---
+
 ## [1.17.6] — 2026-05-11
 
 ### Fixed

@@ -140,12 +140,6 @@ export default function Sidebar() {
           busy: syncing,
           onClick: () => setPendingConfirm('sync'),
         },
-        {
-          label: 'Import from Jellyfin',
-          icon: importing ? <Loader size={14} className="animate-spin" /> : <Download size={14} />,
-          busy: importing,
-          onClick: () => setPendingConfirm('import'),
-        },
       ],
     },
     {
@@ -161,6 +155,12 @@ export default function Sidebar() {
     {
       label: 'Collections',
       items: [
+        {
+          label: 'Import from Jellyfin',
+          icon: importing ? <Loader size={14} className="animate-spin" /> : <Download size={14} />,
+          busy: importing,
+          onClick: () => setPendingConfirm('import'),
+        },
         {
           label: 'Verify Collection Status',
           icon: <RefreshCw size={14} />,
