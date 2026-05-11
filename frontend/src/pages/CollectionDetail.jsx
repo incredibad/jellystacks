@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon,
   CheckCircle2, Circle, AlertCircle, Pencil, X, Check, RefreshCw,
-  LayoutGrid, LayoutList, Import, Film, Settings2, Shuffle,
+  LayoutGrid, LayoutList, Import, Film, Settings2, Shuffle, RotateCcw,
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -111,6 +111,7 @@ export default function CollectionDetail() {
   const [pushing, setPushing] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [revertingArtwork, setRevertingArtwork] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [showArtwork, setShowArtwork] = useState(false)
   const [uploadingArtwork, setUploadingArtwork] = useState(false)
@@ -337,6 +338,19 @@ export default function CollectionDetail() {
       fetchCollection()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed.')
+    }
+  }
+
+  const handleRevertArtwork = async () => {
+    setRevertingArtwork(true)
+    const tid = toast.loading('Reverting artwork…')
+    try {
+      const { data } = await api.delete(`/collections/${id}/artwork`)
+      toast.success(data.reset > 0 ? `Reverted artwork for ${data.reset} item${data.reset !== 1 ? 's' : ''}.` : 'No custom artwork to revert.', { id: tid })
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to revert artwork.', { id: tid })
+    } finally {
+      setRevertingArtwork(false)
     }
   }
 
@@ -648,6 +662,14 @@ export default function CollectionDetail() {
                         Convert to Custom
                       </button>
                     )}
+                    <button
+                      onClick={() => { handleRevertArtwork(); setSettingsOpen(false) }}
+                      disabled={revertingArtwork}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-40"
+                    >
+                      <RotateCcw size={14} className={revertingArtwork ? 'animate-spin' : ''} />
+                      Restore Original Artwork
+                    </button>
                     <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
                     <button
                       onClick={() => { handleDeleteCollection(); setSettingsOpen(false) }}

@@ -1297,6 +1297,62 @@ async def get_unowned_movies(
     return unowned
 
 
+@router.delete("/{collection_id}/artwork")
+async def revert_collection_artwork(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    col = db.query(models.Collection).filter(models.Collection.id == collection_id).first()
+    if not col:
+        raise HTTPException(404, "Collection not found.")
+
+    s = _get_settings_dict(db)
+    jf_url = (s.get("jellyfin_url") or "").rstrip("/")
+    jf_key = s.get("jellyfin_api_key")
+    headers = _jellyfin_headers(jf_key) if jf_key else {}
+
+    records: list[models.Movie | models.Show] = list(col.movies) + list(col.shows)
+    custom = [r for r in records if r.custom_artwork_url]
+
+    if not custom:
+        return {"reset": 0}
+
+    jf_ids = []
+    async with httpx.AsyncClient(timeout=15) as client:
+        for record in custom:
+            if jf_url and jf_key and record.jellyfin_id:
+                try:
+                    await client.delete(
+                        f"{jf_url}/Items/{record.jellyfin_id}/Images/Primary",
+                        headers=headers,
+                    )
+                    jf_ids.append(record.jellyfin_id)
+                except Exception:
+                    pass
+            try:
+                Path(record.custom_artwork_url).unlink(missing_ok=True)
+            except Exception:
+                pass
+            record.custom_artwork_url = None
+
+        if jf_ids:
+            await asyncio.gather(
+                *[
+                    client.post(
+                        f"{jf_url}/Items/{jid}/Refresh",
+                        headers=headers,
+                        params={"MetadataRefreshMode": "None", "ImageRefreshMode": "FullRefresh", "ReplaceAllImages": "false"},
+                    )
+                    for jid in jf_ids
+                ],
+                return_exceptions=True,
+            )
+
+    db.commit()
+    return {"reset": len(custom)}
+
+
 @router.delete("/{collection_id}/jellyfin")
 async def remove_from_jellyfin(
     collection_id: int,

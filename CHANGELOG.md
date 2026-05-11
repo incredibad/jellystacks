@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.18.0] — 2026-05-11
+
+### Added
+- Collection detail settings dropdown: "Restore Original Artwork" — clears custom posters from every movie and show in the collection and tells Jellyfin to re-scrape its originals
+
+---
+
 ## [1.17.10] — 2026-05-11
 
 ### Fixed
