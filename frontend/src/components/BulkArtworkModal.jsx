@@ -290,7 +290,10 @@ export default function BulkArtworkModal({ onClose }) {
             </div>
 
             <div className="p-4 border-t flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-              <span className="text-sm text-slate-400">{pendingCount} of {matches.length} will be applied</span>
+              <div>
+                <span className="text-sm text-slate-400">{pendingCount} of {matches.length} will be applied</span>
+                <p className="text-xs text-slate-600 mt-0.5">If multiple versions exist (e.g. 1080p &amp; 4K), all will be updated.</p>
+              </div>
               <div className="flex gap-2">
                 <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors">Cancel</button>
                 <button

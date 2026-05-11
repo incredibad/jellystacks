@@ -192,28 +192,39 @@ async def bulk_apply(
         try:
             if item.match_type == "movie":
                 record = db.query(models.Movie).filter(models.Movie.id == item.match_id).first()
-                dest = _MOVIE_ART_DIR / f"{item.match_id}.jpg"
+                if not record:
+                    errors.append(f"Record not found: movie {item.match_id}")
+                    continue
+                all_versions = db.query(models.Movie).filter(
+                    models.Movie.title == record.title,
+                    models.Movie.year == record.year,
+                ).all()
+                art_dir = _MOVIE_ART_DIR
             elif item.match_type == "show":
                 record = db.query(models.Show).filter(models.Show.id == item.match_id).first()
-                dest = _SHOW_ART_DIR / f"{item.match_id}.jpg"
+                if not record:
+                    errors.append(f"Record not found: show {item.match_id}")
+                    continue
+                all_versions = db.query(models.Show).filter(
+                    models.Show.title == record.title,
+                    models.Show.year == record.year,
+                ).all()
+                art_dir = _SHOW_ART_DIR
             else:
                 errors.append(f"Unknown type: {item.match_type}")
                 continue
 
-            if not record:
-                errors.append(f"Record not found: {item.match_type} {item.match_id}")
-                continue
+            for version in all_versions:
+                dest = art_dir / f"{version.id}.jpg"
+                shutil.copy2(src, dest)
+                version.custom_artwork_url = str(dest)
+                if jf_url and jf_key:
+                    try:
+                        await _push_artwork_to_jf(jf_url, jf_key, version.jellyfin_id, str(dest))
+                    except Exception:
+                        pass
 
-            shutil.copy2(src, dest)
-            record.custom_artwork_url = str(dest)
             db.commit()
-
-            if jf_url and jf_key:
-                try:
-                    await _push_artwork_to_jf(jf_url, jf_key, record.jellyfin_id, str(dest))
-                except Exception:
-                    pass
-
             applied += 1
         except Exception as e:
             errors.append(f"Failed for {item.tmp_name}: {e}")
