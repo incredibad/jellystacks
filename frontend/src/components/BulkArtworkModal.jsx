@@ -23,13 +23,20 @@ function SearchDropdown({ value, onChange, onSelect }) {
     setLoading(true)
     timerRef.current = setTimeout(async () => {
       try {
-        const [movies, shows] = await Promise.all([
+        const [movies, shows, cols] = await Promise.all([
           api.get('/movies', { params: { q, limit: 5 } }),
           api.get('/shows', { params: { q, limit: 5 } }),
+          api.get('/collections'),
         ])
+        const ql = q.toLowerCase()
+        const matchedCols = cols.data
+          .filter(c => c.name.toLowerCase().includes(ql))
+          .slice(0, 5)
+          .map(c => ({ id: c.id, type: 'collection', title: c.name, year: null }))
         const r = [
           ...movies.data.map(m => ({ id: m.id, type: 'movie', title: m.title, year: m.year })),
           ...shows.data.map(s => ({ id: s.id, type: 'show', title: s.title, year: s.year })),
+          ...matchedCols,
         ]
         setResults(r)
         setOpen(r.length > 0)
@@ -66,7 +73,7 @@ function SearchDropdown({ value, onChange, onSelect }) {
                 onClick={() => { onSelect(r); setOpen(false); onChange(r.title) }}
                 className="w-full text-left px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
               >
-                <span className="text-slate-500 mr-1.5">{r.type === 'movie' ? '🎬' : '📺'}</span>
+                <span className="text-slate-500 mr-1.5">{r.type === 'movie' ? '🎬' : r.type === 'show' ? '📺' : '🗂️'}</span>
                 {r.title}
                 {r.year && <span className="text-slate-500 ml-1">({r.year})</span>}
               </button>
@@ -289,7 +296,9 @@ export default function BulkArtworkModal({ onClose }) {
                     const currentType = override?.type ?? m.match_type
                     const currentId = override?.id ?? m.match_id
                     const posterUrl = currentType && currentId
-                      ? `/api/${currentType === 'movie' ? 'movies' : 'shows'}/${currentId}/poster`
+                      ? currentType === 'collection'
+                        ? `/api/collections/${currentId}/poster`
+                        : `/api/${currentType === 'movie' ? 'movies' : 'shows'}/${currentId}/poster`
                       : null
                     return (
                       <tr

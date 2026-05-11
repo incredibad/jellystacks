@@ -26,6 +26,7 @@ _TMP_DIR.mkdir(parents=True, exist_ok=True)
 
 _MOVIE_ART_DIR = Path("/data/artwork/movies")
 _SHOW_ART_DIR = Path("/data/artwork/shows")
+_COLLECTION_ART_DIR = Path("/data/artwork")
 _MOVIE_ART_DIR.mkdir(parents=True, exist_ok=True)
 _SHOW_ART_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -45,7 +46,7 @@ def _similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, _normalize(a), _normalize(b)).ratio()
 
 
-def _best_match(stem: str, movies: list, shows: list) -> dict:
+def _best_match(stem: str, movies: list, shows: list, collections: list) -> dict:
     best_score = 0.0
     best_id = None
     best_type = None
@@ -66,6 +67,14 @@ def _best_match(stem: str, movies: list, shows: list) -> dict:
             best_id = s.id
             best_type = "show"
             best_title = s.title
+
+    for c in collections:
+        score = _similarity(stem, c.name)
+        if score > best_score:
+            best_score = score
+            best_id = c.id
+            best_type = "collection"
+            best_title = c.name
 
     return {
         "match_id": best_id,
@@ -92,6 +101,7 @@ async def bulk_match(
 ):
     movies = db.query(models.Movie).all()
     shows = db.query(models.Show).all()
+    collections = db.query(models.Collection).all()
 
     batch_id = uuid.uuid4().hex
     batch_dir = _TMP_DIR / batch_id
@@ -128,7 +138,7 @@ async def bulk_match(
         tmp_path.write_bytes(jpeg)
 
         stem = Path(filename).stem
-        match = _best_match(stem, movies, shows)
+        match = _best_match(stem, movies, shows, collections)
 
         versions = []
         if match["match_id"] and match["match_type"] == "movie":
@@ -220,7 +230,15 @@ async def bulk_apply(
                     models.Movie.title == record.title,
                     models.Movie.year == record.year,
                 ).all()
-                art_dir = _MOVIE_ART_DIR
+                for version in all_versions:
+                    dest = _MOVIE_ART_DIR / f"{version.id}.jpg"
+                    shutil.copy2(src, dest)
+                    version.custom_artwork_url = str(dest)
+                    if jf_url and jf_key:
+                        try:
+                            await _push_artwork_to_jf(jf_url, jf_key, version.jellyfin_id, str(dest))
+                        except Exception:
+                            pass
             elif item.match_type == "show":
                 record = db.query(models.Show).filter(models.Show.id == item.match_id).first()
                 if not record:
@@ -230,20 +248,33 @@ async def bulk_apply(
                     models.Show.title == record.title,
                     models.Show.year == record.year,
                 ).all()
-                art_dir = _SHOW_ART_DIR
+                for version in all_versions:
+                    dest = _SHOW_ART_DIR / f"{version.id}.jpg"
+                    shutil.copy2(src, dest)
+                    version.custom_artwork_url = str(dest)
+                    if jf_url and jf_key:
+                        try:
+                            await _push_artwork_to_jf(jf_url, jf_key, version.jellyfin_id, str(dest))
+                        except Exception:
+                            pass
+            elif item.match_type == "collection":
+                record = db.query(models.Collection).filter(models.Collection.id == item.match_id).first()
+                if not record:
+                    errors.append(f"Record not found: collection {item.match_id}")
+                    continue
+                for old in _COLLECTION_ART_DIR.glob(f"{record.id}.*"):
+                    old.unlink(missing_ok=True)
+                dest = _COLLECTION_ART_DIR / f"{record.id}.jpg"
+                shutil.copy2(src, dest)
+                record.artwork_url = f"/api/collections/{record.id}/artwork/local"
+                if jf_url and jf_key and record.jellyfin_collection_id:
+                    try:
+                        await _push_artwork_to_jf(jf_url, jf_key, record.jellyfin_collection_id, str(dest))
+                    except Exception:
+                        pass
             else:
                 errors.append(f"Unknown type: {item.match_type}")
                 continue
-
-            for version in all_versions:
-                dest = art_dir / f"{version.id}.jpg"
-                shutil.copy2(src, dest)
-                version.custom_artwork_url = str(dest)
-                if jf_url and jf_key:
-                    try:
-                        await _push_artwork_to_jf(jf_url, jf_key, version.jellyfin_id, str(dest))
-                    except Exception:
-                        pass
 
             db.commit()
             applied += 1
