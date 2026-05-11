@@ -179,9 +179,9 @@ async def preview_image(
     batch_id: str,
     tmp_name: str,
 ):
-    if ".." in batch_id or ".." in tmp_name:
+    path = (_TMP_DIR / batch_id / tmp_name).resolve()
+    if not str(path).startswith(str(_TMP_DIR.resolve())):
         raise HTTPException(400)
-    path = _TMP_DIR / batch_id / tmp_name
     if not path.exists():
         raise HTTPException(404)
     return FileResponse(str(path), media_type="image/jpeg")

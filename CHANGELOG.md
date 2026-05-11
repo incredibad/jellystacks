@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.17.10] — 2026-05-11
+
+### Fixed
+- Bulk artwork preview: filenames containing `..` (e.g. `What_If..._2021_.png`) were incorrectly rejected by the path traversal check — now uses resolved path containment instead of substring match
+
+---
+
 ## [1.17.9] — 2026-05-11
 
 ### Fixed
