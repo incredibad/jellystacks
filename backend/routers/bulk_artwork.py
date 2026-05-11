@@ -146,7 +146,6 @@ async def bulk_match(
 async def preview_image(
     batch_id: str,
     tmp_name: str,
-    _: models.User = Depends(get_current_user),
 ):
     if ".." in batch_id or ".." in tmp_name:
         raise HTTPException(400)
