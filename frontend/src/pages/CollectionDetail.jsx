@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
+import { useOperations } from '../contexts/OperationsContext'
 import MovieCard from '../components/MovieCard'
 import MovieListRow from '../components/MovieListRow'
 import MoviePickerModal from '../components/MoviePickerModal'
@@ -104,6 +105,7 @@ function UnownedMovieCard({ movie }) {
 export default function CollectionDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { lastOpAt } = useOperations()
   const [collection, setCollection] = useState(null)
   const [loading, setLoading] = useState(true)
   const [pushing, setPushing] = useState(false)
@@ -266,6 +268,7 @@ export default function CollectionDetail() {
   }
 
   useEffect(() => { fetchCollection() }, [id])
+  useEffect(() => { if (lastOpAt) fetchCollection() }, [lastOpAt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpdate = async (patch) => {
     try {
