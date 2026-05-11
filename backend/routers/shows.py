@@ -60,6 +60,7 @@ def _dedup_subquery(db: Session):
 def list_shows(
     search: str = Query(default="", alias="q"),
     library: str = Query(default=""),
+    has_custom_artwork: bool = Query(default=False),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
@@ -71,6 +72,8 @@ def list_shows(
         query = query.filter(models.Show.title.ilike(f"%{search}%"))
     if library:
         query = query.filter(models.Show.library_name == library)
+    if has_custom_artwork:
+        query = query.filter(models.Show.custom_artwork_url.isnot(None))
     shows = query.order_by(models.Show.sort_title, models.Show.title).offset(offset).limit(limit).all()
     return [_show_to_response(s) for s in shows]
 
