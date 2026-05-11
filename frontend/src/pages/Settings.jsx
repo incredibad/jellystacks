@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Server, Key, User, CheckCircle2, XCircle, Loader, ChevronDown,
-  ExternalLink, Trash2, Lock, Download, Upload, RefreshCw, Clock,
+  ExternalLink, Trash2, Lock, Download, Upload, RefreshCw, Clock, RotateCcw,
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -39,7 +39,7 @@ function Field({ label, hint, children }) {
   )
 }
 
-function DangerRow({ label, description, buttonLabel, onClick, loading, loadingLabel }) {
+function DangerRow({ label, description, buttonLabel, onClick, loading, loadingLabel, icon: Icon = Trash2 }) {
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap">
       <div>
@@ -51,7 +51,7 @@ function DangerRow({ label, description, buttonLabel, onClick, loading, loadingL
         disabled={loading}
         className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-red-400 border border-red-500/30 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
-        {loading ? <Loader size={14} className="animate-spin" /> : <Trash2 size={14} />}
+        {loading ? <Loader size={14} className="animate-spin" /> : <Icon size={14} />}
         {loading ? loadingLabel : buttonLabel}
       </button>
     </div>
@@ -86,6 +86,7 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [clearingJf, setClearingJf] = useState(false)
+  const [resettingArtwork, setResettingArtwork] = useState(false)
   const importInputRef = useRef(null)
 
   useEffect(() => {
@@ -268,6 +269,27 @@ export default function Settings() {
       toast.error(typeof detail === 'string' ? detail : 'Failed to clear collections.')
     } finally {
       setClearingJf(false)
+    }
+  }
+
+  const handleResetAllArtwork = async () => {
+    if (!confirm(
+      'Reset all custom artwork? This removes every poster you have set manually and tells Jellyfin to revert to its own images. This cannot be undone.'
+    )) return
+    setResettingArtwork(true)
+    const tid = toast.loading('Restoring original artwork…')
+    try {
+      const { data } = await api.delete('/artwork/bulk/reset-all')
+      toast.success(
+        data.reset > 0
+          ? `Restored original artwork for ${data.reset} item${data.reset !== 1 ? 's' : ''}.`
+          : 'No custom artwork found.',
+        { id: tid }
+      )
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to restore artwork.', { id: tid })
+    } finally {
+      setResettingArtwork(false)
     }
   }
 
@@ -729,14 +751,26 @@ export default function Settings() {
       {activeTab === 'system' && (
         <div className="space-y-6 max-w-2xl">
           <Section title="Danger Zone" description="Destructive actions — use with care." icon={Trash2} danger>
-            <DangerRow
-              label="Clear Jellyfin collections"
-              description="Removes all imported Jellyfin collections from JellyStacks. Nothing is deleted from Jellyfin — you can re-import afterwards."
-              buttonLabel="Clear Jellyfin Collections"
-              loadingLabel="Clearing…"
-              onClick={handleClearJellyfinCollections}
-              loading={clearingJf}
-            />
+            <div className="space-y-5">
+              <DangerRow
+                label="Delete imported Jellyfin collections"
+                description="Removes all Jellyfin-imported collections from JellyStacks. Nothing is deleted from Jellyfin — you can re-import them at any time."
+                buttonLabel="Delete Collections"
+                loadingLabel="Deleting…"
+                onClick={handleClearJellyfinCollections}
+                loading={clearingJf}
+              />
+              <div className="border-t" style={{ borderColor: '#7f1d1d40' }} />
+              <DangerRow
+                label="Restore original artwork"
+                description="Removes all custom posters you have set and tells Jellyfin to revert to its own images. Affects every movie and show with a custom poster."
+                buttonLabel="Restore Original Artwork"
+                loadingLabel="Restoring…"
+                icon={RotateCcw}
+                onClick={handleResetAllArtwork}
+                loading={resettingArtwork}
+              />
+            </div>
           </Section>
         </div>
       )}

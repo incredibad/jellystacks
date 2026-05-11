@@ -4,6 +4,17 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.17.0] — 2026-05-11
+
+### Added
+- Settings → System: "Restore original artwork" — clears all custom posters from every movie and show and tells Jellyfin to revert to its own images
+
+### Changed
+- "Delete Jellyfin Collections" moved from Operations sidebar to Settings → System → Danger Zone
+- Danger Zone operations renamed for clarity: "Delete imported Jellyfin collections" and "Restore original artwork"
+
+---
+
 ## [1.16.9] — 2026-05-11
 
 ### Changed

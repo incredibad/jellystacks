@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Film, Tv, Layers, Settings, LogOut, RefreshCw, Upload, Download, Trash2, LayoutGrid, Loader, ChevronDown, Image } from 'lucide-react'
+import { Film, Tv, Layers, Settings, LogOut, RefreshCw, Upload, Download, LayoutGrid, Loader, ChevronDown, Image } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useOperations } from '../contexts/OperationsContext'
 import { useState, useEffect } from 'react'
@@ -45,7 +45,6 @@ export default function Sidebar() {
   const [counts, setCounts] = useState({})
   const [opsOpen, setOpsOpen] = useState(false)
   const [importing, setImporting] = useState(false)
-  const [deletingJf, setDeletingJf] = useState(false)
   const [pendingConfirm, setPendingConfirm] = useState(null)
   const [showBulkUpload, setShowBulkUpload] = useState(false)
 
@@ -128,20 +127,7 @@ export default function Sidebar() {
     }
   }
 
-  const handleDeleteJfNative = async () => {
-    setDeletingJf(true)
-    const tid = toast.loading('Deleting Jellyfin collections…')
-    try {
-      const { data } = await api.delete('/collections/jellyfin-native')
-      toast.success(`${data.deleted} collection${data.deleted === 1 ? '' : 's'} deleted.`, { id: tid })
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed.', { id: tid })
-    } finally {
-      setDeletingJf(false)
-    }
-  }
-
-  const busy = importing || isRunning || syncing || deletingJf
+  const busy = importing || isRunning || syncing
 
   const opsGroups = [
     {
@@ -188,19 +174,6 @@ export default function Sidebar() {
         },
       ],
     },
-    {
-      label: 'Danger',
-      danger: true,
-      items: [
-        {
-          label: 'Delete Jellyfin Collections',
-          icon: <Trash2 size={14} />,
-          danger: true,
-          disabled: isRunning || deletingJf,
-          onClick: () => setPendingConfirm('delete-jf-native'),
-        },
-      ],
-    },
   ]
 
   const confirms = {
@@ -227,12 +200,6 @@ export default function Sidebar() {
       description: 'Push all collections with items to Jellyfin. This may take a while.',
       confirmLabel: 'Push All',
       onConfirm: handlePushAll,
-    },
-    'delete-jf-native': {
-      title: 'Delete Jellyfin Collections',
-      description: 'Remove all Jellyfin-native collections from JellyStacks. This cannot be undone.',
-      confirmLabel: 'Delete',
-      onConfirm: handleDeleteJfNative,
     },
   }
 
