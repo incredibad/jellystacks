@@ -1,3 +1,4 @@
+import asyncio
 import io
 import re
 import shutil
@@ -307,6 +308,8 @@ async def reset_all_artwork(
     if not records:
         return {"reset": 0}
 
+    jf_ids_to_refresh = []
+
     async with httpx.AsyncClient(timeout=15) as client:
         for record in records:
             if jf_url and jf_key and record.jellyfin_id:
@@ -315,6 +318,7 @@ async def reset_all_artwork(
                         f"{jf_url}/Items/{record.jellyfin_id}/Images/Primary",
                         headers=_jellyfin_headers(jf_key),
                     )
+                    jf_ids_to_refresh.append(record.jellyfin_id)
                 except Exception:
                     pass
 
@@ -325,6 +329,19 @@ async def reset_all_artwork(
                     pass
 
             record.custom_artwork_url = None
+
+        if jf_ids_to_refresh:
+            await asyncio.gather(
+                *[
+                    client.post(
+                        f"{jf_url}/Items/{jid}/Refresh",
+                        headers=_jellyfin_headers(jf_key),
+                        params={"MetadataRefreshMode": "None", "ImageRefreshMode": "FullRefresh", "ReplaceAllImages": "false"},
+                    )
+                    for jid in jf_ids_to_refresh
+                ],
+                return_exceptions=True,
+            )
 
     db.commit()
     return {"reset": len(records)}

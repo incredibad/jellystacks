@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.17.3] — 2026-05-11
+
+### Fixed
+- Restore original artwork now fires `POST /Items/{id}/Refresh` on Jellyfin for every item after clearing custom art, so Jellyfin re-fetches its own images (same behaviour as single-item revert)
+
+---
+
 ## [1.17.2] — 2026-05-11
 
 ### Added
