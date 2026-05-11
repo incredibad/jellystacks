@@ -49,8 +49,8 @@ def _make_poster_entry(artwork: dict) -> dict:
         "width": artwork.get("width"),
         "height": artwork.get("height"),
         "vote_average": artwork.get("score"),
-        "thumb_url": f"{TVDB_IMG_BASE}/{thumbnail}",
-        "full_url": f"{TVDB_IMG_BASE}/{image}",
+        "thumb_url": thumbnail,
+        "full_url": image,
         "language": artwork.get("language"),
     }
 

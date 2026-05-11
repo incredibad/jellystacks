@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.15.7] — 2026-05-11
+
+### Fixed
+- TheTVDB artwork images not loading: image URLs returned by the API are already fully-qualified, so the base URL prefix was being double-applied
+
+---
+
 ## [1.15.6] — 2026-05-11
 
 ### Fixed
