@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.16.5] — 2026-05-11
+
+### Fixed
+- Bulk artwork upload now applies artwork to all versions of a title (e.g. 1080p and 4K) rather than just the matched row
+- Added a note in the review footer informing users that multiple versions will all be updated
+
+---
+
 ## [1.16.4] — 2026-05-11
 
 ### Fixed
