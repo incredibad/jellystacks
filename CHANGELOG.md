@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.17.9] — 2026-05-11
+
+### Fixed
+- Bulk artwork results now list each error message rather than just a count
+
+---
+
 ## [1.17.8] — 2026-05-11
 
 ### Fixed
