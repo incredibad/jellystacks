@@ -3,6 +3,31 @@ import { X, Image as ImageIcon, CheckCircle2 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
+function ImageGrid({ images, selected, onSelect }) {
+  return (
+    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+      {images.map((img, i) => (
+        <button
+          key={i}
+          onClick={() => onSelect(img)}
+          className={`relative rounded-lg overflow-hidden transition-all ${
+            selected?.file_path === img.file_path
+              ? 'ring-2 ring-violet-500'
+              : 'hover:ring-1 hover:ring-violet-400/50'
+          }`}
+        >
+          <img src={img.thumb_url} alt="" className="w-full h-full object-cover aspect-[2/3]" />
+          {selected?.file_path === img.file_path && (
+            <div className="absolute inset-0 bg-violet-600/20 flex items-center justify-center">
+              <CheckCircle2 size={20} className="text-violet-400" />
+            </div>
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function MediaArtworkModal({ item, mediaType, onClose, onUpdated }) {
   const [tmdbImages, setTmdbImages] = useState([])
   const [tvdbImages, setTvdbImages] = useState([])
@@ -133,30 +158,29 @@ export default function MediaArtworkModal({ item, mediaType, onClose, onUpdated 
           {!loading && hasAnyId && totalImages === 0 && (
             <p className="text-center text-sm text-slate-500 py-8">No posters available.</p>
           )}
-          {!loading && displayImages.length > 0 && (
-            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-              {displayImages.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelected(img)}
-                  className={`relative rounded-lg overflow-hidden transition-all ${
-                    selected?.file_path === img.file_path
-                      ? 'ring-2 ring-violet-500'
-                      : 'hover:ring-1 hover:ring-violet-400/50'
-                  }`}
-                >
-                  <img
-                    src={img.thumb_url}
-                    alt=""
-                    className="w-full h-full object-cover aspect-[2/3]"
-                  />
-                  {selected?.file_path === img.file_path && (
-                    <div className="absolute inset-0 bg-violet-600/20 flex items-center justify-center">
-                      <CheckCircle2 size={20} className="text-violet-400" />
-                    </div>
-                  )}
-                </button>
-              ))}
+          {!loading && activeProvider !== 'all' && displayImages.length > 0 && (
+            <ImageGrid images={displayImages} selected={selected} onSelect={setSelected} />
+          )}
+          {!loading && activeProvider === 'all' && (tmdbImages.length > 0 || tvdbImages.length > 0) && (
+            <div className="space-y-6">
+              {tmdbImages.length > 0 && (
+                <section>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">TMDB</span>
+                    <hr className="flex-1" style={{ borderColor: 'var(--border)' }} />
+                  </div>
+                  <ImageGrid images={tmdbImages} selected={selected} onSelect={setSelected} />
+                </section>
+              )}
+              {tvdbImages.length > 0 && (
+                <section>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">TheTVDB</span>
+                    <hr className="flex-1" style={{ borderColor: 'var(--border)' }} />
+                  </div>
+                  <ImageGrid images={tvdbImages} selected={selected} onSelect={setSelected} />
+                </section>
+              )}
             </div>
           )}
         </div>
