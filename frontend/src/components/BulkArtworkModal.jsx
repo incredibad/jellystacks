@@ -215,8 +215,9 @@ export default function BulkArtworkModal({ onClose }) {
                 <thead>
                   <tr className="text-xs text-slate-500 uppercase tracking-wider" style={{ borderBottom: '1px solid var(--border)' }}>
                     <th className="px-4 py-2.5 text-left font-medium w-8"></th>
-                    <th className="px-4 py-2.5 text-left font-medium w-16">Preview</th>
+                    <th className="px-4 py-2.5 text-left font-medium w-16">Upload</th>
                     <th className="px-4 py-2.5 text-left font-medium">Filename</th>
+                    <th className="px-4 py-2.5 text-left font-medium w-16">Current</th>
                     <th className="px-4 py-2.5 text-left font-medium">Matched To</th>
                     <th className="px-4 py-2.5 text-left font-medium w-12">Match</th>
                   </tr>
@@ -226,6 +227,11 @@ export default function BulkArtworkModal({ onClose }) {
                     const isExcluded = excluded.has(m.tmp_name)
                     const override = overrides[m.tmp_name]
                     const hasMatch = override || m.match_id
+                    const currentType = override?.type ?? m.match_type
+                    const currentId = override?.id ?? m.match_id
+                    const posterUrl = currentType && currentId
+                      ? `/api/${currentType === 'movie' ? 'movies' : 'shows'}/${currentId}/poster`
+                      : null
                     return (
                       <tr
                         key={m.tmp_name}
@@ -253,6 +259,12 @@ export default function BulkArtworkModal({ onClose }) {
                         </td>
                         <td className="px-4 py-2.5">
                           <span className="text-slate-300 text-xs break-all">{m.filename}</span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {posterUrl
+                            ? <img src={posterUrl} alt="" className="w-10 h-14 object-cover rounded opacity-60" />
+                            : <div className="w-10 h-14 rounded bg-slate-800 flex items-center justify-center text-slate-600 text-xs">—</div>
+                          }
                         </td>
                         <td className="px-4 py-2.5">
                           <SearchDropdown

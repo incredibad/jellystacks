@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.16.1] — 2026-05-11
+
+### Fixed
+- Bulk artwork upload: preview images returned 401 — removed auth from preview endpoint (batch UUID is sufficient security for temp files)
+- Bulk artwork upload: added "Current" thumbnail column showing existing artwork for the matched title, updates when reassigning
+
+---
+
 ## [1.16.0] — 2026-05-11
 
 ### Added
