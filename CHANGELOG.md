@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.17.5] — 2026-05-11
+
+### Fixed
+- Push collection: pre-validate item IDs against Jellyfin before creating or updating, silently dropping any that Jellyfin no longer recognises; previously a single stale ID caused the entire request to fail with 400
+
+---
+
 ## [1.17.4] — 2026-05-11
 
 ### Added
