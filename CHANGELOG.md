@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.17.8] — 2026-05-11
+
+### Fixed
+- Bulk artwork upload: files are now sent in ~50 MB batches so large drops (92 files, 327 MB) no longer hit Cloudflare's 100 MB request limit; ZIPs over 90 MB show a clear error suggesting extraction instead
+
+---
+
 ## [1.17.7] — 2026-05-11
 
 ### Changed
