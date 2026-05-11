@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.15.4] — 2026-05-11
+
+### Changed
+- Reverted to concurrent movie and show sync now that the actual cause (timeout) is fixed
+
+---
+
 ## [1.15.3] — 2026-05-11
 
 ### Fixed
