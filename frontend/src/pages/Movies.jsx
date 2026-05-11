@@ -1,21 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Search, RefreshCw, Film, LayoutGrid, LayoutList } from 'lucide-react'
+import { Search, Film, LayoutGrid, LayoutList } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import MovieCard from '../components/MovieCard'
 import MovieListRow from '../components/MovieListRow'
+import { useOperations } from '../contexts/OperationsContext'
 
 const VIEW_KEY = 'jellystacks:movies-view'
 
 const PAGE_SIZE = 100
 
 export default function Movies() {
+  const { lastSynced } = useOperations()
   const [movies, setMovies] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
-  const [syncing, setSyncing] = useState(false)
   const [libraries, setLibraries] = useState([])
   const [activeLibrary, setActiveLibrary] = useState('')
   const [totalCount, setTotalCount] = useState(0)
@@ -63,6 +64,12 @@ export default function Movies() {
   }, [])
 
   useEffect(() => {
+    if (!lastSynced) return
+    api.get('/movies/count').then(({ data }) => setTotalCount(data.count)).catch(() => {})
+    reload(search, activeLibrary)
+  }, [lastSynced]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     const t = setTimeout(() => reload(search, activeLibrary), 250)
     return () => clearTimeout(t)
   }, [search, activeLibrary]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -87,23 +94,6 @@ export default function Movies() {
     return () => observer.disconnect()
   }, [search, activeLibrary, loading, loadingMore, fetchPage])
 
-  const handleSync = async () => {
-    setSyncing(true)
-    try {
-      const [moviesRes, showsRes] = await Promise.all([
-        api.post('/movies/sync', null, { timeout: 0 }),
-        api.post('/shows/sync', null, { timeout: 0 }),
-      ])
-      toast.success(`Synced ${moviesRes.data.synced} movies and ${showsRes.data.synced} shows.`)
-      api.get('/movies/count').then(({ data }) => setTotalCount(data.count)).catch(() => {})
-      reload(search, activeLibrary)
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Sync failed. Check Settings.')
-    } finally {
-      setSyncing(false)
-    }
-  }
-
   return (
     <div className="p-8">
       {/* Header */}
@@ -114,14 +104,6 @@ export default function Movies() {
             {totalCount > 0 ? `${totalCount} movies in your library` : 'No movies synced yet'}
           </p>
         </div>
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-60 transition-all"
-        >
-          <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
-          {syncing ? 'Syncing…' : 'Sync Jellyfin'}
-        </button>
       </div>
 
       {/* Search + library filter */}

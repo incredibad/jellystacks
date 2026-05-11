@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy import text, inspect as sa_inspect
 
 from database import Base, engine, SessionLocal
-from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router, tvdb as tvdb_router
+from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router, tvdb as tvdb_router, bulk_artwork as bulk_artwork_router
 import scheduler as collection_scheduler
 
 Base.metadata.create_all(bind=engine)
@@ -105,7 +105,8 @@ app.include_router(collections.router,     prefix="/api/collections", tags=["col
 app.include_router(settings_router.router, prefix="/api/settings",    tags=["settings"])
 app.include_router(tmdb.router,            prefix="/api/tmdb",        tags=["tmdb"])
 app.include_router(mdblist_router.router,  prefix="/api/mdblist",     tags=["mdblist"])
-app.include_router(tvdb_router.router,     prefix="/api/tvdb",        tags=["tvdb"])
+app.include_router(tvdb_router.router,          prefix="/api/tvdb",         tags=["tvdb"])
+app.include_router(bulk_artwork_router.router,  prefix="/api/artwork/bulk", tags=["artwork"])
 
 # ── Static Frontend ───────────────────────────────────────────────────────────
 static_dir = Path("/app/static")

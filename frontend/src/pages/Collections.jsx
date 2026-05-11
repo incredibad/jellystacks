@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Layers, Upload, RefreshCw, Download, LayoutGrid, LayoutList, Film, ChevronDown, Loader, Search, Trash2 } from 'lucide-react'
+import { Plus, LayoutGrid, LayoutList, Search } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import CollectionCard from '../components/CollectionCard'
@@ -11,36 +11,6 @@ import { useOperations } from '../contexts/OperationsContext'
 
 const VIEW_KEY = 'jellystacks:collections-view'
 
-function ConfirmModal({ title, description, confirmLabel, onConfirm, onClose }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div
-        className="relative w-full max-w-sm rounded-2xl p-6"
-        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-      >
-        <h2 className="text-base font-semibold text-white mb-2">{title}</h2>
-        <p className="text-sm text-slate-400 mb-5">{description}</p>
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => { onConfirm(); onClose() }}
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-colors"
-          >
-            {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function CreateModal({ onClose, onCreate }) {
   const [name, setName] = useState('')
@@ -110,19 +80,16 @@ function CreateModal({ onClose, onCreate }) {
 
 export default function Collections() {
   const navigate = useNavigate()
-  const { runOperation, isRunning } = useOperations()
+  const { lastOpAt } = useOperations()
   const [collections, setCollections] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [showNewChoice, setShowNewChoice] = useState(false)
   const [showTmdbSearch, setShowTmdbSearch] = useState(false)
   const [showMdblist, setShowMdblist] = useState(false)
-  const [importing, setImporting] = useState(false)
-  const [opsOpen, setOpsOpen] = useState(false)
-  const [filter, setFilter] = useState('all') // 'all' | 'local' | 'jellyfin'
+  const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
-  const [pendingConfirm, setPendingConfirm] = useState(null) // 'import' | 'pushAll'
 
   const switchView = (v) => {
     setView(v)
@@ -141,6 +108,7 @@ export default function Collections() {
   }
 
   useEffect(() => { fetchCollections() }, [])
+  useEffect(() => { if (lastOpAt) fetchCollections() }, [lastOpAt])
 
   const handlePush = async (collection) => {
     const tid = toast.loading(`Pushing "${collection.name}" to Jellyfin…`)
@@ -164,89 +132,6 @@ export default function Collections() {
     }
   }
 
-  const handlePushAll = () => {
-    const targets = collections.filter(c => c.movie_count > 0)
-    const skipped = collections.length - targets.length
-    runOperation({
-      type: 'push-all',
-      targets,
-      onDone: (results) => {
-        const succeeded = results.filter(r => r.ok).length
-        const failed = results.filter(r => !r.ok).length
-        let msg = `${succeeded} pushed`
-        if (skipped) msg += `, ${skipped} skipped (empty)`
-        if (failed) msg += `, ${failed} failed`
-        toast.success(msg)
-        fetchCollections()
-      },
-    })
-  }
-
-  const handleVerifyAll = () => {
-    const targets = collections.filter(c => c.jellyfin_collection_id)
-    if (!targets.length) { toast('Nothing to verify.', { icon: 'ℹ️' }); return }
-    runOperation({
-      type: 'verify',
-      targets,
-      onDone: (results) => {
-        toast.success(`Verified ${results.length} collections.`)
-        fetchCollections()
-      },
-    })
-  }
-
-  const handleDetectTmdb = () => {
-    const targets = collections.filter(c => c.movie_count > 0)
-    if (!targets.length) { toast('No collections to scan.', { icon: 'ℹ️' }); return }
-    runOperation({
-      type: 'detect-tmdb',
-      targets,
-      onEach: (target, result) => {
-        if (result.ok) {
-          setCollections(prev => prev.map(c => c.id === target.id ? { ...c, ...result.data } : c))
-        }
-      },
-      onDone: (results) => {
-        const linked = results.filter(r => r.ok && r.data?.tmdb_collection_id).length
-        const custom = results.filter(r => r.ok && !r.data?.tmdb_collection_id).length
-        const skipped = results.filter(r => !r.ok).length
-        const parts = []
-        if (linked) parts.push(`${linked} TMDB`)
-        if (custom) parts.push(`${custom} Custom`)
-        if (skipped) parts.push(`${skipped} skipped`)
-        toast.success(parts.join(', '))
-      },
-    })
-  }
-
-  const handleImport = async () => {
-    setImporting(true)
-    const tid = toast.loading('Importing from Jellyfin…')
-    try {
-      const { data } = await api.post('/collections/import-from-jellyfin')
-      let msg = ''
-      if (data.imported > 0) msg += `${data.imported} imported`
-      if (data.updated > 0) msg += `${msg ? ', ' : ''}${data.updated} updated`
-      if (!msg) msg = 'Nothing new to import'
-      toast.success(msg, { id: tid })
-      fetchCollections()
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Import failed.', { id: tid })
-    } finally {
-      setImporting(false)
-    }
-  }
-
-  const handleDeleteJfNative = async () => {
-    const tid = toast.loading('Deleting Jellyfin collections…')
-    try {
-      const { data } = await api.delete('/collections/jellyfin-native')
-      toast.success(`${data.deleted} collection${data.deleted === 1 ? '' : 's'} deleted.`, { id: tid })
-      fetchCollections()
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed.', { id: tid })
-    }
-  }
 
   const sortKey = (name) => name.replace(/^(the|a|an)\s+/i, '').toLowerCase()
 
@@ -287,85 +172,6 @@ export default function Collections() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Operations dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setOpsOpen(v => !v)}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white transition-all"
-              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-            >
-              {(importing || isRunning)
-                ? <Loader size={14} className="animate-spin" />
-                : <ChevronDown size={14} className={`transition-transform ${opsOpen ? 'rotate-180' : ''}`} />
-              }
-              Operations
-            </button>
-
-            {opsOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setOpsOpen(false)} />
-                <div
-                  className="absolute right-0 top-10 z-20 w-60 rounded-xl shadow-xl py-1"
-                  style={{ background: '#1e1e30', border: '1px solid var(--border)' }}
-                >
-                  {[
-                    {
-                      label: 'Import from Jellyfin',
-                      icon: importing ? <Loader size={14} className="animate-spin" /> : <Download size={14} />,
-                      busy: importing,
-                      onClick: () => { setPendingConfirm('import'); setOpsOpen(false) },
-                    },
-                    {
-                      label: 'Verify Status',
-                      icon: <RefreshCw size={14} />,
-                      disabled: collections.length === 0 || isRunning,
-                      onClick: () => { setPendingConfirm('verify'); setOpsOpen(false) },
-                    },
-                    {
-                      label: 'Detect TMDB',
-                      icon: <Film size={14} />,
-                      disabled: collections.length === 0 || isRunning,
-                      onClick: () => { setPendingConfirm('detect-tmdb'); setOpsOpen(false) },
-                    },
-                    null,
-                    {
-                      label: 'Push All to Jellyfin',
-                      icon: <Upload size={14} />,
-                      disabled: collections.length === 0 || isRunning,
-                      onClick: () => { setPendingConfirm('push-all'); setOpsOpen(false) },
-                    },
-                    null,
-                    {
-                      label: 'Delete Jellyfin Collections',
-                      icon: <Trash2 size={14} />,
-                      danger: true,
-                      disabled: jellyfinNative === 0 || isRunning,
-                      onClick: () => { setPendingConfirm('delete-jf-native'); setOpsOpen(false) },
-                    },
-                  ].map((item, i) =>
-                    item === null ? (
-                      <div key={i} className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
-                    ) : (
-                      <button
-                        key={item.label}
-                        onClick={item.onClick}
-                        disabled={item.busy || item.disabled}
-                        className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors ${
-                          item.danger
-                            ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
-                            : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                        }`}
-                      >
-                        <span className="w-4 flex-shrink-0 flex items-center justify-center">{item.icon}</span>
-                        {item.label}
-                      </button>
-                    )
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-
           <button
             onClick={() => setShowNewChoice(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
@@ -561,56 +367,6 @@ export default function Collections() {
         <MdblistModal
           onClose={() => setShowMdblist(false)}
           onCreate={(col) => navigate(`/collections/${col.id}`)}
-        />
-      )}
-
-      {pendingConfirm === 'import' && (
-        <ConfirmModal
-          title="Import from Jellyfin"
-          description="This will pull all collections currently in Jellyfin into Jellystacks. New collections will be created locally and existing ones will be updated to reflect their current Jellyfin membership. Your manually created collections are not affected."
-          confirmLabel="Import"
-          onConfirm={handleImport}
-          onClose={() => setPendingConfirm(null)}
-        />
-      )}
-
-      {pendingConfirm === 'verify' && (
-        <ConfirmModal
-          title="Verify Jellyfin Status"
-          description={`This will check all ${collections.filter(c => c.jellyfin_collection_id).length} synced collections against Jellyfin to confirm they still exist. No changes are made to your collections — only the sync status badge is updated.`}
-          confirmLabel="Verify"
-          onConfirm={handleVerifyAll}
-          onClose={() => setPendingConfirm(null)}
-        />
-      )}
-
-      {pendingConfirm === 'detect-tmdb' && (
-        <ConfirmModal
-          title="Detect TMDB Collections"
-          description={`This will scan all ${collections.filter(c => c.movie_count > 0).length} non-empty collections to identify whether they match a known TMDB franchise. No data is changed — only the TMDB badge on each collection is updated.`}
-          confirmLabel="Run Detection"
-          onConfirm={handleDetectTmdb}
-          onClose={() => setPendingConfirm(null)}
-        />
-      )}
-
-      {pendingConfirm === 'push-all' && (
-        <ConfirmModal
-          title="Push All to Jellyfin"
-          description={`This will sync all ${collections.length} ${collections.length === 1 ? 'collection' : 'collections'} to Jellyfin — creating or updating each one with its current movies and artwork. Empty collections will be skipped.`}
-          confirmLabel="Push All"
-          onConfirm={handlePushAll}
-          onClose={() => setPendingConfirm(null)}
-        />
-      )}
-
-      {pendingConfirm === 'delete-jf-native' && (
-        <ConfirmModal
-          title="Delete Jellyfin Collections"
-          description={`This will permanently delete all ${jellyfinNative} collection${jellyfinNative === 1 ? '' : 's'} imported from Jellyfin — from both Jellyfin and Jellystacks. Collections you created locally in Jellystacks are not affected. Movies and shows will not be deleted.`}
-          confirmLabel={`Delete ${jellyfinNative} Collection${jellyfinNative === 1 ? '' : 's'}`}
-          onConfirm={handleDeleteJfNative}
-          onClose={() => setPendingConfirm(null)}
         />
       )}
 
