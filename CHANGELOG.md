@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.16.9] — 2026-05-11
+
+### Changed
+- Operations menu converted from popup dropdown to inline accordion that expands within the sidebar
+- Operations grouped into sections: Library, Artwork, Collections, Danger
+- Removed redundant "Detect TMDB" operation
+
+---
+
 ## [1.16.8] — 2026-05-11
 
 ### Added
