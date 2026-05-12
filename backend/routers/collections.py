@@ -1154,7 +1154,7 @@ async def refresh_managed(
     """Immediately refresh all TMDB and MDBList collections from their source."""
     from refresh import refresh_all_managed
     s = _get_settings_dict(db)
-    result = await refresh_all_managed(db, s.get("tmdb_api_key"), s.get("mdblist_api_key"))
+    result = await refresh_all_managed(db, s.get("tmdb_api_key"), s.get("mdblist_api_key"), s.get("jellyfin_url"), s.get("jellyfin_api_key"))
     return result
 
 

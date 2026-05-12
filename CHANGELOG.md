@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.0] — 2026-05-12
+
+### Added
+- TMDB and MDBList collections that are already synced to Jellyfin now auto-push membership changes to Jellyfin whenever a scheduled or manual refresh detects a difference; unsynced collections are unaffected
+
+---
+
 ## [1.18.7] — 2026-05-11
 
 ### Fixed
