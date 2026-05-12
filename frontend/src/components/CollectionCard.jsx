@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2, Import } from 'lucide-react'
+import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 const JellyfinMark = () => (
@@ -109,11 +109,6 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-orange-600 text-white backdrop-blur-sm">
                 <AlertCircle size={11} />
                 Needs Sync
-              </span>
-            ) : collection.is_jellyfin_native ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-blue-900 text-white backdrop-blur-sm">
-                <Import size={11} />
-                Jellyfin
               </span>
             ) : collection.in_jellyfin ? (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-teal-600 text-white backdrop-blur-sm">
