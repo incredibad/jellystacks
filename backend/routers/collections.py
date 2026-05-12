@@ -38,6 +38,8 @@ def _get_tmdb_key(db: Session) -> str:
 
 
 def _collection_to_response(c: models.Collection) -> schemas.CollectionResponse:
+    unique_movies = _best_by_tmdb_id(c.movies)
+    unique_shows = _best_by_tmdb_id(c.shows)
     return schemas.CollectionResponse(
         id=c.id,
         name=c.name,
@@ -54,12 +56,14 @@ def _collection_to_response(c: models.Collection) -> schemas.CollectionResponse:
         jellyfin_synced_at=c.jellyfin_synced_at,
         created_at=c.created_at,
         updated_at=c.updated_at,
-        movie_count=len(c.movies),
-        show_count=len(c.shows),
+        movie_count=len(unique_movies),
+        show_count=len(unique_shows),
     )
 
 
 def _collection_to_detail(c: models.Collection) -> schemas.CollectionDetailResponse:
+    unique_movies = _best_by_tmdb_id(c.movies)
+    unique_shows = _best_by_tmdb_id(c.shows)
     return schemas.CollectionDetailResponse(
         id=c.id,
         name=c.name,
@@ -76,10 +80,10 @@ def _collection_to_detail(c: models.Collection) -> schemas.CollectionDetailRespo
         jellyfin_synced_at=c.jellyfin_synced_at,
         created_at=c.created_at,
         updated_at=c.updated_at,
-        movie_count=len(c.movies),
-        show_count=len(c.shows),
-        movies=[_movie_to_response(m) for m in c.movies],
-        shows=[_show_to_response(s) for s in c.shows],
+        movie_count=len(unique_movies),
+        show_count=len(unique_shows),
+        movies=[_movie_to_response(m) for m in unique_movies],
+        shows=[_show_to_response(s) for s in unique_shows],
     )
 
 

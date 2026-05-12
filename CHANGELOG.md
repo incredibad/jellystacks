@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.1] — 2026-05-12
+
+### Fixed
+- Collection movie/show counts now deduplicate by TMDB ID, so a film present in both a standard and 4K library counts as one owned item; the detail view also shows only one entry per title (preferring the 4K copy)
+
+---
+
 ## [1.19.0] — 2026-05-12
 
 ### Added
