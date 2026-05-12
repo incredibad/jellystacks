@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.6] — 2026-05-12
+
+### Fixed
+- CI: opt workflow into Node.js 24 ahead of the June 2026 GitHub Actions forced migration
+
+---
+
 ## [1.19.5] — 2026-05-12
 
 ### Changed
