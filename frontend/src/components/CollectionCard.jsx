@@ -37,7 +37,7 @@ function SourceRibbon({ collection }) {
     bg = '#7c3aed'
     content = <JellyfinMark />
   } else {
-    bg = '#d97706'
+    bg = '#db2777'
     content = <Layers size={15} color="white" strokeWidth={2.5} />
   }
 

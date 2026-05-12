@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.5] — 2026-05-12
+
+### Changed
+- Custom collection colour changed from amber to rose/pink (#db2777) throughout — card ribbon, detail page badge, "Convert to Custom" menu hover — to be clearly distinct from MDBList orange for colour-blind users
+
+---
+
 ## [1.19.4] — 2026-05-12
 
 ### Fixed
