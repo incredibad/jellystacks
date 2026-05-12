@@ -553,7 +553,7 @@ export default function CollectionDetail() {
                 TMDB Collection
               </span>
             ) : detectionDone && !collection.mdblist_list_id ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-amber-500 text-white">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-pink-600 text-white">
                 Custom Collection
               </span>
             ) : null}
@@ -656,7 +656,7 @@ export default function CollectionDetail() {
                     {isLocked && (
                       <button
                         onClick={() => { handleConvertToCustom(); setSettingsOpen(false) }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-amber-500/10 hover:text-amber-400 transition-colors"
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-pink-600/10 hover:text-pink-400 transition-colors"
                       >
                         <Shuffle size={14} />
                         Convert to Custom
