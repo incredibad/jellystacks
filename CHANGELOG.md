@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.7] — 2026-05-12
+
+### Changed
+- Removed redundant "Jellyfin" pill from collection cards — the corner ribbon already identifies Jellyfin-native collections; they now show "Synced" in the status badge like any other in-Jellyfin collection
+
+---
+
 ## [1.19.6] — 2026-05-12
 
 ### Fixed
