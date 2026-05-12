@@ -3,11 +3,8 @@ import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2
 import { useState } from 'react'
 
 const JellyfinMark = () => (
-  <svg viewBox="0 0 18 17" width="18" height="17" fill="none" aria-hidden>
-    <path d="M9 1.5C5.5 1.5 3 4 3 7.5H15C15 4 12.5 1.5 9 1.5Z" fill="white" />
-    <path d="M5.5 8Q4.5 11 5.5 14" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
-    <path d="M9 8Q8.5 11.5 9 14.5" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
-    <path d="M12.5 8Q13.5 11 12.5 14" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+  <svg viewBox="0 0 22 19" width="17" height="15" aria-hidden>
+    <path d="M11 1.5 L20.5 17.5 H1.5 Z" fill="white" />
   </svg>
 )
 
@@ -17,14 +14,14 @@ function SourceRibbon({ collection }) {
   if (collection.tmdb_collection_id) {
     bg = '#01b4e4'
     content = (
-      <span style={{ fontSize: 10, fontWeight: 900, color: 'white', letterSpacing: 1, lineHeight: 1, fontFamily: 'inherit' }}>
+      <span style={{ fontSize: 11, fontWeight: 900, color: 'white', letterSpacing: 1.5, lineHeight: 1, fontFamily: 'system-ui, Arial, sans-serif', display: 'block' }}>
         TMDB
       </span>
     )
   } else if (collection.mdblist_list_id) {
     bg = '#e8711a'
     content = (
-      <span style={{ fontSize: 10, fontWeight: 900, color: 'white', letterSpacing: 0.5, lineHeight: 1, fontFamily: 'inherit' }}>
+      <span style={{ fontSize: 11, fontWeight: 900, color: 'white', letterSpacing: 1, lineHeight: 1, fontFamily: 'system-ui, Arial, sans-serif', display: 'block' }}>
         MDB
       </span>
     )
@@ -33,14 +30,18 @@ function SourceRibbon({ collection }) {
     content = <JellyfinMark />
   } else {
     bg = '#d97706'
-    content = <Layers size={12} color="white" />
+    content = <Layers size={15} color="white" strokeWidth={2.5} />
   }
 
+  // Wrapper is 90×90 with overflow:hidden so the rotated strip's rectangular
+  // corners are clipped cleanly. Strip dimensions are chosen so the top-right
+  // corner of the wrapper (90,0) satisfies |cx+cy−W| ≤ h/√2, guaranteeing
+  // the corner is fully covered (cx≈66, cy≈27, W=90, h=30 → |93−90|=3 ✓).
   return (
-    <div className="absolute top-0 right-0 pointer-events-none" style={{ width: 76, height: 76 }}>
+    <div className="absolute top-0 right-0 pointer-events-none overflow-hidden" style={{ width: 90, height: 90 }}>
       <div
         className="absolute flex items-center justify-center"
-        style={{ background: bg, top: 14, right: -26, width: 88, height: 22, transform: 'rotate(45deg)' }}
+        style={{ background: bg, top: 12, right: -36, width: 120, height: 30, transform: 'rotate(45deg)' }}
       >
         {content}
       </div>

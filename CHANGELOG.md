@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.3] — 2026-05-12
+
+### Fixed
+- Collection card source ribbon: thicker strip, overflow-hidden wrapper so rectangular corners are clipped cleanly, corner coverage guaranteed by geometry, text centred correctly with system font stack, Jellyfin mark replaced with triangle, Custom Layers icon made chunkier
+
+---
+
 ## [1.19.2] — 2026-05-12
 
 ### Changed
