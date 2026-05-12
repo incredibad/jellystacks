@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.4] — 2026-05-12
+
+### Fixed
+- Jellyfin-native ribbon now uses the actual Jellyfin triangle logomark SVG (paths sourced from jellyfin/jellyfin-ux) instead of a plain triangle
+
+---
+
 ## [1.19.3] — 2026-05-12
 
 ### Fixed

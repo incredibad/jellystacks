@@ -3,8 +3,16 @@ import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2
 import { useState } from 'react'
 
 const JellyfinMark = () => (
-  <svg viewBox="0 0 22 19" width="17" height="15" aria-hidden>
-    <path d="M11 1.5 L20.5 17.5 H1.5 Z" fill="white" />
+  <svg viewBox="0 0 512 512" width="19" height="19" aria-hidden>
+    <path
+      d="M256,23.3c-61.6,0-259.8,359.4-229.6,420.1s429.3,60,459.2,0S317.6,23.3,256,23.3z M406.5,390.8c-19.6,39.3-281.1,39.8-300.9,0s110.1-275.3,150.4-275.3S426.1,351.4,406.5,390.8z"
+      fill="white"
+      fillRule="evenodd"
+    />
+    <path
+      d="M256,201.6c-20.4,0-86.2,119.3-76.2,139.4s142.5,19.9,152.4,0S276.5,201.6,256,201.6z"
+      fill="white"
+    />
   </svg>
 )
 
