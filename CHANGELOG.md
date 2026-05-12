@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.2] — 2026-05-12
+
+### Changed
+- Collection cards now show a diagonal corner ribbon in the top-right instead of a pill badge: TMDB (teal), MDBList (orange), Jellyfin-native (purple with jellyfish mark), Custom (amber with Layers icon)
+
+---
+
 ## [1.19.1] — 2026-05-12
 
 ### Fixed

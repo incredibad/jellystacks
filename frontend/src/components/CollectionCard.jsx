@@ -1,6 +1,52 @@
 import { Link } from 'react-router-dom'
-import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2, Import, Film } from 'lucide-react'
+import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2, Import } from 'lucide-react'
 import { useState } from 'react'
+
+const JellyfinMark = () => (
+  <svg viewBox="0 0 18 17" width="18" height="17" fill="none" aria-hidden>
+    <path d="M9 1.5C5.5 1.5 3 4 3 7.5H15C15 4 12.5 1.5 9 1.5Z" fill="white" />
+    <path d="M5.5 8Q4.5 11 5.5 14" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+    <path d="M9 8Q8.5 11.5 9 14.5" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+    <path d="M12.5 8Q13.5 11 12.5 14" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+  </svg>
+)
+
+function SourceRibbon({ collection }) {
+  let bg, content
+
+  if (collection.tmdb_collection_id) {
+    bg = '#01b4e4'
+    content = (
+      <span style={{ fontSize: 10, fontWeight: 900, color: 'white', letterSpacing: 1, lineHeight: 1, fontFamily: 'inherit' }}>
+        TMDB
+      </span>
+    )
+  } else if (collection.mdblist_list_id) {
+    bg = '#e8711a'
+    content = (
+      <span style={{ fontSize: 10, fontWeight: 900, color: 'white', letterSpacing: 0.5, lineHeight: 1, fontFamily: 'inherit' }}>
+        MDB
+      </span>
+    )
+  } else if (collection.is_jellyfin_native) {
+    bg = '#7c3aed'
+    content = <JellyfinMark />
+  } else {
+    bg = '#d97706'
+    content = <Layers size={12} color="white" />
+  }
+
+  return (
+    <div className="absolute top-0 right-0 pointer-events-none" style={{ width: 76, height: 76 }}>
+      <div
+        className="absolute flex items-center justify-center"
+        style={{ background: bg, top: 14, right: -26, width: 88, height: 22, transform: 'rotate(45deg)' }}
+      >
+        {content}
+      </div>
+    </div>
+  )
+}
 
 export default function CollectionCard({ collection, onPush, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -31,10 +77,10 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
               alt={collection.name}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               onError={(e) => {
-                if (jfPoster && !jfImgError) {
-                  setJfImgError(true)
-                } else {
+                if (jfImgError) {
                   e.target.style.display = 'none'
+                } else {
+                  setJfImgError(true)
                 }
               }}
             />
@@ -44,11 +90,12 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
               <span className="text-xs text-slate-600 px-3 text-center">{collection.name}</span>
             </div>
           )}
+
           {/* Dark overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
-          {/* Top badge row — status left, type right, both in one flex row so they align */}
-          <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-1">
+          {/* Status badge — top left */}
+          <div className="absolute top-2 left-2">
             {needsSync ? (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-orange-600 text-white backdrop-blur-sm">
                 <AlertCircle size={11} />
@@ -70,24 +117,12 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
                 Local
               </span>
             )}
-
-            {collection.tmdb_collection_id ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-violet-600 text-white backdrop-blur-sm">
-                <Film size={11} />
-                TMDB
-              </span>
-            ) : collection.mdblist_list_id ? (
-              <span className="flex items-center px-2 py-0.5 rounded-full text-xs font-normal text-white backdrop-blur-sm" style={{ background: '#f97316' }}>
-                MDBList
-              </span>
-            ) : !collection.is_jellyfin_native ? (
-              <span className="flex items-center px-2 py-0.5 rounded-full text-xs font-normal bg-amber-500 text-white backdrop-blur-sm">
-                Custom
-              </span>
-            ) : null}
           </div>
 
-          {/* Item count badge */}
+          {/* Source ribbon — top right corner */}
+          <SourceRibbon collection={collection} />
+
+          {/* Item count badge — bottom right */}
           <div className="absolute bottom-2 right-2">
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-black/60 text-slate-300">
               {(() => {
