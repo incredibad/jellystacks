@@ -163,30 +163,28 @@ export default function Collections() {
   return (
     <div className="p-4 sm:p-8">
       {/* Header */}
-      <div className="flex items-start justify-between mb-5 gap-4 flex-wrap">
-        <div>
+      <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between mb-5 gap-3">
+        <div className="text-center sm:text-left">
           <h1 className="text-2xl font-bold text-white">Collections</h1>
           <p className="text-sm text-slate-400 mt-0.5">
             {collections.length} {collections.length === 1 ? 'collection' : 'collections'}
             {inJellyfin > 0 && ` · ${inJellyfin} in Jellyfin`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowNewChoice(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
-          >
-            <Plus size={16} />
-            New Collection
-          </button>
-        </div>
+        <button
+          onClick={() => setShowNewChoice(true)}
+          className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
+        >
+          <Plus size={16} />
+          New Collection
+        </button>
       </div>
 
       {/* Filter + view toggle bar */}
       {!loading && collections.length > 0 && (
         <div className="mb-5 flex flex-col gap-2.5">
-          {/* Filter pills — horizontally scrollable on mobile */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden">
+          {/* Filter pills — centred and horizontally scrollable on mobile */}
+          <div className="flex justify-center sm:justify-start items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden">
             {[
               { key: 'all', label: `All (${collections.length})` },
               { key: 'jellyfin', label: `From Jellyfin (${jellyfinNative})` },
@@ -267,7 +265,7 @@ export default function Collections() {
           </p>
         </div>
       ) : view === 'grid' ? (
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,200px))] sm:justify-center">
           {filtered.map(col => (
             <CollectionCard
               key={col.id}

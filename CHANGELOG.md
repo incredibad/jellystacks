@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.10] — 2026-05-14
+
+### Changed
+- Collections page: all elements centred on mobile — header stacks with centred title and full-width "New Collection" button; filter pills centred; grid uses `justify-center` for odd card counts on wider breakpoints
+
+---
+
 ## [1.19.9] — 2026-05-14
 
 ### Changed
