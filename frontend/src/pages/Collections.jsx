@@ -7,6 +7,7 @@ import CollectionCard from '../components/CollectionCard'
 import CollectionListRow from '../components/CollectionListRow'
 import TmdbCollectionModal from '../components/TmdbCollectionModal'
 import MdblistModal from '../components/MdblistModal'
+import TraktModal from '../components/TraktModal'
 import { useOperations } from '../contexts/OperationsContext'
 
 const VIEW_KEY = 'jellystacks:collections-view'
@@ -87,6 +88,7 @@ export default function Collections() {
   const [showNewChoice, setShowNewChoice] = useState(false)
   const [showTmdbSearch, setShowTmdbSearch] = useState(false)
   const [showMdblist, setShowMdblist] = useState(false)
+  const [showTrakt, setShowTrakt] = useState(false)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
@@ -141,7 +143,8 @@ export default function Collections() {
     else if (filter === 'jellyfin') result = collections.filter(c => c.is_jellyfin_native)
     else if (filter === 'incomplete') result = collections.filter(c =>
       c.movie_count === 0 || (c.tmdb_total_parts && c.movie_count < c.tmdb_total_parts) ||
-      (c.mdblist_list_id && c.mdblist_total_items && (c.movie_count + (c.show_count || 0)) < c.mdblist_total_items)
+      (c.mdblist_list_id && c.mdblist_total_items && (c.movie_count + (c.show_count || 0)) < c.mdblist_total_items) ||
+      (c.trakt_list_id && c.trakt_total_items && (c.movie_count + (c.show_count || 0)) < c.trakt_total_items)
     )
     else result = collections
     if (search.trim()) {
@@ -161,32 +164,30 @@ export default function Collections() {
   ).length
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       {/* Header */}
-      <div className="flex items-start justify-between mb-5 gap-4 flex-wrap">
-        <div>
+      <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between mb-5 gap-3">
+        <div className="text-center sm:text-left">
           <h1 className="text-2xl font-bold text-white">Collections</h1>
           <p className="text-sm text-slate-400 mt-0.5">
             {collections.length} {collections.length === 1 ? 'collection' : 'collections'}
             {inJellyfin > 0 && ` · ${inJellyfin} in Jellyfin`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowNewChoice(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
-          >
-            <Plus size={16} />
-            New Collection
-          </button>
-        </div>
+        <button
+          onClick={() => setShowNewChoice(true)}
+          className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
+        >
+          <Plus size={16} />
+          New Collection
+        </button>
       </div>
 
       {/* Filter + view toggle bar */}
       {!loading && collections.length > 0 && (
-        <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-          {/* Filter pills */}
-          <div className="flex items-center gap-1.5">
+        <div className="mb-5 flex flex-col gap-2.5">
+          {/* Filter pills — centred and horizontally scrollable on mobile */}
+          <div className="flex justify-center sm:justify-start items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden">
             {[
               { key: 'all', label: `All (${collections.length})` },
               { key: 'jellyfin', label: `From Jellyfin (${jellyfinNative})` },
@@ -196,7 +197,7 @@ export default function Collections() {
               <button
                 key={key}
                 onClick={() => setFilter(key)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                   filter === key
                     ? 'bg-violet-600 text-white'
                     : 'text-slate-400 hover:text-white hover:bg-white/5 border border-slate-700'
@@ -207,35 +208,37 @@ export default function Collections() {
             ))}
           </div>
 
-          {/* Search */}
-          <div className="relative flex-1 max-w-xs">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search collections…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-7 pr-3 py-1.5 rounded-lg text-xs text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
-              style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
-            />
-          </div>
+          {/* Search + view toggle */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search collections…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-7 pr-3 py-1.5 rounded-lg text-xs text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
+                style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
+              />
+            </div>
 
-          {/* View toggle */}
-          <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-            <button
-              onClick={() => switchView('grid')}
-              title="Grid view"
-              className={`p-2 transition-colors ${view === 'grid' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              onClick={() => switchView('list')}
-              title="List view"
-              className={`p-2 transition-colors ${view === 'list' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            >
-              <LayoutList size={15} />
-            </button>
+            {/* View toggle */}
+            <div className="flex items-center rounded-lg overflow-hidden flex-shrink-0" style={{ border: '1px solid var(--border)' }}>
+              <button
+                onClick={() => switchView('grid')}
+                title="Grid view"
+                className={`p-2 transition-colors ${view === 'grid' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                onClick={() => switchView('list')}
+                title="List view"
+                className={`p-2 transition-colors ${view === 'list' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              >
+                <LayoutList size={15} />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -265,7 +268,7 @@ export default function Collections() {
           </p>
         </div>
       ) : view === 'grid' ? (
-        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
           {filtered.map(col => (
             <CollectionCard
               key={col.id}
@@ -338,6 +341,21 @@ export default function Collections() {
                   <p className="text-xs text-slate-500 mt-0.5">Import a curated list</p>
                 </div>
               </button>
+              <button
+                onClick={() => { setShowNewChoice(false); setShowTrakt(true) }}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl text-center hover:bg-white/5 transition-colors border border-slate-700 hover:border-red-500/40"
+              >
+                <span
+                  className="px-2 py-1 rounded text-white text-xs font-black tracking-wider"
+                  style={{ background: '#ed1c24' }}
+                >
+                  TRAKT
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-white">From Trakt</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Import a public Trakt list</p>
+                </div>
+              </button>
             </div>
             <button
               onClick={() => setShowNewChoice(false)}
@@ -359,6 +377,7 @@ export default function Collections() {
       {showTmdbSearch && (
         <TmdbCollectionModal
           onClose={() => setShowTmdbSearch(false)}
+          onBack={() => { setShowTmdbSearch(false); setShowNewChoice(true) }}
           onCreate={(col) => navigate(`/collections/${col.id}`)}
         />
       )}
@@ -366,6 +385,15 @@ export default function Collections() {
       {showMdblist && (
         <MdblistModal
           onClose={() => setShowMdblist(false)}
+          onBack={() => { setShowMdblist(false); setShowNewChoice(true) }}
+          onCreate={(col) => navigate(`/collections/${col.id}`)}
+        />
+      )}
+
+      {showTrakt && (
+        <TraktModal
+          onClose={() => setShowTrakt(false)}
+          onBack={() => { setShowTrakt(false); setShowNewChoice(true) }}
           onCreate={(col) => navigate(`/collections/${col.id}`)}
         />
       )}

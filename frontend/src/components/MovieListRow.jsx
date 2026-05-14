@@ -142,7 +142,7 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
           )}
 
           {onArtworkChange && !uploading && (
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded overflow-hidden flex items-center justify-center gap-1.5">
+            <div className="absolute inset-0 bg-black/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity rounded overflow-hidden flex items-center justify-center gap-1.5">
               <button
                 onClick={() => setArtworkModal(true)}
                 className="text-white hover:text-violet-300 transition-colors"
@@ -218,7 +218,7 @@ export default function MovieListRow({ movie, onRemove, onArtworkChange }) {
         {onRemove && (
           <button
             onClick={() => onRemove(movie.id)}
-            className="p-1.5 rounded text-slate-600 hover:text-red-400 hover:bg-red-400/10 transition-colors opacity-0 group-hover:opacity-100"
+            className="p-1.5 rounded text-slate-600 hover:text-red-400 hover:bg-red-400/10 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100"
             title="Remove from collection"
           >
             <X size={14} />

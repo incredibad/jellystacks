@@ -3,7 +3,7 @@ import { Search, X, Film, ChevronLeft, Plus, CheckCircle2 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
-export default function TmdbCollectionModal({ onClose, onCreate }) {
+export default function TmdbCollectionModal({ onClose, onCreate, onBack }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
@@ -71,17 +71,22 @@ export default function TmdbCollectionModal({ onClose, onCreate }) {
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-2">
-            {detail && (
+            {(detail || onBack) && (
               <button
-                onClick={() => setDetail(null)}
+                onClick={detail ? () => setDetail(null) : onBack}
                 className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
               >
                 <ChevronLeft size={18} />
               </button>
             )}
-            <h2 className="text-lg font-semibold text-white">
-              {detail ? detail.name : 'Search TMDB Collections'}
-            </h2>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded text-white text-xs font-black tracking-wider" style={{ background: '#01b4e4' }}>
+                TMDB
+              </span>
+              <h2 className="text-lg font-semibold text-white truncate max-w-[220px]">
+                {detail ? detail.name : 'Collections'}
+              </h2>
+            </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
             <X size={20} />
@@ -92,7 +97,7 @@ export default function TmdbCollectionModal({ onClose, onCreate }) {
           /* Detail view */
           <div className="flex flex-col flex-1 overflow-hidden">
             <div className="overflow-y-auto flex-1 p-5">
-              <div className="flex gap-4 mb-5">
+              <div className="flex flex-col sm:flex-row gap-4 mb-5">
                 {detail.poster_thumb ? (
                   <img src={detail.poster_thumb} alt="" className="w-24 rounded-lg object-cover flex-shrink-0 self-start" />
                 ) : (
@@ -108,6 +113,15 @@ export default function TmdbCollectionModal({ onClose, onCreate }) {
                   {detail.overview && (
                     <p className="text-xs text-slate-500 leading-relaxed line-clamp-4">{detail.overview}</p>
                   )}
+                  <a
+                    href={`https://www.themoviedb.org/collection/${detail.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs mt-1 inline-block hover:underline"
+                    style={{ color: '#01b4e4' }}
+                  >
+                    View on TMDB ↗
+                  </a>
                 </div>
               </div>
 

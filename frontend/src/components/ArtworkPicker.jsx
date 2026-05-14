@@ -121,9 +121,9 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '', mo
           </button>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
           {/* Left: collection movie list OR search + results */}
-          <div className="w-72 flex-shrink-0 border-r flex flex-col" style={{ borderColor: 'var(--border)' }}>
+          <div className="w-full sm:w-72 sm:flex-shrink-0 border-b sm:border-b-0 sm:border-r flex flex-col max-h-[38vh] sm:max-h-none" style={{ borderColor: 'var(--border)' }}>
             {movies ? (
               <>
                 <div className="p-4 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -269,7 +269,7 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '', mo
                   {!relatedLoading && relatedCollections?.map(col => (
                     <div key={col.id} className="mb-6">
                       <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">{col.name}</p>
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         {col.posters.map((img, i) => (
                           <button
                             key={i}
@@ -306,7 +306,7 @@ export default function ArtworkPicker({ onSelect, onClose, initialQuery = '', mo
                     </div>
                   )}
                   {!imgLoading && displayImages.length > 0 && (
-                    <div className="grid gap-2 grid-cols-4">
+                    <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
                       {displayImages.map((img, i) => (
                         <button
                           key={i}

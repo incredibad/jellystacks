@@ -71,6 +71,7 @@ export default function Settings() {
     tmdb_api_key: '',
     tmdb_related_enabled: false,
     mdblist_api_key: '',
+    trakt_client_id: '',
     tvdb_api_key: '',
     collection_refresh_interval: 'disabled',
   })
@@ -102,6 +103,7 @@ export default function Settings() {
         tmdb_api_key: '',
         tmdb_related_enabled: data.tmdb_related_enabled || false,
         mdblist_api_key: '',
+        trakt_client_id: '',
         tvdb_api_key: '',
         collection_refresh_interval: data.collection_refresh_interval || 'disabled',
       })
@@ -123,6 +125,7 @@ export default function Settings() {
       if (form.jellyfin_user_id !== original.jellyfin_user_id) payload.jellyfin_user_id = form.jellyfin_user_id
       if (form.tmdb_api_key) payload.tmdb_api_key = form.tmdb_api_key
       if (form.mdblist_api_key) payload.mdblist_api_key = form.mdblist_api_key
+      if (form.trakt_client_id) payload.trakt_client_id = form.trakt_client_id
       if (form.tvdb_api_key) payload.tvdb_api_key = form.tvdb_api_key
       if (form.tmdb_related_enabled !== original.tmdb_related_enabled) payload.tmdb_related_enabled = form.tmdb_related_enabled
       if (form.collection_refresh_interval !== original.collection_refresh_interval) payload.collection_refresh_interval = form.collection_refresh_interval
@@ -134,7 +137,7 @@ export default function Settings() {
 
       const { data } = await api.put('/settings', payload)
       setOriginal(data)
-      setForm(prev => ({ ...prev, jellyfin_api_key: '', tmdb_api_key: '', mdblist_api_key: '', tvdb_api_key: '' }))
+      setForm(prev => ({ ...prev, jellyfin_api_key: '', tmdb_api_key: '', mdblist_api_key: '', trakt_client_id: '', tvdb_api_key: '' }))
       toast.success('Settings saved.')
       setTestResult(null)
     } catch (err) {
@@ -341,7 +344,7 @@ export default function Settings() {
   const inputStyle = { background: '#0d0d14', border: '1px solid var(--border)' }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Settings</h1>
         <p className="text-sm text-slate-400 mt-1">Configure your Jellyfin server and system options.</p>
@@ -349,7 +352,7 @@ export default function Settings() {
 
       {/* Tab bar */}
       <div
-        className="flex gap-1 mb-6 p-1 rounded-lg max-w-xl"
+        className="flex gap-1 mb-6 p-1 rounded-lg overflow-x-auto [&::-webkit-scrollbar]:hidden"
         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
       >
         {['sync', 'providers', 'account', 'backup', 'system'].map(tab => (
@@ -620,6 +623,39 @@ export default function Settings() {
                     value={form.mdblist_api_key}
                     onChange={e => set('mdblist_api_key', e.target.value)}
                     placeholder={original.mdblist_api_key_set ? '••••••••••••••••' : 'Enter your MDBList API key'}
+                    className={inputClass}
+                    style={inputStyle}
+                    autoComplete="new-password"
+                  />
+                </Field>
+              </Section>
+
+              <Section
+                title="Trakt"
+                description="Import public Trakt lists as managed collections."
+                icon={Key}
+              >
+                <Field
+                  label={`Client ID${original.trakt_client_id_set ? ' (currently set — leave blank to keep)' : ''}`}
+                  hint={
+                    <span>
+                      Create a free application at{' '}
+                      <a
+                        href="https://trakt.tv/oauth/applications"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-violet-400 hover:underline inline-flex items-center gap-0.5"
+                      >
+                        trakt.tv/oauth/applications <ExternalLink size={11} />
+                      </a>
+                    </span>
+                  }
+                >
+                  <input
+                    type="password"
+                    value={form.trakt_client_id}
+                    onChange={e => set('trakt_client_id', e.target.value)}
+                    placeholder={original.trakt_client_id_set ? '••••••••••••••••' : 'Enter your Trakt Client ID'}
                     className={inputClass}
                     style={inputStyle}
                     autoComplete="new-password"

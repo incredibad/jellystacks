@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, X, ChevronLeft, Plus, List, Heart, Check } from 'lucide-react'
+import { Search, X, ChevronLeft, Plus, List, Check, Heart } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
-export default function MdblistModal({ onClose, onCreate, onBack }) {
+export default function TraktModal({ onClose, onCreate, onBack }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
-  const [topLists, setTopLists] = useState([])
-  const [loadingTop, setLoadingTop] = useState(true)
+  const [trending, setTrending] = useState([])
+  const [loadingTrending, setLoadingTrending] = useState(true)
   const [selected, setSelected] = useState(null)
   const [preview, setPreview] = useState(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
@@ -19,10 +19,10 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
   const timer = useRef(null)
 
   useEffect(() => {
-    api.get('/mdblist/top')
-      .then(({ data }) => setTopLists(Array.isArray(data) ? data : []))
+    api.get('/trakt/trending')
+      .then(({ data }) => setTrending(Array.isArray(data) ? [...data].sort((a, b) => (b.likes || 0) - (a.likes || 0)) : []))
       .catch(() => {})
-      .finally(() => setLoadingTop(false))
+      .finally(() => setLoadingTrending(false))
   }, [])
 
   const handleBrowseScroll = (e) => {
@@ -43,9 +43,8 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
     if (!q.trim()) { setResults([]); setVisibleCount(15); return }
     setSearching(true)
     try {
-      const { data } = await api.get('/mdblist/search', { params: { query: q } })
-      const list = Array.isArray(data) ? data : []
-      setResults(list.sort((a, b) => (b.likes || 0) - (a.likes || 0)))
+      const { data } = await api.get('/trakt/search', { params: { query: q } })
+      setResults(Array.isArray(data) ? [...data].sort((a, b) => (b.likes || 0) - (a.likes || 0)) : [])
       setVisibleCount(15)
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Search failed.')
@@ -67,7 +66,7 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
     setPreviewVisible(50)
     setLoadingPreview(true)
     try {
-      const { data } = await api.get(`/mdblist/lists/${list.id}/preview`)
+      const { data } = await api.get(`/trakt/lists/${list.id}/preview`)
       setPreview(data)
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to load list preview.')
@@ -81,8 +80,8 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
     if (!selected || !name.trim()) return
     setCreating(true)
     try {
-      const { data } = await api.post('/collections/from-mdblist', {
-        mdblist_list_id: selected.id,
+      const { data } = await api.post('/collections/from-trakt', {
+        trakt_list_id: selected.id,
         name: name.trim(),
       })
       const owned = (preview?.movie_count || 0) + (preview?.show_count || 0)
@@ -117,8 +116,8 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
               </button>
             )}
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-white text-xs font-black tracking-wider" style={{ background: '#e8711a' }}>
-                MDBLIST
+              <span className="px-2 py-0.5 rounded text-white text-xs font-black tracking-wider" style={{ background: '#ed1c24' }}>
+                TRAKT
               </span>
               <h2 className="text-lg font-semibold text-white truncate max-w-[220px]">
                 {selected ? selected.name : 'Lists'}
@@ -136,44 +135,45 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
             <div className="overflow-y-auto flex-1 p-5 space-y-4" onScroll={handlePreviewScroll}>
               {/* List meta */}
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-violet-600/20 flex items-center justify-center flex-shrink-0">
-                  <List size={18} className="text-violet-400" />
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(237,28,36,0.15)' }}>
+                  <List size={18} style={{ color: '#ed1c24' }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-slate-400 truncate">
-                    by <span className="text-slate-300">{selected.user_name}</span>
-                    {selected.items != null && (
-                      <> · {selected.items} item{selected.items !== 1 ? 's' : ''} total</>
+                    by <span className="text-slate-300">{selected.username}</span>
+                    {selected.item_count != null && (
+                      <> · {selected.item_count} item{selected.item_count !== 1 ? 's' : ''} total</>
                     )}
                   </p>
                   {selected.description && (
                     <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-3">{selected.description}</p>
                   )}
-                  {selected.slug && (
-                    <a
-                      href={`https://mdblist.com/lists/${selected.user_name}/${selected.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs mt-1 inline-block hover:underline"
-                      style={{ color: '#e8711a' }}
-                    >
-                      View on MDBList ↗
-                    </a>
-                  )}
+                  <a
+                    href={`https://trakt.tv/lists/${selected.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs mt-1 inline-block hover:underline"
+                    style={{ color: '#ed1c24' }}
+                  >
+                    View on Trakt ↗
+                  </a>
                 </div>
               </div>
 
               {/* Item list */}
               {loadingPreview ? (
                 <div className="flex items-center justify-center py-6">
-                  <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#ed1c24', borderTopColor: 'transparent' }} />
                 </div>
               ) : preview && (
                 <div>
                   <p className="text-xs font-medium text-slate-500 mb-2">
                     {ownedCount > 0
-                      ? <><span className="text-emerald-400">{ownedCount}</span> of {preview.total_items} items in your library</>
-                      : `${preview.total_items} items — none in your library`}
+                      ? <><span className="text-emerald-400">{ownedCount}</span> of {preview.total_items} movies/shows in your library</>
+                      : `${preview.total_items} movies/shows — none in your library`}
+                    {preview.filtered && (
+                      <span className="text-slate-600"> · episodes excluded</span>
+                    )}
                   </p>
                   <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
                     {(preview.items || []).slice(0, previewVisible).map((item, i) => (
@@ -209,7 +209,7 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg text-sm text-slate-200 outline-none focus:ring-1 focus:ring-violet-500"
+                  className="w-full px-3 py-2 rounded-lg text-sm text-slate-200 outline-none focus:ring-1 focus:ring-red-500"
                   style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
                 />
               </div>
@@ -225,7 +225,8 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
               <button
                 onClick={handleCreate}
                 disabled={creating || loadingPreview || !name.trim() || ownedCount === 0}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                style={{ background: '#ed1c24' }}
               >
                 <Plus size={15} />
                 {creating ? 'Creating…' : 'Create Collection'}
@@ -233,7 +234,7 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
             </div>
           </div>
         ) : (
-          /* Search view */
+          /* Search / trending view */
           <div className="flex flex-col flex-1 overflow-hidden">
             <div className="p-4 border-b" style={{ borderColor: 'var(--border)' }}>
               <div className="relative">
@@ -244,19 +245,19 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
                   placeholder="Search for a list (e.g. Best Horror, Top 250)…"
                   value={query}
                   onChange={handleQueryChange}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-red-500"
                   style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
                 />
               </div>
             </div>
 
             <div className="overflow-y-auto flex-1 p-2" onScroll={handleBrowseScroll}>
-              {(searching || (loadingTop && !query.trim())) ? (
+              {(searching || (loadingTrending && !query.trim())) ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#ed1c24', borderTopColor: 'transparent' }} />
                 </div>
               ) : (() => {
-                const displayList = query.trim() ? results : topLists
+                const displayList = query.trim() ? results : trending
                 const isSearch = !!query.trim()
                 if (isSearch && displayList.length === 0) {
                   return <div className="text-center py-12 text-slate-500 text-sm">No lists found.</div>
@@ -266,7 +267,7 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
                 return (
                   <div className="space-y-1">
                     {!isSearch && (
-                      <p className="px-2.5 pt-1 pb-0.5 text-[11px] font-medium text-slate-500 uppercase tracking-wider">Top Lists</p>
+                      <p className="px-2.5 pt-1 pb-0.5 text-[11px] font-medium text-slate-500 uppercase tracking-wider">Trending Lists</p>
                     )}
                     {visibleItems.map(result => (
                       <button
@@ -274,15 +275,15 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
                         onClick={() => handleSelect(result)}
                         className="w-full flex items-start gap-3 p-2.5 rounded-lg text-left hover:bg-white/5 transition-colors"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-violet-600/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <List size={14} className="text-violet-400" />
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(237,28,36,0.15)' }}>
+                          <List size={14} style={{ color: '#ed1c24' }} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-medium text-slate-200 truncate">{result.name}</p>
                             <div className="flex items-center gap-2.5 flex-shrink-0 text-xs text-slate-500 tabular-nums">
-                              {result.items > 0 && (
-                                <span>{result.items} Items</span>
+                              {result.item_count > 0 && (
+                                <span>{result.item_count} Items</span>
                               )}
                               {result.likes > 0 && (
                                 <span className="flex items-center gap-0.5">
@@ -293,7 +294,7 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
                             </div>
                           </div>
                           <p className="text-xs text-slate-500 truncate mt-0.5">
-                            {result.user_name}{result.description ? ` · ${result.description}` : ''}
+                            {result.username}{result.description ? ` · ${result.description}` : ''}
                           </p>
                         </div>
                       </button>

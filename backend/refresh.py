@@ -17,6 +17,7 @@ logger = logging.getLogger("refresh")
 
 _TMDB_BASE = "https://api.themoviedb.org/3"
 _MDBLIST_BASE = "https://api.mdblist.com"
+_TRAKT_BASE = "https://api.trakt.tv"
 
 
 async def _push_membership(col: models.Collection, jf_url: str, jf_key: str, db: Session) -> None:
@@ -99,15 +100,9 @@ async def _refresh_tmdb(col: models.Collection, api_key: str, db: Session,
 
 async def _refresh_mdblist(col: models.Collection, api_key: str, db: Session,
                            jf_url: str | None = None, jf_key: str | None = None) -> dict:
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(
-            f"{_MDBLIST_BASE}/lists/{col.mdblist_list_id}/items",
-            params={"apikey": api_key},
-        )
-    if resp.status_code != 200:
-        return {"ok": False, "error": f"MDBList HTTP {resp.status_code}"}
-
-    movie_ids, show_ids, total, *_ = _split_raw_response(resp.json())
+    from routers.mdblist import _fetch_all_items
+    all_items = await _fetch_all_items(col.mdblist_list_id, api_key)
+    movie_ids, show_ids, total, *_ = _split_raw_response(all_items)
 
     movies = db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).all() if movie_ids else []
     shows = db.query(models.Show).filter(models.Show.tmdb_id.in_(show_ids)).all() if show_ids else []
@@ -132,19 +127,65 @@ async def _refresh_mdblist(col: models.Collection, api_key: str, db: Session,
     return {"ok": True, "movies": len(movies), "shows": len(shows), "total": total}
 
 
+async def _refresh_trakt(col: models.Collection, client_id: str, db: Session,
+                         jf_url: str | None = None, jf_key: str | None = None) -> dict:
+    from routers.trakt import _fetch_all_trakt_items
+    entries = await _fetch_all_trakt_items(col.trakt_list_id, client_id)
+    if not entries:
+        return {"ok": False, "error": "No items returned from Trakt"}
+
+    movie_tmdb_ids = set()
+    show_tmdb_ids = set()
+    total = 0
+    for entry in entries:
+        t = entry.get("type")
+        obj = entry.get(t) or {}
+        tmdb = str((obj.get("ids") or {}).get("tmdb") or "")
+        if tmdb and tmdb != "0":
+            if t == "movie":
+                movie_tmdb_ids.add(tmdb)
+            elif t == "show":
+                show_tmdb_ids.add(tmdb)
+        total += 1
+
+    movies = db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_tmdb_ids)).all() if movie_tmdb_ids else []
+    shows = db.query(models.Show).filter(models.Show.tmdb_id.in_(show_tmdb_ids)).all() if show_tmdb_ids else []
+
+    current_movie_ids = {m.id for m in col.movies}
+    current_show_ids = {s.id for s in col.shows}
+    changed = {m.id for m in movies} != current_movie_ids or {s.id for s in shows} != current_show_ids
+    col.movies = movies
+    col.shows = shows
+    col.trakt_total_items = total
+    if changed:
+        col.updated_at = datetime.utcnow()
+    db.commit()
+
+    if changed and col.in_jellyfin and col.jellyfin_collection_id and jf_url and jf_key:
+        try:
+            await _push_membership(col, jf_url, jf_key, db)
+            logger.info("Auto-pushed membership for collection %d (%s) to Jellyfin", col.id, col.name)
+        except Exception:
+            logger.warning("Auto-push to Jellyfin failed for collection %d (%s)", col.id, col.name, exc_info=True)
+
+    return {"ok": True, "movies": len(movies), "shows": len(shows), "total": total}
+
+
 async def refresh_all_managed(
     db: Session,
     tmdb_key: str | None,
     mdb_key: str | None,
     jf_url: str | None = None,
     jf_key: str | None = None,
+    trakt_client_id: str | None = None,
 ) -> dict:
     """Refresh every TMDB and MDBList collection. Returns summary counts."""
     cols = (
         db.query(models.Collection)
         .filter(
             (models.Collection.tmdb_collection_id.isnot(None)) |
-            (models.Collection.mdblist_list_id.isnot(None))
+            (models.Collection.mdblist_list_id.isnot(None)) |
+            (models.Collection.trakt_list_id.isnot(None))
         )
         .options(
             selectinload(models.Collection.movies),
@@ -164,11 +205,16 @@ async def refresh_all_managed(
                     skipped += 1
                     continue
                 result = await _refresh_tmdb(col, tmdb_key, db, jf_url, jf_key)
-            else:
+            elif col.mdblist_list_id:
                 if not mdb_key:
                     skipped += 1
                     continue
                 result = await _refresh_mdblist(col, mdb_key, db, jf_url, jf_key)
+            else:
+                if not trakt_client_id:
+                    skipped += 1
+                    continue
+                result = await _refresh_trakt(col, trakt_client_id, db, jf_url, jf_key)
 
             if result.get("ok"):
                 refreshed += 1

@@ -64,9 +64,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex items-start justify-between mb-8 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-white">
             Welcome back, {user?.username}

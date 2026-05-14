@@ -1,6 +1,68 @@
 import { Link } from 'react-router-dom'
-import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2, Import, Film } from 'lucide-react'
+import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+
+const JellyfinMark = () => (
+  <svg viewBox="0 0 512 512" width="19" height="19" aria-hidden>
+    <path
+      d="M256,23.3c-61.6,0-259.8,359.4-229.6,420.1s429.3,60,459.2,0S317.6,23.3,256,23.3z M406.5,390.8c-19.6,39.3-281.1,39.8-300.9,0s110.1-275.3,150.4-275.3S426.1,351.4,406.5,390.8z"
+      fill="white"
+      fillRule="evenodd"
+    />
+    <path
+      d="M256,201.6c-20.4,0-86.2,119.3-76.2,139.4s142.5,19.9,152.4,0S276.5,201.6,256,201.6z"
+      fill="white"
+    />
+  </svg>
+)
+
+function SourceRibbon({ collection }) {
+  let bg, content
+
+  if (collection.tmdb_collection_id) {
+    bg = '#01b4e4'
+    content = (
+      <span style={{ fontSize: 11, fontWeight: 900, color: 'white', letterSpacing: 1.5, lineHeight: 1, fontFamily: 'system-ui, Arial, sans-serif', display: 'block' }}>
+        TMDB
+      </span>
+    )
+  } else if (collection.mdblist_list_id) {
+    bg = '#e8711a'
+    content = (
+      <span style={{ fontSize: 11, fontWeight: 900, color: 'white', letterSpacing: 1, lineHeight: 1, fontFamily: 'system-ui, Arial, sans-serif', display: 'block' }}>
+        MDB
+      </span>
+    )
+  } else if (collection.trakt_list_id) {
+    bg = '#ed1c24'
+    content = (
+      <span style={{ fontSize: 10, fontWeight: 900, color: 'white', letterSpacing: 1, lineHeight: 1, fontFamily: 'system-ui, Arial, sans-serif', display: 'block' }}>
+        TRAKT
+      </span>
+    )
+  } else if (collection.is_jellyfin_native) {
+    bg = '#7c3aed'
+    content = <JellyfinMark />
+  } else {
+    bg = '#db2777'
+    content = <Layers size={15} color="white" strokeWidth={2.5} />
+  }
+
+  // Wrapper is 90×90 with overflow:hidden so the rotated strip's rectangular
+  // corners are clipped cleanly. Strip dimensions are chosen so the top-right
+  // corner of the wrapper (90,0) satisfies |cx+cy−W| ≤ h/√2, guaranteeing
+  // the corner is fully covered (cx≈66, cy≈27, W=90, h=30 → |93−90|=3 ✓).
+  return (
+    <div className="absolute top-0 right-0 pointer-events-none overflow-hidden" style={{ width: 90, height: 90 }}>
+      <div
+        className="absolute flex items-center justify-center"
+        style={{ background: bg, top: 12, right: -36, width: 120, height: 30, transform: 'rotate(45deg)' }}
+      >
+        {content}
+      </div>
+    </div>
+  )
+}
 
 export default function CollectionCard({ collection, onPush, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -31,10 +93,10 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
               alt={collection.name}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               onError={(e) => {
-                if (jfPoster && !jfImgError) {
-                  setJfImgError(true)
-                } else {
+                if (jfImgError) {
                   e.target.style.display = 'none'
+                } else {
+                  setJfImgError(true)
                 }
               }}
             />
@@ -44,20 +106,16 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
               <span className="text-xs text-slate-600 px-3 text-center">{collection.name}</span>
             </div>
           )}
+
           {/* Dark overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
-          {/* Top badge row — status left, type right, both in one flex row so they align */}
-          <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-1">
+          {/* Status badge — top left */}
+          <div className="absolute top-2 left-2">
             {needsSync ? (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-orange-600 text-white backdrop-blur-sm">
                 <AlertCircle size={11} />
                 Needs Sync
-              </span>
-            ) : collection.is_jellyfin_native ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-blue-900 text-white backdrop-blur-sm">
-                <Import size={11} />
-                Jellyfin
               </span>
             ) : collection.in_jellyfin ? (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-teal-600 text-white backdrop-blur-sm">
@@ -70,24 +128,12 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
                 Local
               </span>
             )}
-
-            {collection.tmdb_collection_id ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal bg-violet-600 text-white backdrop-blur-sm">
-                <Film size={11} />
-                TMDB
-              </span>
-            ) : collection.mdblist_list_id ? (
-              <span className="flex items-center px-2 py-0.5 rounded-full text-xs font-normal text-white backdrop-blur-sm" style={{ background: '#f97316' }}>
-                MDBList
-              </span>
-            ) : !collection.is_jellyfin_native ? (
-              <span className="flex items-center px-2 py-0.5 rounded-full text-xs font-normal bg-amber-500 text-white backdrop-blur-sm">
-                Custom
-              </span>
-            ) : null}
           </div>
 
-          {/* Item count badge */}
+          {/* Source ribbon — top right corner */}
+          <SourceRibbon collection={collection} />
+
+          {/* Item count badge — bottom right */}
           <div className="absolute bottom-2 right-2">
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-black/60 text-slate-300">
               {(() => {
@@ -110,20 +156,20 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
       </Link>
 
       {/* Info + actions */}
-      <div className="p-3 flex items-start justify-between gap-2">
-        <div className="min-w-0">
+      <div className="p-3 relative">
+        <div className="min-w-0 pr-7 text-center sm:text-left">
           <Link to={`/collections/${collection.id}`}>
             <h3 className="text-sm font-normal text-slate-200 truncate hover:text-violet-400 transition-colors">
               {collection.name}
             </h3>
           </Link>
           {collection.description && (
-            <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{collection.description}</p>
+            <p className="text-xs text-slate-500 mt-0.5 truncate">{collection.description}</p>
           )}
         </div>
 
         {/* Context menu */}
-        <div className="relative flex-shrink-0">
+        <div className="absolute top-2 right-2">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
