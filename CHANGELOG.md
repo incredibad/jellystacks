@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.20] — 2026-05-14
+
+### Changed
+- CollectionCard: show collection type label (TMDB Collection, MDBList, Jellyfin Native, Custom Collection) in the info section, coloured to match the source ribbon
+- CollectionCard: description truncated to a single line with ellipsis
+
+---
+
 ## [1.19.19] — 2026-05-14
 
 ### Changed
