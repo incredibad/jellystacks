@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.21] — 2026-05-14
+
+### Fixed
+- Collection type label moved to list view only (CollectionListRow), displayed as a coloured pill next to the sync status badge; removed from poster card view where the ribbon already serves this purpose
+
+---
+
 ## [1.19.20] — 2026-05-14
 
 ### Changed
