@@ -3,7 +3,7 @@ import { Search, X, ChevronLeft, Plus, List, Check, Heart } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
-export default function TraktModal({ onClose, onCreate }) {
+export default function TraktModal({ onClose, onCreate, onBack }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
@@ -115,9 +115,9 @@ export default function TraktModal({ onClose, onCreate }) {
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-2">
-            {selected && (
+            {(selected || onBack) && (
               <button
-                onClick={() => { setSelected(null); setPreview(null) }}
+                onClick={selected ? () => { setSelected(null); setPreview(null) } : onBack}
                 className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
               >
                 <ChevronLeft size={18} />
