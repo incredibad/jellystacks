@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.2] — 2026-05-14
+
+### Fixed
+- TMDB, MDBList, and Trakt modals: back arrow in header returns to the collection type picker instead of forcing the user to close and reopen
+
+---
+
 ## [1.21.1] — 2026-05-14
 
 ### Fixed

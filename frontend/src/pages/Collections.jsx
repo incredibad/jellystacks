@@ -377,6 +377,7 @@ export default function Collections() {
       {showTmdbSearch && (
         <TmdbCollectionModal
           onClose={() => setShowTmdbSearch(false)}
+          onBack={() => { setShowTmdbSearch(false); setShowNewChoice(true) }}
           onCreate={(col) => navigate(`/collections/${col.id}`)}
         />
       )}
@@ -384,6 +385,7 @@ export default function Collections() {
       {showMdblist && (
         <MdblistModal
           onClose={() => setShowMdblist(false)}
+          onBack={() => { setShowMdblist(false); setShowNewChoice(true) }}
           onCreate={(col) => navigate(`/collections/${col.id}`)}
         />
       )}
@@ -391,6 +393,7 @@ export default function Collections() {
       {showTrakt && (
         <TraktModal
           onClose={() => setShowTrakt(false)}
+          onBack={() => { setShowTrakt(false); setShowNewChoice(true) }}
           onCreate={(col) => navigate(`/collections/${col.id}`)}
         />
       )}
