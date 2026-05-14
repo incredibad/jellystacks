@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.23] — 2026-05-14
+
+### Changed
+- CollectionListRow: on mobile, hide description and show both type and sync status pills instead; description remains visible on desktop
+
+---
+
 ## [1.19.22] — 2026-05-14
 
 ### Fixed
