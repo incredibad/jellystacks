@@ -323,7 +323,7 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange, 
                         className="w-full flex items-center gap-2.5 px-3 py-2 text-red-400 hover:bg-red-400/10 hover:text-red-300 transition-colors"
                       >
                         <X size={13} />
-                        Remove from Collection
+                        Remove
                       </button>
                     )
                   )}

@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.15] — 2026-05-14
+
+### Fixed
+- MovieCard context menu: shorten "Remove from Collection" to "Remove" to prevent text wrapping to two lines
+
+---
+
 ## [1.19.14] — 2026-05-14
 
 ### Added
