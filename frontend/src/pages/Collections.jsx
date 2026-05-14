@@ -161,7 +161,7 @@ export default function Collections() {
   ).length
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       {/* Header */}
       <div className="flex items-start justify-between mb-5 gap-4 flex-wrap">
         <div>
@@ -184,9 +184,9 @@ export default function Collections() {
 
       {/* Filter + view toggle bar */}
       {!loading && collections.length > 0 && (
-        <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-          {/* Filter pills */}
-          <div className="flex items-center gap-1.5">
+        <div className="mb-5 flex flex-col gap-2.5">
+          {/* Filter pills — horizontally scrollable on mobile */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden">
             {[
               { key: 'all', label: `All (${collections.length})` },
               { key: 'jellyfin', label: `From Jellyfin (${jellyfinNative})` },
@@ -196,7 +196,7 @@ export default function Collections() {
               <button
                 key={key}
                 onClick={() => setFilter(key)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                   filter === key
                     ? 'bg-violet-600 text-white'
                     : 'text-slate-400 hover:text-white hover:bg-white/5 border border-slate-700'
@@ -207,35 +207,37 @@ export default function Collections() {
             ))}
           </div>
 
-          {/* Search */}
-          <div className="relative flex-1 max-w-xs">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search collections…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-7 pr-3 py-1.5 rounded-lg text-xs text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
-              style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
-            />
-          </div>
+          {/* Search + view toggle */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search collections…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-7 pr-3 py-1.5 rounded-lg text-xs text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-violet-500"
+                style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
+              />
+            </div>
 
-          {/* View toggle */}
-          <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-            <button
-              onClick={() => switchView('grid')}
-              title="Grid view"
-              className={`p-2 transition-colors ${view === 'grid' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              onClick={() => switchView('list')}
-              title="List view"
-              className={`p-2 transition-colors ${view === 'list' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            >
-              <LayoutList size={15} />
-            </button>
+            {/* View toggle */}
+            <div className="flex items-center rounded-lg overflow-hidden flex-shrink-0" style={{ border: '1px solid var(--border)' }}>
+              <button
+                onClick={() => switchView('grid')}
+                title="Grid view"
+                className={`p-2 transition-colors ${view === 'grid' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                onClick={() => switchView('list')}
+                title="List view"
+                className={`p-2 transition-colors ${view === 'list' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              >
+                <LayoutList size={15} />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -265,7 +267,7 @@ export default function Collections() {
           </p>
         </div>
       ) : view === 'grid' ? (
-        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
+        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
           {filtered.map(col => (
             <CollectionCard
               key={col.id}

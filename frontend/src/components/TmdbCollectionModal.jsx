@@ -92,7 +92,7 @@ export default function TmdbCollectionModal({ onClose, onCreate }) {
           /* Detail view */
           <div className="flex flex-col flex-1 overflow-hidden">
             <div className="overflow-y-auto flex-1 p-5">
-              <div className="flex gap-4 mb-5">
+              <div className="flex flex-col sm:flex-row gap-4 mb-5">
                 {detail.poster_thumb ? (
                   <img src={detail.poster_thumb} alt="" className="w-24 rounded-lg object-cover flex-shrink-0 self-start" />
                 ) : (

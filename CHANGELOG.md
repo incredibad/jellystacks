@@ -4,6 +4,23 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.8] — 2026-05-14
+
+### Changed
+- Full mobile responsiveness pass across all pages and major components:
+  - Outer page padding reduced on small screens (`p-4` on mobile, `p-8` on sm+) across Dashboard, Collections, Movies, Shows, Settings, and CollectionDetail
+  - Collections filter bar restructured to stack on mobile — pills scroll horizontally, search + view toggle on a second row
+  - Settings tab bar made horizontally scrollable on mobile (was clipped with `max-w-xl`)
+  - CollectionDetail header stacks artwork above info on mobile, with centred alignment; actions row also centred
+  - Collection/movie/show item grids: minimum card width reduced from 160 px to 140 px to fit narrow phones
+  - ArtworkPicker split layout (left panel + image grid) stacks vertically on mobile; left panel height capped at 38 vh; image grid changed from hardcoded 4 columns to `grid-cols-2 sm:grid-cols-3 md:grid-cols-4`
+  - BulkArtworkModal review table wrapped in horizontal scroll container so it never overflows on mobile
+  - MovieListRow remove button and artwork hover overlay always visible on touch devices (hover-only behaviour limited to `md:` and above)
+  - TmdbCollectionModal detail view stacks poster and description vertically on mobile
+  - MdblistModal list items hide the likes count on mobile to prevent crowding
+
+---
+
 ## [1.19.7] — 2026-05-12
 
 ### Changed

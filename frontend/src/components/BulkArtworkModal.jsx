@@ -283,8 +283,8 @@ export default function BulkArtworkModal({ onClose }) {
         {/* Review stage */}
         {stage === 'review' && (
           <>
-            <div className="flex-1 overflow-y-auto">
-              <table className="w-full text-sm">
+            <div className="flex-1 overflow-y-auto overflow-x-auto">
+              <table className="w-full min-w-[600px] text-sm">
                 <thead>
                   <tr className="text-xs text-slate-500 uppercase tracking-wider" style={{ borderBottom: '1px solid var(--border)' }}>
                     <th className="px-4 py-2.5 w-8">

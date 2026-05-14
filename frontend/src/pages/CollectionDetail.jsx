@@ -446,7 +446,7 @@ export default function CollectionDetail() {
     new Date(collection.updated_at) > new Date(collection.jellyfin_synced_at)
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       {/* Back */}
       <Link to="/collections" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-violet-400 transition-colors mb-6">
         <ArrowLeft size={15} />
@@ -454,7 +454,7 @@ export default function CollectionDetail() {
       </Link>
 
       {/* Collection header */}
-      <div className="flex items-start gap-6 mb-6" style={{ flexWrap: 'wrap' }}>
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6">
         {/* Artwork */}
         <div className="relative group flex-shrink-0">
           <div
@@ -511,8 +511,8 @@ export default function CollectionDetail() {
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0 py-1">
-          <div className="flex items-center gap-3 mb-1 flex-wrap">
+        <div className="flex-1 min-w-0 py-1 w-full sm:w-auto text-center sm:text-left">
+          <div className="flex items-center justify-center sm:justify-start gap-3 mb-1 flex-wrap">
             {collection.is_jellyfin_native && (
               <button
                 onClick={async () => {
@@ -600,7 +600,7 @@ export default function CollectionDetail() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
             <button
               onClick={handlePush}
               disabled={pushing || (collection.movie_count + (collection.show_count || 0)) === 0 || (collection.in_jellyfin && !needsSync)}
@@ -788,7 +788,7 @@ export default function CollectionDetail() {
               <p className="text-sm">No movies in this collection yet.</p>
             </div>
           ) : view === 'grid' ? (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
               {sortedMovies.map(movie => (
                 <div key={movie.id} className="relative group">
                   <MovieCard
@@ -842,7 +842,7 @@ export default function CollectionDetail() {
             <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-3">Shows</h3>
           )}
           {view === 'grid' ? (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
               {sortedShows.map(show => (
                 <div key={show.id} className="relative group">
                   <MovieCard
@@ -962,7 +962,7 @@ export default function CollectionDetail() {
           </button>
 
           {showUnowned && (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
               {unownedMovies.map(movie => (
                 <UnownedMovieCard key={movie.tmdb_id} movie={movie} />
               ))}
