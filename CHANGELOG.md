@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.5] — 2026-05-14
+
+### Changed
+- Trakt list preview: `total_items` now counts only movies and shows (not episodes, seasons, etc.); summary line updated to "movies/shows" and shows "· episodes excluded" when the list contained non-importable types
+
+---
+
 ## [1.21.4] — 2026-05-14
 
 ### Fixed

@@ -164,8 +164,11 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
                 <div>
                   <p className="text-xs font-medium text-slate-500 mb-2">
                     {ownedCount > 0
-                      ? <><span className="text-emerald-400">{ownedCount}</span> of {preview.total_items} items in your library</>
-                      : `${preview.total_items} items — none in your library`}
+                      ? <><span className="text-emerald-400">{ownedCount}</span> of {preview.total_items} movies/shows in your library</>
+                      : `${preview.total_items} movies/shows — none in your library`}
+                    {preview.filtered && (
+                      <span className="text-slate-600"> · episodes excluded</span>
+                    )}
                   </p>
                   <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
                     {(preview.items || []).slice(0, previewVisible).map((item, i) => (
