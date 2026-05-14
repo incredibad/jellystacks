@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.13] — 2026-05-14
+
+### Fixed
+- CollectionDetail: collection name and description now correctly centre on mobile — the EditableField button was `text-left` with no width, preventing parent `text-center` from taking effect; fixed with `w-full justify-center sm:justify-start`
+
+---
+
 ## [1.19.12] — 2026-05-14
 
 ### Fixed

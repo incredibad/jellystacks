@@ -60,7 +60,7 @@ function EditableField({ label, value, onSave, multiline = false }) {
   return (
     <button
       onClick={() => { setDraft(value || ''); setEditing(true) }}
-      className="group flex items-center gap-2 text-left hover:text-slate-200 transition-colors"
+      className="group flex items-center justify-center sm:justify-start gap-2 w-full hover:text-slate-200 transition-colors"
     >
       <span className={!value ? 'text-slate-600 italic text-sm' : ''}>
         {value || `Add ${label.toLowerCase()}…`}
