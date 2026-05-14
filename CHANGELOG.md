@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.1] — 2026-05-14
+
+### Fixed
+- TraktModal and MdblistModal: preview item list now infinite-scrolls (50 per batch) so large lists render incrementally
+- Trakt: list items fetch now paginates via `X-Pagination-Page-Count` headers in both the preview endpoint and scheduled refresh, fixing the 100-item cap on large lists
+
+---
+
 ## [1.21.0] — 2026-05-14
 
 ### Changed

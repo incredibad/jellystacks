@@ -28,6 +28,28 @@ def _get_client_id(db: Session) -> str:
     return cid
 
 
+async def _fetch_all_trakt_items(trakt_id: int, client_id: str) -> list:
+    """Fetch every item in a Trakt list, following pagination headers."""
+    all_items = []
+    page = 1
+    page_size = 1000
+    async with httpx.AsyncClient(timeout=30) as client:
+        while True:
+            resp = await client.get(
+                f"{_TRAKT_BASE}/lists/{trakt_id}/items",
+                headers=_trakt_headers(client_id),
+                params={"limit": page_size, "page": page},
+            )
+            if resp.status_code != 200:
+                break
+            all_items.extend(resp.json())
+            page_count = int(resp.headers.get("X-Pagination-Page-Count", 1))
+            if page >= page_count:
+                break
+            page += 1
+    return all_items
+
+
 def _normalise_list(lst: dict) -> dict:
     """Flatten a Trakt list object into a consistent shape for the frontend."""
     return {
@@ -82,25 +104,9 @@ async def preview_list(
     _: models.User = Depends(get_current_user),
 ):
     client_id = _get_client_id(db)
-    all_items = []
-    page = 1
-    page_size = 1000
-    async with httpx.AsyncClient(timeout=30) as client:
-        while True:
-            resp = await client.get(
-                f"{_TRAKT_BASE}/lists/{trakt_id}/items",
-                headers=_trakt_headers(client_id),
-                params={"limit": page_size, "page": page},
-            )
-            if resp.status_code != 200:
-                raise HTTPException(502, "Failed to fetch Trakt list items.")
-            page_items = resp.json()
-            all_items.extend(page_items)
-            page_count = int(resp.headers.get("X-Pagination-Page-Count", 1))
-            if page >= page_count:
-                break
-            page += 1
-    items_raw = all_items
+    items_raw = await _fetch_all_trakt_items(trakt_id, client_id)
+    if not items_raw:
+        raise HTTPException(502, "Failed to fetch Trakt list items.")
 
     items_raw = resp.json()
     movie_tmdb_ids = set()

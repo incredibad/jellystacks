@@ -129,19 +129,15 @@ async def _refresh_mdblist(col: models.Collection, api_key: str, db: Session,
 
 async def _refresh_trakt(col: models.Collection, client_id: str, db: Session,
                          jf_url: str | None = None, jf_key: str | None = None) -> dict:
-    from routers.trakt import _trakt_headers
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(
-            f"{_TRAKT_BASE}/lists/{col.trakt_list_id}/items",
-            headers=_trakt_headers(client_id),
-        )
-    if resp.status_code != 200:
-        return {"ok": False, "error": f"Trakt HTTP {resp.status_code}"}
+    from routers.trakt import _fetch_all_trakt_items
+    entries = await _fetch_all_trakt_items(col.trakt_list_id, client_id)
+    if not entries:
+        return {"ok": False, "error": "No items returned from Trakt"}
 
     movie_tmdb_ids = set()
     show_tmdb_ids = set()
     total = 0
-    for entry in resp.json():
+    for entry in entries:
         t = entry.get("type")
         obj = entry.get(t) or {}
         tmdb = str((obj.get("ids") or {}).get("tmdb") or "")
