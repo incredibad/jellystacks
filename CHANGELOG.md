@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.22] — 2026-05-14
+
+### Fixed
+- CollectionListRow: description line now truncates to one line with ellipsis
+
+---
+
 ## [1.19.21] — 2026-05-14
 
 ### Fixed
