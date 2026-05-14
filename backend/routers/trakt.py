@@ -149,9 +149,12 @@ async def preview_list(
         [make_item(o, "show", owned_show_ids) for o in shows_raw]
     )
 
+    total_raw = len(items_raw)
+    total_shown = len(movies_raw) + len(shows_raw)
     return {
         "movie_count": len(owned_movie_ids),
         "show_count": len(owned_show_ids),
-        "total_items": len(items_raw),
+        "total_items": total_shown,
+        "filtered": total_shown < total_raw,
         "items": items,
     }
