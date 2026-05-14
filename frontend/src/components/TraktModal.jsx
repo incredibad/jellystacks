@@ -18,7 +18,6 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
   const [previewVisible, setPreviewVisible] = useState(50)
   const timer = useRef(null)
   const sentinelRef = useRef(null)
-  const previewSentinelRef = useRef(null)
 
   useEffect(() => {
     api.get('/trakt/trending')
@@ -37,15 +36,12 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
     return () => obs.disconnect()
   })
 
-  useEffect(() => {
-    const el = previewSentinelRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) setPreviewVisible(c => c + 50)
-    }, { rootMargin: '200px' })
-    obs.observe(el)
-    return () => obs.disconnect()
-  })
+  const handlePreviewScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop - clientHeight < 300) {
+      setPreviewVisible(c => c + 50)
+    }
+  }
 
   const doSearch = async (q) => {
     if (!q.trim()) { setResults([]); setVisibleCount(15); return }
@@ -140,7 +136,7 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
         {selected ? (
           /* Preview / confirm view */
           <div className="flex flex-col flex-1 overflow-hidden">
-            <div className="overflow-y-auto flex-1 p-5 space-y-4">
+            <div className="overflow-y-auto flex-1 p-5 space-y-4" onScroll={handlePreviewScroll}>
               {/* List meta */}
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(237,28,36,0.15)' }}>
@@ -194,9 +190,6 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
                         </span>
                       </div>
                     ))}
-                    {previewVisible < (preview.items || []).length && (
-                      <div ref={previewSentinelRef} className="h-4" />
-                    )}
                   </div>
                 </div>
               )}
