@@ -127,8 +127,8 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
               <span className="px-2 py-0.5 rounded text-white text-xs font-black tracking-wider" style={{ background: '#ed1c24' }}>
                 TRAKT
               </span>
-              <h2 className="text-lg font-semibold text-white">
-                {selected ? selected.name : 'Trakt'}
+              <h2 className="text-lg font-semibold text-white truncate max-w-[220px]">
+                {selected ? selected.name : 'Lists'}
               </h2>
             </div>
           </div>

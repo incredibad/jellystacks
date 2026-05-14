@@ -124,9 +124,14 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
                 <ChevronLeft size={18} />
               </button>
             )}
-            <h2 className="text-lg font-semibold text-white">
-              {selected ? selected.name : 'MDBList'}
-            </h2>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded text-white text-xs font-black tracking-wider" style={{ background: '#e8711a' }}>
+                MDBLIST
+              </span>
+              <h2 className="text-lg font-semibold text-white truncate max-w-[220px]">
+                {selected ? selected.name : 'Lists'}
+              </h2>
+            </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
             <X size={20} />
