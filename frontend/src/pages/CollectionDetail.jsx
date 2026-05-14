@@ -650,7 +650,7 @@ export default function CollectionDetail() {
                       className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-40"
                     >
                       <RotateCcw size={14} className={revertingArtwork ? 'animate-spin' : ''} />
-                      Restore Original Artwork
+                      Restore Original Art
                     </button>
                     <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
                     <button
@@ -683,12 +683,24 @@ export default function CollectionDetail() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-normal text-white">Items</h2>
-            {collection.movie_count > 0 && (
-              <span className="text-xs text-slate-500">{collection.movie_count} {collection.movie_count === 1 ? 'movie' : 'movies'}</span>
-            )}
-            {(collection.show_count || 0) > 0 && (
-              <span className="text-xs text-slate-500">{collection.show_count} {collection.show_count === 1 ? 'show' : 'shows'}</span>
-            )}
+            <span className="text-xs text-slate-500">
+              {(() => {
+                const mc = collection.movie_count
+                const sc = collection.show_count || 0
+                if (collection.mdblist_list_id && collection.mdblist_total_items) {
+                  return `${mc + sc}/${collection.mdblist_total_items} items`
+                }
+                if (collection.tmdb_collection_id && collection.tmdb_total_parts) {
+                  const parts = [`${mc}/${collection.tmdb_total_parts} movies`]
+                  if (sc > 0) parts.push(`${sc} ${sc === 1 ? 'show' : 'shows'}`)
+                  return parts.join(' · ')
+                }
+                const parts = []
+                if (mc > 0) parts.push(`${mc} ${mc === 1 ? 'movie' : 'movies'}`)
+                if (sc > 0) parts.push(`${sc} ${sc === 1 ? 'show' : 'shows'}`)
+                return parts.join(' · ')
+              })()}
+            </span>
           </div>
           {!isLocked && (
             <button

@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.19] — 2026-05-14
+
+### Changed
+- CollectionDetail: Items heading now shows a verbose count (e.g. `4/6 movies`, `12/20 items`, `3 movies · 1 show`) instead of two bare count spans
+- CollectionDetail: "Restore Original Artwork" shortened to "Restore Original Art" in the settings dropdown
+
+---
+
 ## [1.19.18] — 2026-05-14
 
 ### Fixed
