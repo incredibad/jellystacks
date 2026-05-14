@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, X, ChevronLeft, Plus, List, Check, Heart, Film } from 'lucide-react'
+import { Search, X, ChevronLeft, Plus, List, Check, Heart } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -255,10 +255,7 @@ export default function TraktModal({ onClose, onCreate }) {
                         </div>
                         <div className="flex items-center gap-2.5 flex-shrink-0 text-xs text-slate-500 tabular-nums">
                           {result.item_count > 0 && (
-                            <span className="flex items-center gap-0.5">
-                              <Film size={10} />
-                              {result.item_count}
-                            </span>
+                            <span>{result.item_count} items</span>
                           )}
                           {result.likes > 0 && (
                             <span className="flex items-center gap-0.5">

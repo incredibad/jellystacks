@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.20.3] — 2026-05-14
+
+### Changed
+- TraktModal: show item count as plain text ("250 items") instead of icon + number
+
+---
+
 ## [1.20.2] — 2026-05-14
 
 ### Fixed
