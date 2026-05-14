@@ -796,27 +796,18 @@ export default function CollectionDetail() {
           ) : view === 'grid' ? (
             <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
               {sortedMovies.map(movie => (
-                <div key={movie.id} className="relative group">
-                  <MovieCard
-                    movie={movie}
-                    onArtworkChange={(updated) => {
-                      const field = updated.media_type === 'show' ? 'shows' : 'movies'
-                      setCollection(prev => ({
-                        ...prev,
-                        [field]: prev[field].map(item => item.id === updated.id ? updated : item)
-                      }))
-                    }}
-                  />
-                  {!isLocked && (
-                    <button
-                      onClick={() => handleRemoveMovie(movie.id)}
-                      className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-400 shadow-lg"
-                      title="Remove from collection"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
+                <MovieCard
+                  key={movie.id}
+                  movie={movie}
+                  onArtworkChange={(updated) => {
+                    const field = updated.media_type === 'show' ? 'shows' : 'movies'
+                    setCollection(prev => ({
+                      ...prev,
+                      [field]: prev[field].map(item => item.id === updated.id ? updated : item)
+                    }))
+                  }}
+                  onRemove={!isLocked ? handleRemoveMovie : undefined}
+                />
               ))}
             </div>
           ) : (
@@ -850,27 +841,18 @@ export default function CollectionDetail() {
           {view === 'grid' ? (
             <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
               {sortedShows.map(show => (
-                <div key={show.id} className="relative group">
-                  <MovieCard
-                    movie={show}
-                    onArtworkChange={(updated) => {
-                      const field = updated.media_type === 'show' ? 'shows' : 'movies'
-                      setCollection(prev => ({
-                        ...prev,
-                        [field]: prev[field].map(item => item.id === updated.id ? updated : item)
-                      }))
-                    }}
-                  />
-                  {!isLocked && (
-                    <button
-                      onClick={() => handleRemoveShow(show.id)}
-                      className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-400 shadow-lg"
-                      title="Remove from collection"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
+                <MovieCard
+                  key={show.id}
+                  movie={show}
+                  onArtworkChange={(updated) => {
+                    const field = updated.media_type === 'show' ? 'shows' : 'movies'
+                    setCollection(prev => ({
+                      ...prev,
+                      [field]: prev[field].map(item => item.id === updated.id ? updated : item)
+                    }))
+                  }}
+                  onRemove={!isLocked ? handleRemoveShow : undefined}
+                />
               ))}
             </div>
           ) : (

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Film, Upload, Image as ImageIcon, Loader, RotateCcw } from 'lucide-react'
+import { Film, Upload, Image as ImageIcon, Loader, RotateCcw, MoreVertical, X } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import { libraryColor } from '../utils/libraryColor'
@@ -8,23 +8,24 @@ import MediaArtworkModal from './MediaArtworkModal'
 const POSTER_MAX_DIM = 1000
 const SIZE_THRESHOLD = 2 * 1024 * 1024
 
-export default function MovieCard({ movie, selected, onToggle, onArtworkChange }) {
+export default function MovieCard({ movie, selected, onToggle, onArtworkChange, onRemove }) {
   const [imgFailed, setImgFailed] = useState(false)
   const [cacheBuster, setCacheBuster] = useState(0)
   const [artworkModal, setArtworkModal] = useState(false)
   const [pendingUpload, setPendingUpload] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [localPreview, setLocalPreview] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
   const fileInputRef = useRef(null)
 
   const isShow = movie.media_type === 'show'
   const canEditArtwork = !!onArtworkChange && !onToggle
+  const hasMenu = canEditArtwork || !!onRemove
 
   const baseUrl = isShow
     ? `/api/shows/${movie.id}/poster`
     : `/api/movies/${movie.id}/poster`
-  // Stable buster from prop data so artwork shows correctly after cross-page navigation.
-  // Local files use 'local' — backend returns Cache-Control: no-store so re-uploads always fetch fresh.
   const stableBuster = movie.custom_artwork_url
     ? (movie.custom_artwork_url.startsWith('/data/') ? 'local' : encodeURIComponent(movie.custom_artwork_url).slice(-24))
     : null
@@ -108,14 +109,13 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
     setArtworkModal(false)
   }
 
-  const handleRevert = async (e) => {
-    e.stopPropagation()
+  const handleRevert = async () => {
+    closeMenu()
     setUploading(true)
     try {
       const endpoint = isShow ? `/shows/${movie.id}/artwork` : `/movies/${movie.id}/artwork`
       const { data } = await api.delete(endpoint)
       onArtworkChange(data)
-      // JF re-scrape is async — poll every 3s for up to 12s to pick up the new poster
       const retry = (delay) => setTimeout(() => { setImgFailed(false); setCacheBuster(Date.now()) }, delay)
       retry(2000); retry(5000); retry(9000)
       toast.success('Reverted — fetching original poster…')
@@ -126,16 +126,21 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
     }
   }
 
+  const closeMenu = () => {
+    setMenuOpen(false)
+    setConfirmRemove(false)
+  }
+
   return (
     <div
       onClick={onToggle ? () => onToggle(movie) : undefined}
-      className={`relative rounded-xl overflow-hidden group transition-all ${
+      className={`relative rounded-xl group transition-all ${
         onToggle ? 'cursor-pointer' : ''
       } ${selected ? 'ring-2 ring-violet-500' : ''}`}
       style={{ background: 'var(--surface)' }}
     >
-      {/* Poster */}
-      <div className="aspect-[2/3] relative overflow-hidden bg-slate-800">
+      {/* Poster — rounded-t-xl clips image to top corners of card */}
+      <div className="aspect-[2/3] relative overflow-hidden bg-slate-800 rounded-t-xl">
         {imgFailed && !localPreview ? (
           <div className="w-full h-full flex items-center justify-center">
             <Film size={32} className="text-slate-600" />
@@ -188,7 +193,7 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
           </div>
         )}
 
-        {/* Artwork edit overlay */}
+        {/* Artwork edit overlay — desktop hover only */}
         {canEditArtwork && !uploading && (
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
             <button
@@ -207,7 +212,7 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
             </button>
             {movie.custom_artwork_url && (
               <button
-                onClick={handleRevert}
+                onClick={e => { e.stopPropagation(); handleRevert() }}
                 className="flex flex-col items-center gap-1 text-white text-[10px] hover:text-rose-300 transition-colors"
               >
                 <RotateCcw size={16} />
@@ -224,8 +229,13 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
       </div>
 
       {/* Info */}
-      <div className="p-2.5">
-        <p className="text-sm font-medium text-slate-200 truncate leading-snug" title={movie.title}>{movie.title}</p>
+      <div className="p-2.5 relative">
+        <p
+          className={`text-sm font-medium text-slate-200 truncate leading-snug ${hasMenu ? 'pr-5' : ''}`}
+          title={movie.title}
+        >
+          {movie.title}
+        </p>
         <div className="flex items-center gap-2 mt-1">
           {movie.year && (
             <span className="text-xs text-slate-500">{movie.year}</span>
@@ -237,6 +247,91 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange }
             <span className="text-xs text-amber-400">★ {movie.community_rating}</span>
           )}
         </div>
+
+        {/* 3-dots context menu */}
+        {hasMenu && (
+          <div className="absolute top-2 right-1.5">
+            <button
+              onClick={e => { e.stopPropagation(); if (menuOpen) { closeMenu() } else { setMenuOpen(true) } }}
+              className="p-0.5 rounded text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-colors"
+            >
+              <MoreVertical size={14} />
+            </button>
+
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={e => { e.stopPropagation(); closeMenu() }} />
+                <div
+                  className="absolute right-0 bottom-full mb-1 z-20 w-44 rounded-xl shadow-xl py-1 text-sm"
+                  style={{ background: '#1e1e30', border: '1px solid var(--border)' }}
+                >
+                  {canEditArtwork && (
+                    <>
+                      <button
+                        onClick={e => { e.stopPropagation(); setArtworkModal(true); closeMenu() }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-300 hover:bg-white/5 hover:text-violet-400 transition-colors"
+                      >
+                        <ImageIcon size={13} />
+                        Browse Artwork
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); closeMenu() }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-300 hover:bg-white/5 hover:text-violet-400 transition-colors"
+                      >
+                        <Upload size={13} />
+                        Upload Artwork
+                      </button>
+                      {movie.custom_artwork_url && (
+                        <button
+                          onClick={e => { e.stopPropagation(); handleRevert() }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-300 hover:bg-white/5 hover:text-slate-200 transition-colors"
+                        >
+                          <RotateCcw size={13} />
+                          Revert Artwork
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {canEditArtwork && onRemove && (
+                    <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
+                  )}
+
+                  {onRemove && (
+                    confirmRemove ? (
+                      <div className="px-3 py-2">
+                        <p className="text-xs text-red-400 mb-2">Remove from collection?</p>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={e => { e.stopPropagation(); onRemove(movie.id); closeMenu() }}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-400 transition-colors"
+                          >
+                            Remove
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); setConfirmRemove(false) }}
+                            className="flex-1 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                            style={{ border: '1px solid var(--border)' }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={e => { e.stopPropagation(); setConfirmRemove(true) }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-red-400 hover:bg-red-400/10 hover:text-red-300 transition-colors"
+                      >
+                        <X size={13} />
+                        Remove from Collection
+                      </button>
+                    )
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Hidden file input */}

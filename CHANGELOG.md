@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.14] — 2026-05-14
+
+### Added
+- MovieCard: 3-dots context menu in the card's info section exposes Browse Artwork, Upload Artwork, Revert Artwork, and Remove from Collection actions — making them accessible on mobile where hover overlays don't work; Remove includes an inline confirmation step; CollectionDetail grid view updated to pass `onRemove` via prop instead of a hover-only external X button
+
+---
+
 ## [1.19.13] — 2026-05-14
 
 ### Fixed
