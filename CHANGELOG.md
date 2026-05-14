@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.16] — 2026-05-14
+
+### Fixed
+- MovieCard: restore hover X button in poster top-right corner for desktop remove — was lost when the external wrapper was replaced with the onRemove prop
+
+---
+
 ## [1.19.15] — 2026-05-14
 
 ### Fixed
