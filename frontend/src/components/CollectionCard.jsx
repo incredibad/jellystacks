@@ -149,8 +149,8 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
       </Link>
 
       {/* Info + actions */}
-      <div className="p-3 flex items-start justify-between gap-2">
-        <div className="min-w-0">
+      <div className="p-3 relative">
+        <div className="min-w-0 pr-7 text-center sm:text-left">
           <Link to={`/collections/${collection.id}`}>
             <h3 className="text-sm font-normal text-slate-200 truncate hover:text-violet-400 transition-colors">
               {collection.name}
@@ -162,7 +162,7 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
         </div>
 
         {/* Context menu */}
-        <div className="relative flex-shrink-0">
+        <div className="absolute top-2 right-2">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
