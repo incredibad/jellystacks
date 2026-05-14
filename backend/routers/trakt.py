@@ -82,13 +82,25 @@ async def preview_list(
     _: models.User = Depends(get_current_user),
 ):
     client_id = _get_client_id(db)
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(
-            f"{_TRAKT_BASE}/lists/{trakt_id}/items",
-            headers=_trakt_headers(client_id),
-        )
-    if resp.status_code != 200:
-        raise HTTPException(502, "Failed to fetch Trakt list items.")
+    all_items = []
+    page = 1
+    page_size = 1000
+    async with httpx.AsyncClient(timeout=30) as client:
+        while True:
+            resp = await client.get(
+                f"{_TRAKT_BASE}/lists/{trakt_id}/items",
+                headers=_trakt_headers(client_id),
+                params={"limit": page_size, "page": page},
+            )
+            if resp.status_code != 200:
+                raise HTTPException(502, "Failed to fetch Trakt list items.")
+            page_items = resp.json()
+            all_items.extend(page_items)
+            page_count = int(resp.headers.get("X-Pagination-Page-Count", 1))
+            if page >= page_count:
+                break
+            page += 1
+    items_raw = all_items
 
     items_raw = resp.json()
     movie_tmdb_ids = set()

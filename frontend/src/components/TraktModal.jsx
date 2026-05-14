@@ -14,7 +14,9 @@ export default function TraktModal({ onClose, onCreate }) {
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [name, setName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(15)
   const timer = useRef(null)
+  const sentinelRef = useRef(null)
 
   useEffect(() => {
     api.get('/trakt/trending')
@@ -23,12 +25,23 @@ export default function TraktModal({ onClose, onCreate }) {
       .finally(() => setLoadingTrending(false))
   }, [])
 
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) setVisibleCount(c => c + 15)
+    }, { rootMargin: '150px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  })
+
   const doSearch = async (q) => {
-    if (!q.trim()) { setResults([]); return }
+    if (!q.trim()) { setResults([]); setVisibleCount(15); return }
     setSearching(true)
     try {
       const { data } = await api.get('/trakt/search', { params: { query: q } })
       setResults(Array.isArray(data) ? [...data].sort((a, b) => (b.likes || 0) - (a.likes || 0)) : [])
+      setVisibleCount(15)
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Search failed.')
     } finally {
@@ -232,40 +245,44 @@ export default function TraktModal({ onClose, onCreate }) {
                 if (isSearch && displayList.length === 0) {
                   return <div className="text-center py-12 text-slate-500 text-sm">No lists found.</div>
                 }
+                const visibleItems = displayList.slice(0, visibleCount)
+                const hasMore = displayList.length > visibleCount
                 return (
                   <div className="space-y-1">
                     {!isSearch && (
                       <p className="px-2.5 pt-1 pb-0.5 text-[11px] font-medium text-slate-500 uppercase tracking-wider">Trending Lists</p>
                     )}
-                    {displayList.map(result => (
+                    {visibleItems.map(result => (
                       <button
                         key={result.id}
                         onClick={() => handleSelect(result)}
-                        className="w-full flex items-center gap-3 p-2.5 rounded-lg text-left hover:bg-white/5 transition-colors"
+                        className="w-full flex items-start gap-3 p-2.5 rounded-lg text-left hover:bg-white/5 transition-colors"
                       >
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(237,28,36,0.15)' }}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(237,28,36,0.15)' }}>
                           <List size={14} style={{ color: '#ed1c24' }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-200 truncate">{result.name}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium text-slate-200 truncate">{result.name}</p>
+                            <div className="flex items-center gap-2.5 flex-shrink-0 text-xs text-slate-500 tabular-nums">
+                              {result.item_count > 0 && (
+                                <span>{result.item_count} Items</span>
+                              )}
+                              {result.likes > 0 && (
+                                <span className="flex items-center gap-0.5">
+                                  <Heart size={10} />
+                                  {result.likes}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                           <p className="text-xs text-slate-500 truncate mt-0.5">
-                            by {result.username}
-                            {result.description ? ` · ${result.description}` : ''}
+                            {result.username}{result.description ? ` · ${result.description}` : ''}
                           </p>
-                        </div>
-                        <div className="flex items-center gap-2.5 flex-shrink-0 text-xs text-slate-500 tabular-nums">
-                          {result.item_count > 0 && (
-                            <span>{result.item_count} items</span>
-                          )}
-                          {result.likes > 0 && (
-                            <span className="flex items-center gap-0.5">
-                              <Heart size={10} />
-                              {result.likes}
-                            </span>
-                          )}
                         </div>
                       </button>
                     ))}
+                    {hasMore && <div ref={sentinelRef} className="h-4" />}
                   </div>
                 )
               })()}
