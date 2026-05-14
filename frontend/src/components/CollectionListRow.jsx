@@ -72,7 +72,7 @@ export default function CollectionListRow({ collection, onPush, onDelete }) {
             {collection.name}
           </span>
         </Link>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <p className="text-xs text-slate-500 mt-0.5 truncate">
           {(() => {
             const mc = collection.movie_count
             const sc = collection.show_count || 0
