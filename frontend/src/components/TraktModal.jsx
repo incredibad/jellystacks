@@ -15,8 +15,10 @@ export default function TraktModal({ onClose, onCreate }) {
   const [name, setName] = useState('')
   const [creating, setCreating] = useState(false)
   const [visibleCount, setVisibleCount] = useState(15)
+  const [previewVisible, setPreviewVisible] = useState(50)
   const timer = useRef(null)
   const sentinelRef = useRef(null)
+  const previewSentinelRef = useRef(null)
 
   useEffect(() => {
     api.get('/trakt/trending')
@@ -31,6 +33,16 @@ export default function TraktModal({ onClose, onCreate }) {
     const obs = new IntersectionObserver(([e]) => {
       if (e.isIntersecting) setVisibleCount(c => c + 15)
     }, { rootMargin: '150px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  })
+
+  useEffect(() => {
+    const el = previewSentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) setPreviewVisible(c => c + 50)
+    }, { rootMargin: '200px' })
     obs.observe(el)
     return () => obs.disconnect()
   })
@@ -59,6 +71,7 @@ export default function TraktModal({ onClose, onCreate }) {
   const handleSelect = async (list) => {
     setSelected(list)
     setName(list.name)
+    setPreviewVisible(50)
     setLoadingPreview(true)
     try {
       const { data } = await api.get(`/trakt/lists/${list.id}/preview`)
@@ -159,7 +172,7 @@ export default function TraktModal({ onClose, onCreate }) {
                       : `${preview.total_items} items — none in your library`}
                   </p>
                   <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                    {(preview.items || []).map((item, i) => (
+                    {(preview.items || []).slice(0, previewVisible).map((item, i) => (
                       <div
                         key={i}
                         className="flex items-center gap-2 px-3 py-1.5 border-b last:border-b-0"
@@ -181,6 +194,9 @@ export default function TraktModal({ onClose, onCreate }) {
                         </span>
                       </div>
                     ))}
+                    {previewVisible < (preview.items || []).length && (
+                      <div ref={previewSentinelRef} className="h-4" />
+                    )}
                   </div>
                 </div>
               )}
