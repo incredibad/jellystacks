@@ -226,6 +226,17 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange, 
             <Loader size={16} className="animate-spin text-white" />
           </div>
         )}
+
+        {/* Remove button — top-right corner on desktop hover */}
+        {onRemove && !onToggle && (
+          <button
+            onClick={e => { e.stopPropagation(); onRemove(movie.id) }}
+            className="absolute top-1.5 right-1.5 z-20 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-400 shadow-lg"
+            title="Remove from collection"
+          >
+            <X size={12} />
+          </button>
+        )}
       </div>
 
       {/* Info */}
