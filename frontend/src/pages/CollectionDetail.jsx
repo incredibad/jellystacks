@@ -60,7 +60,7 @@ function EditableField({ label, value, onSave, multiline = false }) {
   return (
     <button
       onClick={() => { setDraft(value || ''); setEditing(true) }}
-      className="group flex items-center justify-center sm:justify-start gap-2 w-full hover:text-slate-200 transition-colors"
+      className="group flex items-center justify-center sm:justify-start gap-2 w-full text-center sm:text-left hover:text-slate-200 transition-colors"
     >
       <span className={!value ? 'text-slate-600 italic text-sm' : ''}>
         {value || `Add ${label.toLowerCase()}…`}
@@ -562,24 +562,6 @@ export default function CollectionDetail() {
                 MDBList
               </span>
             )}
-            <span className="text-xs text-slate-500">
-              {(() => {
-                const mc = collection.movie_count
-                const sc = collection.show_count || 0
-                const total = collection.mdblist_total_items
-                const parts = []
-                if (collection.mdblist_list_id && total) {
-                  const owned = mc + sc
-                  parts.push(`${owned}/${total} items`)
-                } else if (collection.tmdb_collection_id && collection.tmdb_total_parts) {
-                  parts.push(`${mc}/${collection.tmdb_total_parts} movies`)
-                } else {
-                  if (mc > 0) parts.push(`${mc} ${mc === 1 ? 'movie' : 'movies'}`)
-                  if (sc > 0) parts.push(`${sc} ${sc === 1 ? 'show' : 'shows'}`)
-                }
-                return parts.join(' · ') || 'Empty'
-              })()}
-            </span>
           </div>
 
           <h1 className="text-3xl font-bold text-white mb-2">
