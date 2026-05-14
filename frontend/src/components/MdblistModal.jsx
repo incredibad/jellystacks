@@ -14,7 +14,9 @@ export default function MdblistModal({ onClose, onCreate }) {
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [name, setName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(15)
   const timer = useRef(null)
+  const sentinelRef = useRef(null)
 
   useEffect(() => {
     api.get('/mdblist/top')
@@ -23,13 +25,24 @@ export default function MdblistModal({ onClose, onCreate }) {
       .finally(() => setLoadingTop(false))
   }, [])
 
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) setVisibleCount(c => c + 15)
+    }, { rootMargin: '150px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  })
+
   const doSearch = async (q) => {
-    if (!q.trim()) { setResults([]); return }
+    if (!q.trim()) { setResults([]); setVisibleCount(15); return }
     setSearching(true)
     try {
       const { data } = await api.get('/mdblist/search', { params: { query: q } })
       const list = Array.isArray(data) ? data : []
       setResults(list.sort((a, b) => (b.likes || 0) - (a.likes || 0)))
+      setVisibleCount(15)
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Search failed.')
     } finally {
@@ -227,48 +240,44 @@ export default function MdblistModal({ onClose, onCreate }) {
                 if (isSearch && displayList.length === 0) {
                   return <div className="text-center py-12 text-slate-500 text-sm">No lists found.</div>
                 }
+                const visibleItems = displayList.slice(0, visibleCount)
+                const hasMore = displayList.length > visibleCount
                 return (
                   <div className="space-y-1">
                     {!isSearch && (
                       <p className="px-2.5 pt-1 pb-0.5 text-[11px] font-medium text-slate-500 uppercase tracking-wider">Top Lists</p>
                     )}
-                    {displayList.map(result => {
-                      const mt = result.mediatype
-                      const badge = mt === 'movie'
-                        ? { label: 'Movies', cls: 'bg-blue-500/20 text-blue-300' }
-                        : mt === 'show'
-                        ? { label: 'Shows', cls: 'bg-emerald-500/20 text-emerald-300' }
-                        : { label: 'Mixed', cls: 'bg-violet-500/20 text-violet-300' }
-                      return (
-                        <button
-                          key={result.id}
-                          onClick={() => handleSelect(result)}
-                          className="w-full flex items-center gap-3 p-2.5 rounded-lg text-left hover:bg-white/5 transition-colors"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-violet-600/20 flex items-center justify-center flex-shrink-0">
-                            <List size={14} className="text-violet-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
+                    {visibleItems.map(result => (
+                      <button
+                        key={result.id}
+                        onClick={() => handleSelect(result)}
+                        className="w-full flex items-start gap-3 p-2.5 rounded-lg text-left hover:bg-white/5 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-violet-600/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <List size={14} className="text-violet-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-medium text-slate-200 truncate">{result.name}</p>
-                            <p className="text-xs text-slate-500 truncate mt-0.5">
-                              by {result.user_name}
-                              {result.description ? ` · ${result.description}` : ''}
-                            </p>
+                            <div className="flex items-center gap-2.5 flex-shrink-0 text-xs text-slate-500 tabular-nums">
+                              {result.items > 0 && (
+                                <span>{result.items} Items</span>
+                              )}
+                              {result.likes > 0 && (
+                                <span className="flex items-center gap-0.5">
+                                  <Heart size={10} />
+                                  {result.likes}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className={`w-14 text-center px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.cls}`}>
-                              {badge.label}
-                            </span>
-                            <span className="w-10 text-right text-xs text-slate-500 tabular-nums">
-                              {result.items != null ? `${result.items}` : ''}
-                            </span>
-                            <span className="hidden sm:flex w-8 items-center justify-end gap-0.5 text-xs text-slate-500 tabular-nums">
-                              {result.likes > 0 ? <><Heart size={10} />{result.likes}</> : null}
-                            </span>
-                          </div>
-                        </button>
-                      )
-                    })}
+                          <p className="text-xs text-slate-500 truncate mt-0.5">
+                            {result.user_name}{result.description ? ` · ${result.description}` : ''}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                    {hasMore && <div ref={sentinelRef} className="h-4" />}
                   </div>
                 )
               })()}

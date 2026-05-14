@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.0] — 2026-05-14
+
+### Changed
+- TraktModal and MdblistModal: redesigned list item rows — title and stats (item count + likes) on the first row, username and description on the second row
+- Both modals: results list now infinite-scrolls with lazy loading (15 items per batch)
+- Trakt list preview: fetch all items with full pagination (no longer capped at Trakt's default page size)
+
+---
+
 ## [1.20.3] — 2026-05-14
 
 ### Changed
