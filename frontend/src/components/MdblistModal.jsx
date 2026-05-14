@@ -255,14 +255,14 @@ export default function MdblistModal({ onClose, onCreate }) {
                               {result.description ? ` · ${result.description}` : ''}
                             </p>
                           </div>
-                          <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="flex items-center gap-2 flex-shrink-0">
                             <span className={`w-14 text-center px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.cls}`}>
                               {badge.label}
                             </span>
                             <span className="w-10 text-right text-xs text-slate-500 tabular-nums">
                               {result.items != null ? `${result.items}` : ''}
                             </span>
-                            <span className="w-8 text-right flex items-center justify-end gap-0.5 text-xs text-slate-500 tabular-nums">
+                            <span className="hidden sm:flex w-8 items-center justify-end gap-0.5 text-xs text-slate-500 tabular-nums">
                               {result.likes > 0 ? <><Heart size={10} />{result.likes}</> : null}
                             </span>
                           </div>

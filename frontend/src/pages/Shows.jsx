@@ -95,7 +95,7 @@ export default function Shows() {
   }, [search, activeLibrary, loading, loadingMore, fetchPage])
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -207,7 +207,7 @@ export default function Shows() {
       ) : (
         <>
           {view === 'grid' ? (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,200px))]">
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
               {shows.map(show => (
                 <MovieCard
                   key={show.id}
