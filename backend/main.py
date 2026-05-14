@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy import text, inspect as sa_inspect
 
 from database import Base, engine, SessionLocal
-from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router, tvdb as tvdb_router, bulk_artwork as bulk_artwork_router
+from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router, trakt as trakt_router, tvdb as tvdb_router, bulk_artwork as bulk_artwork_router
 import scheduler as collection_scheduler
 
 Base.metadata.create_all(bind=engine)
@@ -56,6 +56,10 @@ def _run_migrations():
             conn.execute(text("ALTER TABLE collections ADD COLUMN mdblist_list_id INTEGER"))
         if "mdblist_total_items" not in col_cols:
             conn.execute(text("ALTER TABLE collections ADD COLUMN mdblist_total_items INTEGER"))
+        if "trakt_list_id" not in col_cols:
+            conn.execute(text("ALTER TABLE collections ADD COLUMN trakt_list_id INTEGER"))
+        if "trakt_total_items" not in col_cols:
+            conn.execute(text("ALTER TABLE collections ADD COLUMN trakt_total_items INTEGER"))
 
         # One-time fix: native collections imported before v0.2.22 have updated_at
         # a few microseconds ahead of jellyfin_synced_at due to SQLAlchemy insert
@@ -105,6 +109,7 @@ app.include_router(collections.router,     prefix="/api/collections", tags=["col
 app.include_router(settings_router.router, prefix="/api/settings",    tags=["settings"])
 app.include_router(tmdb.router,            prefix="/api/tmdb",        tags=["tmdb"])
 app.include_router(mdblist_router.router,  prefix="/api/mdblist",     tags=["mdblist"])
+app.include_router(trakt_router.router,    prefix="/api/trakt",       tags=["trakt"])
 app.include_router(tvdb_router.router,          prefix="/api/tvdb",         tags=["tvdb"])
 app.include_router(bulk_artwork_router.router,  prefix="/api/artwork/bulk", tags=["artwork"])
 

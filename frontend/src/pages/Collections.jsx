@@ -7,6 +7,7 @@ import CollectionCard from '../components/CollectionCard'
 import CollectionListRow from '../components/CollectionListRow'
 import TmdbCollectionModal from '../components/TmdbCollectionModal'
 import MdblistModal from '../components/MdblistModal'
+import TraktModal from '../components/TraktModal'
 import { useOperations } from '../contexts/OperationsContext'
 
 const VIEW_KEY = 'jellystacks:collections-view'
@@ -87,6 +88,7 @@ export default function Collections() {
   const [showNewChoice, setShowNewChoice] = useState(false)
   const [showTmdbSearch, setShowTmdbSearch] = useState(false)
   const [showMdblist, setShowMdblist] = useState(false)
+  const [showTrakt, setShowTrakt] = useState(false)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'grid')
@@ -141,7 +143,8 @@ export default function Collections() {
     else if (filter === 'jellyfin') result = collections.filter(c => c.is_jellyfin_native)
     else if (filter === 'incomplete') result = collections.filter(c =>
       c.movie_count === 0 || (c.tmdb_total_parts && c.movie_count < c.tmdb_total_parts) ||
-      (c.mdblist_list_id && c.mdblist_total_items && (c.movie_count + (c.show_count || 0)) < c.mdblist_total_items)
+      (c.mdblist_list_id && c.mdblist_total_items && (c.movie_count + (c.show_count || 0)) < c.mdblist_total_items) ||
+      (c.trakt_list_id && c.trakt_total_items && (c.movie_count + (c.show_count || 0)) < c.trakt_total_items)
     )
     else result = collections
     if (search.trim()) {
@@ -338,6 +341,21 @@ export default function Collections() {
                   <p className="text-xs text-slate-500 mt-0.5">Import a curated list</p>
                 </div>
               </button>
+              <button
+                onClick={() => { setShowNewChoice(false); setShowTrakt(true) }}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl text-center hover:bg-white/5 transition-colors border border-slate-700 hover:border-red-500/40"
+              >
+                <span
+                  className="px-2 py-1 rounded text-white text-xs font-black tracking-wider"
+                  style={{ background: '#ed1c24' }}
+                >
+                  TRAKT
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-white">From Trakt</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Import a public Trakt list</p>
+                </div>
+              </button>
             </div>
             <button
               onClick={() => setShowNewChoice(false)}
@@ -366,6 +384,13 @@ export default function Collections() {
       {showMdblist && (
         <MdblistModal
           onClose={() => setShowMdblist(false)}
+          onCreate={(col) => navigate(`/collections/${col.id}`)}
+        />
+      )}
+
+      {showTrakt && (
+        <TraktModal
+          onClose={() => setShowTrakt(false)}
           onCreate={(col) => navigate(`/collections/${col.id}`)}
         />
       )}

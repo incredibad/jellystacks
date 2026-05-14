@@ -97,6 +97,8 @@ class Collection(Base):
     tmdb_total_parts = Column(Integer, nullable=True)  # Total movies in the TMDB franchise
     mdblist_list_id = Column(Integer, nullable=True)
     mdblist_total_items = Column(Integer, nullable=True)
+    trakt_list_id = Column(Integer, nullable=True)
+    trakt_total_items = Column(Integer, nullable=True)
     in_jellyfin = Column(Boolean, default=False)
     is_jellyfin_native = Column(Boolean, default=False)  # True = existed in Jellyfin before JellyStacks
     jellyfin_synced_at = Column(DateTime, nullable=True)

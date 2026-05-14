@@ -4,6 +4,19 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.20.0] — 2026-05-14
+
+### Added
+- Trakt integration: import public Trakt lists as managed collections with automatic refresh
+- Backend: new `/api/trakt` router (trending lists, list search, item preview); `POST /collections/from-trakt` creation endpoint; `_refresh_trakt` in the refresh engine; DB columns `trakt_list_id` / `trakt_total_items` with inline migration
+- Settings: Trakt Client ID field under Collection Sources
+- Collections page: "From Trakt" option in the new collection picker
+- `TraktModal` component (search + trending + item preview + create flow)
+- CollectionCard ribbon, CollectionListRow type pill, and CollectionDetail badge all show Trakt source in brand red (`#ed1c24`)
+- Trakt collections are treated as locked (no manual add/remove) and included in the incomplete filter and scheduled refresh
+
+---
+
 ## [1.19.23] — 2026-05-14
 
 ### Changed
