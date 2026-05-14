@@ -194,29 +194,42 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange, 
         )}
 
         {/* Artwork edit overlay — desktop hover only */}
-        {canEditArtwork && !uploading && (
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-            <button
-              onClick={e => { e.stopPropagation(); setArtworkModal(true) }}
-              className="flex flex-col items-center gap-1 text-white text-[10px] hover:text-violet-300 transition-colors"
-            >
-              <ImageIcon size={16} />
-              Browse
-            </button>
-            <button
-              onClick={e => { e.stopPropagation(); fileInputRef.current?.click() }}
-              className="flex flex-col items-center gap-1 text-white text-[10px] hover:text-violet-300 transition-colors"
-            >
-              <Upload size={16} />
-              Upload
-            </button>
-            {movie.custom_artwork_url && (
+        {(canEditArtwork || (onRemove && !onToggle)) && !uploading && (
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+            {canEditArtwork && (
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={e => { e.stopPropagation(); setArtworkModal(true) }}
+                  className="flex flex-col items-center gap-1 text-white text-[10px] hover:text-violet-300 transition-colors"
+                >
+                  <ImageIcon size={16} />
+                  Browse
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); fileInputRef.current?.click() }}
+                  className="flex flex-col items-center gap-1 text-white text-[10px] hover:text-violet-300 transition-colors"
+                >
+                  <Upload size={16} />
+                  Upload
+                </button>
+                {movie.custom_artwork_url && (
+                  <button
+                    onClick={e => { e.stopPropagation(); handleRevert() }}
+                    className="flex flex-col items-center gap-1 text-white text-[10px] hover:text-rose-300 transition-colors"
+                  >
+                    <RotateCcw size={16} />
+                    Revert
+                  </button>
+                )}
+              </div>
+            )}
+            {onRemove && !onToggle && (
               <button
-                onClick={e => { e.stopPropagation(); handleRevert() }}
-                className="flex flex-col items-center gap-1 text-white text-[10px] hover:text-rose-300 transition-colors"
+                onClick={e => { e.stopPropagation(); onRemove(movie.id) }}
+                className="flex flex-col items-center gap-1 text-rose-400 text-[10px] hover:text-rose-300 transition-colors"
               >
-                <RotateCcw size={16} />
-                Revert
+                <X size={16} />
+                Remove
               </button>
             )}
           </div>
@@ -225,17 +238,6 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange, 
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
             <Loader size={16} className="animate-spin text-white" />
           </div>
-        )}
-
-        {/* Remove button — top-right corner on desktop hover */}
-        {onRemove && !onToggle && (
-          <button
-            onClick={e => { e.stopPropagation(); onRemove(movie.id) }}
-            className="absolute top-1.5 right-1.5 z-20 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-400 shadow-lg"
-            title="Remove from collection"
-          >
-            <X size={12} />
-          </button>
         )}
       </div>
 

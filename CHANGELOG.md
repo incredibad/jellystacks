@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.17] — 2026-05-14
+
+### Changed
+- MovieCard: move hover Remove button from top-right corner into the poster overlay alongside Browse/Upload/Revert, on a second row below them
+
+---
+
 ## [1.19.16] — 2026-05-14
 
 ### Fixed
