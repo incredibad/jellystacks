@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.11] — 2026-05-14
+
+### Changed
+- CollectionCard: name and description text centred on mobile (`text-center sm:text-left`); context menu button made absolute so it no longer offsets the text
+
+---
+
 ## [1.19.10] — 2026-05-14
 
 ### Changed
