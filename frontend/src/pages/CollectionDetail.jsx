@@ -393,7 +393,7 @@ export default function CollectionDetail() {
 
   if (!collection) return null
 
-  const isLocked = !!(collection.tmdb_collection_id || collection.mdblist_list_id)
+  const isLocked = !!(collection.tmdb_collection_id || collection.mdblist_list_id || collection.trakt_list_id)
 
   const collectionLibraries = [...new Set([
     ...(collection.movies || []).map(m => m.library_name),
@@ -552,7 +552,7 @@ export default function CollectionDetail() {
                 <Film size={12} />
                 TMDB Collection
               </span>
-            ) : detectionDone && !collection.mdblist_list_id ? (
+            ) : detectionDone && !collection.mdblist_list_id && !collection.trakt_list_id ? (
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-pink-600 text-white">
                 Custom Collection
               </span>
@@ -560,6 +560,11 @@ export default function CollectionDetail() {
             {collection.mdblist_list_id && (
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white" style={{ background: '#f97316' }}>
                 MDBList
+              </span>
+            )}
+            {collection.trakt_list_id && (
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white" style={{ background: '#ed1c24' }}>
+                Trakt
               </span>
             )}
           </div>
@@ -689,6 +694,9 @@ export default function CollectionDetail() {
                 const sc = collection.show_count || 0
                 if (collection.mdblist_list_id && collection.mdblist_total_items) {
                   return `${mc + sc}/${collection.mdblist_total_items} items`
+                }
+                if (collection.trakt_list_id && collection.trakt_total_items) {
+                  return `${mc + sc}/${collection.trakt_total_items} items`
                 }
                 if (collection.tmdb_collection_id && collection.tmdb_total_parts) {
                   const parts = [`${mc}/${collection.tmdb_total_parts} movies`]

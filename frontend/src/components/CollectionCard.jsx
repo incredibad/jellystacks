@@ -33,6 +33,13 @@ function SourceRibbon({ collection }) {
         MDB
       </span>
     )
+  } else if (collection.trakt_list_id) {
+    bg = '#ed1c24'
+    content = (
+      <span style={{ fontSize: 10, fontWeight: 900, color: 'white', letterSpacing: 1, lineHeight: 1, fontFamily: 'system-ui, Arial, sans-serif', display: 'block' }}>
+        TRAKT
+      </span>
+    )
   } else if (collection.is_jellyfin_native) {
     bg = '#7c3aed'
     content = <JellyfinMark />
