@@ -788,7 +788,7 @@ export default function CollectionDetail() {
               <p className="text-sm">No movies in this collection yet.</p>
             </div>
           ) : view === 'grid' ? (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
               {sortedMovies.map(movie => (
                 <div key={movie.id} className="relative group">
                   <MovieCard
@@ -842,7 +842,7 @@ export default function CollectionDetail() {
             <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-3">Shows</h3>
           )}
           {view === 'grid' ? (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
               {sortedShows.map(show => (
                 <div key={show.id} className="relative group">
                   <MovieCard
@@ -962,7 +962,7 @@ export default function CollectionDetail() {
           </button>
 
           {showUnowned && (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
               {unownedMovies.map(movie => (
                 <UnownedMovieCard key={movie.tmdb_id} movie={movie} />
               ))}

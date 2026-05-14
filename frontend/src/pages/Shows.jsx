@@ -207,7 +207,7 @@ export default function Shows() {
       ) : (
         <>
           {view === 'grid' ? (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
               {shows.map(show => (
                 <MovieCard
                   key={show.id}
