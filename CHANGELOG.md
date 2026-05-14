@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.9] — 2026-05-14
+
+### Changed
+- Poster card grids now show exactly 2 columns on mobile across Collections, Movies, Shows, and CollectionDetail (including unowned section); auto-fill layout resumes at the `sm` breakpoint
+
+---
+
 ## [1.19.8] — 2026-05-14
 
 ### Changed
