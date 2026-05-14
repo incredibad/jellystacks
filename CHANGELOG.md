@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.20.1] — 2026-05-14
+
+### Changed
+- TraktModal: sort results by likes descending; show likes count with a heart icon
+
+---
+
 ## [1.20.0] — 2026-05-14
 
 ### Added

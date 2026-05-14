@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, X, ChevronLeft, Plus, List, Check } from 'lucide-react'
+import { Search, X, ChevronLeft, Plus, List, Check, Heart } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -18,7 +18,7 @@ export default function TraktModal({ onClose, onCreate }) {
 
   useEffect(() => {
     api.get('/trakt/trending')
-      .then(({ data }) => setTrending(Array.isArray(data) ? data : []))
+      .then(({ data }) => setTrending(Array.isArray(data) ? [...data].sort((a, b) => (b.likes || 0) - (a.likes || 0)) : []))
       .catch(() => {})
       .finally(() => setLoadingTrending(false))
   }, [])
@@ -28,7 +28,7 @@ export default function TraktModal({ onClose, onCreate }) {
     setSearching(true)
     try {
       const { data } = await api.get('/trakt/search', { params: { query: q } })
-      setResults(Array.isArray(data) ? data : [])
+      setResults(Array.isArray(data) ? [...data].sort((a, b) => (b.likes || 0) - (a.likes || 0)) : [])
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Search failed.')
     } finally {
@@ -253,8 +253,13 @@ export default function TraktModal({ onClose, onCreate }) {
                             {result.description ? ` · ${result.description}` : ''}
                           </p>
                         </div>
-                        <div className="flex items-center gap-3 flex-shrink-0 text-xs text-slate-500 tabular-nums">
-                          <span>{result.item_count ?? ''}</span>
+                        <div className="flex items-center gap-2 flex-shrink-0 text-xs text-slate-500 tabular-nums">
+                          {result.likes > 0 && (
+                            <span className="flex items-center gap-0.5">
+                              <Heart size={10} />
+                              {result.likes}
+                            </span>
+                          )}
                         </div>
                       </button>
                     ))}
