@@ -100,15 +100,9 @@ async def _refresh_tmdb(col: models.Collection, api_key: str, db: Session,
 
 async def _refresh_mdblist(col: models.Collection, api_key: str, db: Session,
                            jf_url: str | None = None, jf_key: str | None = None) -> dict:
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(
-            f"{_MDBLIST_BASE}/lists/{col.mdblist_list_id}/items",
-            params={"apikey": api_key},
-        )
-    if resp.status_code != 200:
-        return {"ok": False, "error": f"MDBList HTTP {resp.status_code}"}
-
-    movie_ids, show_ids, total, *_ = _split_raw_response(resp.json())
+    from routers.mdblist import _fetch_all_items
+    all_items = await _fetch_all_items(col.mdblist_list_id, api_key)
+    movie_ids, show_ids, total, *_ = _split_raw_response(all_items)
 
     movies = db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).all() if movie_ids else []
     shows = db.query(models.Show).filter(models.Show.tmdb_id.in_(show_ids)).all() if show_ids else []

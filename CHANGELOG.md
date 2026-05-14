@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.20.2] — 2026-05-14
+
+### Fixed
+- MDBList: paginate list items with limit/offset so lists larger than 100 items are fully fetched; applies to preview, create, and scheduled refresh
+- TraktModal: show item count (🎬 icon) alongside likes in the list results
+
+---
+
 ## [1.20.1] — 2026-05-14
 
 ### Changed
