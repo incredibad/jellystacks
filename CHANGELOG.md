@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.8] — 2026-05-14
+
+### Fixed
+- Collections grid is now full-width at all screen sizes; poster columns stretch to fill the container instead of being centred with a fixed max width
+
+---
+
 ## [1.21.7] — 2026-05-14
 
 ### Fixed
