@@ -108,7 +108,6 @@ async def preview_list(
     if not items_raw:
         raise HTTPException(502, "Failed to fetch Trakt list items.")
 
-    items_raw = resp.json()
     movie_tmdb_ids = set()
     show_tmdb_ids = set()
     movies_raw = []

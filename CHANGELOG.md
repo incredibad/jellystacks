@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.3] — 2026-05-14
+
+### Fixed
+- Trakt list preview crash: stale `resp.json()` line left after refactor caused NameError on every preview load
+- All three import modals (TMDB, MDBList, Trakt) now show a uniform coloured provider badge in the header on both the browse and detail screens
+
+---
+
 ## [1.21.2] — 2026-05-14
 
 ### Fixed
