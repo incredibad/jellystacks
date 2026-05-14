@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.18] — 2026-05-14
+
+### Fixed
+- CollectionDetail: remove redundant item count from header badge row (already shown in Items section below)
+- CollectionDetail: description text no longer centred on desktop — EditableField button now carries explicit `text-center sm:text-left` so wrapped lines align left on larger screens
+
+---
+
 ## [1.19.17] — 2026-05-14
 
 ### Changed
