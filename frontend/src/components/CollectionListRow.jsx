@@ -91,8 +91,17 @@ export default function CollectionListRow({ collection, onPush, onDelete }) {
         </p>
       </div>
 
-      {/* Badge */}
-      <div className="flex-shrink-0 hidden sm:block">{badge}</div>
+      {/* Badges */}
+      <div className="flex-shrink-0 hidden sm:flex items-center gap-2">
+        <span className="px-2 py-0.5 rounded-full text-xs font-medium border" style={{
+          color: collection.tmdb_collection_id ? '#01b4e4' : collection.mdblist_list_id ? '#e8711a' : collection.is_jellyfin_native ? '#7c3aed' : '#db2777',
+          background: collection.tmdb_collection_id ? 'rgba(1,180,228,0.1)' : collection.mdblist_list_id ? 'rgba(232,113,26,0.1)' : collection.is_jellyfin_native ? 'rgba(124,58,237,0.1)' : 'rgba(219,39,119,0.1)',
+          borderColor: collection.tmdb_collection_id ? 'rgba(1,180,228,0.25)' : collection.mdblist_list_id ? 'rgba(232,113,26,0.25)' : collection.is_jellyfin_native ? 'rgba(124,58,237,0.25)' : 'rgba(219,39,119,0.25)',
+        }}>
+          {collection.tmdb_collection_id ? 'TMDB' : collection.mdblist_list_id ? 'MDBList' : collection.is_jellyfin_native ? 'Jellyfin' : 'Custom'}
+        </span>
+        {badge}
+      </div>
 
       {/* Context menu */}
       <div className="relative flex-shrink-0">

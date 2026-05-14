@@ -156,15 +156,6 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
               {collection.name}
             </h3>
           </Link>
-          <p className="text-[10px] mt-0.5 truncate" style={{ color:
-            collection.tmdb_collection_id ? '#01b4e4' :
-            collection.mdblist_list_id ? '#e8711a' :
-            collection.is_jellyfin_native ? '#7c3aed' : '#db2777'
-          }}>
-            {collection.tmdb_collection_id ? 'TMDB Collection' :
-             collection.mdblist_list_id ? 'MDBList' :
-             collection.is_jellyfin_native ? 'Jellyfin Native' : 'Custom Collection'}
-          </p>
           {collection.description && (
             <p className="text-xs text-slate-500 mt-0.5 truncate">{collection.description}</p>
           )}
