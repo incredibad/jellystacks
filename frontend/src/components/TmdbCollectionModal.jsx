@@ -113,6 +113,15 @@ export default function TmdbCollectionModal({ onClose, onCreate, onBack }) {
                   {detail.overview && (
                     <p className="text-xs text-slate-500 leading-relaxed line-clamp-4">{detail.overview}</p>
                   )}
+                  <a
+                    href={`https://www.themoviedb.org/collection/${detail.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs mt-1 inline-block hover:underline"
+                    style={{ color: '#01b4e4' }}
+                  >
+                    View on TMDB ↗
+                  </a>
                 </div>
               </div>
 

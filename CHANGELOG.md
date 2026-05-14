@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.6] — 2026-05-14
+
+### Added
+- Provider links in list preview: "View on Trakt ↗", "View on MDBList ↗", and "View on TMDB ↗" appear under the description, each in the provider's brand colour
+
+---
+
 ## [1.21.5] — 2026-05-14
 
 ### Changed

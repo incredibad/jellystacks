@@ -152,6 +152,15 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
                   {selected.description && (
                     <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-3">{selected.description}</p>
                   )}
+                  <a
+                    href={`https://trakt.tv/lists/${selected.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs mt-1 inline-block hover:underline"
+                    style={{ color: '#ed1c24' }}
+                  >
+                    View on Trakt ↗
+                  </a>
                 </div>
               </div>
 
