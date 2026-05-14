@@ -153,6 +153,17 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
                   {selected.description && (
                     <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-3">{selected.description}</p>
                   )}
+                  {selected.slug && (
+                    <a
+                      href={`https://mdblist.com/lists/${selected.user_name}/${selected.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs mt-1 inline-block hover:underline"
+                      style={{ color: '#e8711a' }}
+                    >
+                      View on MDBList ↗
+                    </a>
+                  )}
                 </div>
               </div>
 
