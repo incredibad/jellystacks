@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.19.12] — 2026-05-14
+
+### Fixed
+- CollectionDetail items controls bar no longer overflows on mobile — restructured into two rows: heading + "Add Items" button on top, library pills + sort + view toggle on a second row
+
+---
+
 ## [1.19.11] — 2026-05-14
 
 ### Changed

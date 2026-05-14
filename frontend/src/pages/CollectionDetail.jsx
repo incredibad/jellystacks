@@ -696,71 +696,17 @@ export default function CollectionDetail() {
       <div className="border-t mb-8" style={{ borderColor: 'var(--border)' }} />
 
       {/* Movies + Shows controls */}
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-normal text-white">Items</h2>
-          {collection.movie_count > 0 && (
-            <span className="text-xs text-slate-500">{collection.movie_count} {collection.movie_count === 1 ? 'movie' : 'movies'}</span>
-          )}
-          {(collection.show_count || 0) > 0 && (
-            <span className="text-xs text-slate-500">{collection.show_count} {collection.show_count === 1 ? 'show' : 'shows'}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          {/* Library pills */}
-          {collectionLibraries.length > 1 && (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setLibraryFilter('')}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                  libraryFilter === '' ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
-                }`}
-              >
-                All
-              </button>
-              {collectionLibraries.map(lib => (
-                <button
-                  key={lib}
-                  onClick={() => setLibraryFilter(lib === libraryFilter ? '' : lib)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                    libraryFilter === lib ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {lib}
-                </button>
-              ))}
-            </div>
-          )}
-          {/* Sort */}
-          <select
-            value={sort}
-            onChange={e => setSort(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 outline-none cursor-pointer hover:text-white transition-colors"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-          >
-            <option value="name-asc">Name A–Z</option>
-            <option value="name-desc">Name Z–A</option>
-            <option value="year-desc">Year (newest)</option>
-            <option value="year-asc">Year (oldest)</option>
-            <option value="rating-desc">Rating (highest)</option>
-            <option value="rating-asc">Rating (lowest)</option>
-          </select>
-          {/* View toggle */}
-          <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-            <button
-              onClick={() => switchView('grid')}
-              title="Grid view"
-              className={`p-2 transition-colors ${view === 'grid' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              onClick={() => switchView('list')}
-              title="List view"
-              className={`p-2 transition-colors ${view === 'list' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            >
-              <LayoutList size={15} />
-            </button>
+      <div className="mb-4 space-y-2">
+        {/* Row 1: heading + add button */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-normal text-white">Items</h2>
+            {collection.movie_count > 0 && (
+              <span className="text-xs text-slate-500">{collection.movie_count} {collection.movie_count === 1 ? 'movie' : 'movies'}</span>
+            )}
+            {(collection.show_count || 0) > 0 && (
+              <span className="text-xs text-slate-500">{collection.show_count} {collection.show_count === 1 ? 'show' : 'shows'}</span>
+            )}
           </div>
           {!isLocked && (
             <button
@@ -771,6 +717,66 @@ export default function CollectionDetail() {
               Add Items
             </button>
           )}
+        </div>
+
+        {/* Row 2: library pills + sort + view toggle */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Library pills */}
+          {collectionLibraries.length > 1 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+              <button
+                onClick={() => setLibraryFilter('')}
+                className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  libraryFilter === '' ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                }`}
+              >
+                All
+              </button>
+              {collectionLibraries.map(lib => (
+                <button
+                  key={lib}
+                  onClick={() => setLibraryFilter(lib === libraryFilter ? '' : lib)}
+                  className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                    libraryFilter === lib ? 'bg-violet-600 text-white' : 'bg-slate-700/60 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {lib}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Sort + view toggle pushed to the right */}
+          <div className="flex items-center gap-2 ml-auto">
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value)}
+              className="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 outline-none cursor-pointer hover:text-white transition-colors"
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+            >
+              <option value="name-asc">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+              <option value="year-desc">Year (newest)</option>
+              <option value="year-asc">Year (oldest)</option>
+              <option value="rating-desc">Rating (highest)</option>
+              <option value="rating-asc">Rating (lowest)</option>
+            </select>
+            <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+              <button
+                onClick={() => switchView('grid')}
+                title="Grid view"
+                className={`p-2 transition-colors ${view === 'grid' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                onClick={() => switchView('list')}
+                title="List view"
+                className={`p-2 transition-colors ${view === 'list' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              >
+                <LayoutList size={15} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
