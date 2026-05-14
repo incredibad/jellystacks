@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.7] — 2026-05-14
+
+### Fixed
+- Browse list infinite scroll in Trakt and MDBList modals now works: same IntersectionObserver → onScroll fix applied to the results list container
+
+---
+
 ## [1.21.6] — 2026-05-14
 
 ### Added
