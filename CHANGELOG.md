@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.4] — 2026-05-14
+
+### Fixed
+- Preview item list infinite scroll now works: switched from IntersectionObserver (which doesn't fire inside an overflow scroll container) to an onScroll handler on the scrollable div
+
+---
+
 ## [1.21.3] — 2026-05-14
 
 ### Fixed
