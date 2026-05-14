@@ -17,7 +17,6 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
   const [visibleCount, setVisibleCount] = useState(15)
   const [previewVisible, setPreviewVisible] = useState(50)
   const timer = useRef(null)
-  const sentinelRef = useRef(null)
 
   useEffect(() => {
     api.get('/trakt/trending')
@@ -26,15 +25,12 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
       .finally(() => setLoadingTrending(false))
   }, [])
 
-  useEffect(() => {
-    const el = sentinelRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) setVisibleCount(c => c + 15)
-    }, { rootMargin: '150px' })
-    obs.observe(el)
-    return () => obs.disconnect()
-  })
+  const handleBrowseScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop - clientHeight < 300) {
+      setVisibleCount(c => c + 15)
+    }
+  }
 
   const handlePreviewScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
@@ -255,7 +251,7 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
               </div>
             </div>
 
-            <div className="overflow-y-auto flex-1 p-2">
+            <div className="overflow-y-auto flex-1 p-2" onScroll={handleBrowseScroll}>
               {(searching || (loadingTrending && !query.trim())) ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#ed1c24', borderTopColor: 'transparent' }} />
@@ -303,7 +299,6 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
                         </div>
                       </button>
                     ))}
-                    {hasMore && <div ref={sentinelRef} className="h-4" />}
                   </div>
                 )
               })()}
