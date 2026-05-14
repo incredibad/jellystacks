@@ -38,6 +38,8 @@ def _get_tmdb_key(db: Session) -> str:
 
 
 def _collection_to_response(c: models.Collection) -> schemas.CollectionResponse:
+    unique_movies = _best_by_tmdb_id(c.movies)
+    unique_shows = _best_by_tmdb_id(c.shows)
     return schemas.CollectionResponse(
         id=c.id,
         name=c.name,
@@ -49,17 +51,21 @@ def _collection_to_response(c: models.Collection) -> schemas.CollectionResponse:
         tmdb_total_parts=c.tmdb_total_parts,
         mdblist_list_id=c.mdblist_list_id,
         mdblist_total_items=c.mdblist_total_items,
+        trakt_list_id=c.trakt_list_id,
+        trakt_total_items=c.trakt_total_items,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
         created_at=c.created_at,
         updated_at=c.updated_at,
-        movie_count=len(c.movies),
-        show_count=len(c.shows),
+        movie_count=len(unique_movies),
+        show_count=len(unique_shows),
     )
 
 
 def _collection_to_detail(c: models.Collection) -> schemas.CollectionDetailResponse:
+    unique_movies = _best_by_tmdb_id(c.movies)
+    unique_shows = _best_by_tmdb_id(c.shows)
     return schemas.CollectionDetailResponse(
         id=c.id,
         name=c.name,
@@ -71,15 +77,17 @@ def _collection_to_detail(c: models.Collection) -> schemas.CollectionDetailRespo
         tmdb_total_parts=c.tmdb_total_parts,
         mdblist_list_id=c.mdblist_list_id,
         mdblist_total_items=c.mdblist_total_items,
+        trakt_list_id=c.trakt_list_id,
+        trakt_total_items=c.trakt_total_items,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
         created_at=c.created_at,
         updated_at=c.updated_at,
-        movie_count=len(c.movies),
-        show_count=len(c.shows),
-        movies=[_movie_to_response(m) for m in c.movies],
-        shows=[_show_to_response(s) for s in c.shows],
+        movie_count=len(unique_movies),
+        show_count=len(unique_shows),
+        movies=[_movie_to_response(m) for m in unique_movies],
+        shows=[_show_to_response(s) for s in unique_shows],
     )
 
 
@@ -182,6 +190,8 @@ def convert_to_custom(
     col.tmdb_total_parts = None
     col.mdblist_list_id = None
     col.mdblist_total_items = None
+    col.trakt_list_id = None
+    col.trakt_total_items = None
     col.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(col)
@@ -539,7 +549,7 @@ def add_movies(
     _: models.User = Depends(get_current_user),
 ):
     col = _load_col(collection_id, db)
-    if col.tmdb_collection_id or col.mdblist_list_id:
+    if col.tmdb_collection_id or col.mdblist_list_id or col.trakt_list_id:
         raise HTTPException(400, "Managed collections cannot be manually modified.")
     existing_ids = {m.id for m in col.movies}
     for movie in db.query(models.Movie).filter(models.Movie.id.in_(data.movie_ids)).all():
@@ -559,7 +569,7 @@ def remove_movie(
     _: models.User = Depends(get_current_user),
 ):
     col = _load_col(collection_id, db)
-    if col.tmdb_collection_id or col.mdblist_list_id:
+    if col.tmdb_collection_id or col.mdblist_list_id or col.trakt_list_id:
         raise HTTPException(400, "Managed collections cannot be manually modified.")
     col.movies = [m for m in col.movies if m.id != movie_id]
     col.updated_at = datetime.utcnow()
@@ -576,7 +586,7 @@ def add_shows(
     _: models.User = Depends(get_current_user),
 ):
     col = _load_col(collection_id, db)
-    if col.tmdb_collection_id or col.mdblist_list_id:
+    if col.tmdb_collection_id or col.mdblist_list_id or col.trakt_list_id:
         raise HTTPException(400, "Managed collections cannot be manually modified.")
     existing_ids = {s.id for s in col.shows}
     for show in db.query(models.Show).filter(models.Show.id.in_(data.show_ids)).all():
@@ -596,7 +606,7 @@ def remove_show(
     _: models.User = Depends(get_current_user),
 ):
     col = _load_col(collection_id, db)
-    if col.tmdb_collection_id or col.mdblist_list_id:
+    if col.tmdb_collection_id or col.mdblist_list_id or col.trakt_list_id:
         raise HTTPException(400, "Managed collections cannot be manually modified.")
     col.shows = [s for s in col.shows if s.id != show_id]
     col.updated_at = datetime.utcnow()
@@ -1017,18 +1027,10 @@ async def create_from_mdblist(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
-    from routers.mdblist import _get_api_key, _split_raw_response
+    from routers.mdblist import _get_api_key, _split_raw_response, _fetch_all_items
     api_key = _get_api_key(db)
-
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(
-            f"https://api.mdblist.com/lists/{data.mdblist_list_id}/items",
-            params={"apikey": api_key},
-        )
-    if resp.status_code != 200:
-        raise HTTPException(502, "Failed to fetch MDBList items.")
-
-    movie_ids, show_ids, total, *_ = _split_raw_response(resp.json())
+    all_items = await _fetch_all_items(data.mdblist_list_id, api_key)
+    movie_ids, show_ids, total, *_ = _split_raw_response(all_items)
 
     movies = (
         db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_ids)).all()
@@ -1043,6 +1045,58 @@ async def create_from_mdblist(
         name=data.name,
         mdblist_list_id=data.mdblist_list_id,
         mdblist_total_items=total,
+    )
+    col.movies = movies
+    col.shows = shows
+    db.add(col)
+    db.commit()
+    db.refresh(col)
+    return _collection_to_detail(col)
+
+
+class TraktImportRequest(BaseModel):
+    trakt_list_id: int
+    name: str
+
+
+@router.post("/from-trakt", response_model=schemas.CollectionDetailResponse)
+async def create_from_trakt(
+    data: TraktImportRequest,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    from routers.trakt import _get_client_id, _trakt_headers
+    client_id = _get_client_id(db)
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"https://api.trakt.tv/lists/{data.trakt_list_id}/items",
+            headers=_trakt_headers(client_id),
+        )
+    if resp.status_code != 200:
+        raise HTTPException(502, "Failed to fetch Trakt list items.")
+
+    movie_tmdb_ids = set()
+    show_tmdb_ids = set()
+    total = 0
+    for entry in resp.json():
+        t = entry.get("type")
+        obj = entry.get(t) or {}
+        tmdb = str((obj.get("ids") or {}).get("tmdb") or "")
+        if tmdb and tmdb != "0":
+            if t == "movie":
+                movie_tmdb_ids.add(tmdb)
+            elif t == "show":
+                show_tmdb_ids.add(tmdb)
+        total += 1
+
+    movies = db.query(models.Movie).filter(models.Movie.tmdb_id.in_(movie_tmdb_ids)).all() if movie_tmdb_ids else []
+    shows = db.query(models.Show).filter(models.Show.tmdb_id.in_(show_tmdb_ids)).all() if show_tmdb_ids else []
+
+    col = models.Collection(
+        name=data.name,
+        trakt_list_id=data.trakt_list_id,
+        trakt_total_items=total,
     )
     col.movies = movies
     col.shows = shows
@@ -1151,10 +1205,10 @@ async def refresh_managed(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_user),
 ):
-    """Immediately refresh all TMDB and MDBList collections from their source."""
+    """Immediately refresh all TMDB, MDBList, and Trakt collections from their source."""
     from refresh import refresh_all_managed
     s = _get_settings_dict(db)
-    result = await refresh_all_managed(db, s.get("tmdb_api_key"), s.get("mdblist_api_key"), s.get("jellyfin_url"), s.get("jellyfin_api_key"))
+    result = await refresh_all_managed(db, s.get("tmdb_api_key"), s.get("mdblist_api_key"), s.get("jellyfin_url"), s.get("jellyfin_api_key"), s.get("trakt_client_id"))
     return result
 
 

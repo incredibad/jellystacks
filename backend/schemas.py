@@ -144,6 +144,8 @@ class CollectionResponse(BaseModel):
     tmdb_total_parts: Optional[int]
     mdblist_list_id: Optional[int]
     mdblist_total_items: Optional[int]
+    trakt_list_id: Optional[int]
+    trakt_total_items: Optional[int]
     in_jellyfin: bool
     is_jellyfin_native: bool
     jellyfin_synced_at: Optional[datetime]
@@ -179,6 +181,7 @@ class SettingsUpdate(BaseModel):
     tmdb_api_key: Optional[str] = None
     tmdb_related_enabled: Optional[bool] = None
     mdblist_api_key: Optional[str] = None
+    trakt_client_id: Optional[str] = None
     tvdb_api_key: Optional[str] = None
     collection_refresh_interval: Optional[str] = None
 
@@ -190,6 +193,7 @@ class SettingsResponse(BaseModel):
     tmdb_api_key_set: bool
     tmdb_related_enabled: bool
     mdblist_api_key_set: bool
+    trakt_client_id_set: bool
     tvdb_api_key_set: bool
     collection_refresh_interval: str
 

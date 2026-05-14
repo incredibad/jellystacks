@@ -28,7 +28,7 @@ async def _run_refresh(db_factory) -> None:
     db = db_factory()
     try:
         s = _get_settings_dict(db)
-        result = await refresh_all_managed(db, s.get("tmdb_api_key"), s.get("mdblist_api_key"), s.get("jellyfin_url"), s.get("jellyfin_api_key"))
+        result = await refresh_all_managed(db, s.get("tmdb_api_key"), s.get("mdblist_api_key"), s.get("jellyfin_url"), s.get("jellyfin_api_key"), s.get("trakt_client_id"))
         logger.info("Scheduled collection refresh complete: %s", result)
     except Exception:
         logger.exception("Scheduled collection refresh failed")

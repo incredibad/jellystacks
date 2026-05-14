@@ -4,6 +4,282 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.8] — 2026-05-14
+
+### Fixed
+- Collections grid is now full-width at all screen sizes; poster columns stretch to fill the container instead of being centred with a fixed max width
+
+---
+
+## [1.21.7] — 2026-05-14
+
+### Fixed
+- Browse list infinite scroll in Trakt and MDBList modals now works: same IntersectionObserver → onScroll fix applied to the results list container
+
+---
+
+## [1.21.6] — 2026-05-14
+
+### Added
+- Provider links in list preview: "View on Trakt ↗", "View on MDBList ↗", and "View on TMDB ↗" appear under the description, each in the provider's brand colour
+
+---
+
+## [1.21.5] — 2026-05-14
+
+### Changed
+- Trakt list preview: `total_items` now counts only movies and shows (not episodes, seasons, etc.); summary line updated to "movies/shows" and shows "· episodes excluded" when the list contained non-importable types
+
+---
+
+## [1.21.4] — 2026-05-14
+
+### Fixed
+- Preview item list infinite scroll now works: switched from IntersectionObserver (which doesn't fire inside an overflow scroll container) to an onScroll handler on the scrollable div
+
+---
+
+## [1.21.3] — 2026-05-14
+
+### Fixed
+- Trakt list preview crash: stale `resp.json()` line left after refactor caused NameError on every preview load
+- All three import modals (TMDB, MDBList, Trakt) now show a uniform coloured provider badge in the header on both the browse and detail screens
+
+---
+
+## [1.21.2] — 2026-05-14
+
+### Fixed
+- TMDB, MDBList, and Trakt modals: back arrow in header returns to the collection type picker instead of forcing the user to close and reopen
+
+---
+
+## [1.21.1] — 2026-05-14
+
+### Fixed
+- TraktModal and MdblistModal: preview item list now infinite-scrolls (50 per batch) so large lists render incrementally
+- Trakt: list items fetch now paginates via `X-Pagination-Page-Count` headers in both the preview endpoint and scheduled refresh, fixing the 100-item cap on large lists
+
+---
+
+## [1.21.0] — 2026-05-14
+
+### Changed
+- TraktModal and MdblistModal: redesigned list item rows — title and stats (item count + likes) on the first row, username and description on the second row
+- Both modals: results list now infinite-scrolls with lazy loading (15 items per batch)
+- Trakt list preview: fetch all items with full pagination (no longer capped at Trakt's default page size)
+
+---
+
+## [1.20.3] — 2026-05-14
+
+### Changed
+- TraktModal: show item count as plain text ("250 items") instead of icon + number
+
+---
+
+## [1.20.2] — 2026-05-14
+
+### Fixed
+- MDBList: paginate list items with limit/offset so lists larger than 100 items are fully fetched; applies to preview, create, and scheduled refresh
+- TraktModal: show item count (🎬 icon) alongside likes in the list results
+
+---
+
+## [1.20.1] — 2026-05-14
+
+### Changed
+- TraktModal: sort results by likes descending; show likes count with a heart icon
+
+---
+
+## [1.20.0] — 2026-05-14
+
+### Added
+- Trakt integration: import public Trakt lists as managed collections with automatic refresh
+- Backend: new `/api/trakt` router (trending lists, list search, item preview); `POST /collections/from-trakt` creation endpoint; `_refresh_trakt` in the refresh engine; DB columns `trakt_list_id` / `trakt_total_items` with inline migration
+- Settings: Trakt Client ID field under Collection Sources
+- Collections page: "From Trakt" option in the new collection picker
+- `TraktModal` component (search + trending + item preview + create flow)
+- CollectionCard ribbon, CollectionListRow type pill, and CollectionDetail badge all show Trakt source in brand red (`#ed1c24`)
+- Trakt collections are treated as locked (no manual add/remove) and included in the incomplete filter and scheduled refresh
+
+---
+
+## [1.19.23] — 2026-05-14
+
+### Changed
+- CollectionListRow: on mobile, hide description and show both type and sync status pills instead; description remains visible on desktop
+
+---
+
+## [1.19.22] — 2026-05-14
+
+### Fixed
+- CollectionListRow: description line now truncates to one line with ellipsis
+
+---
+
+## [1.19.21] — 2026-05-14
+
+### Fixed
+- Collection type label moved to list view only (CollectionListRow), displayed as a coloured pill next to the sync status badge; removed from poster card view where the ribbon already serves this purpose
+
+---
+
+## [1.19.20] — 2026-05-14
+
+### Changed
+- CollectionCard: show collection type label (TMDB Collection, MDBList, Jellyfin Native, Custom Collection) in the info section, coloured to match the source ribbon
+- CollectionCard: description truncated to a single line with ellipsis
+
+---
+
+## [1.19.19] — 2026-05-14
+
+### Changed
+- CollectionDetail: Items heading now shows a verbose count (e.g. `4/6 movies`, `12/20 items`, `3 movies · 1 show`) instead of two bare count spans
+- CollectionDetail: "Restore Original Artwork" shortened to "Restore Original Art" in the settings dropdown
+
+---
+
+## [1.19.18] — 2026-05-14
+
+### Fixed
+- CollectionDetail: remove redundant item count from header badge row (already shown in Items section below)
+- CollectionDetail: description text no longer centred on desktop — EditableField button now carries explicit `text-center sm:text-left` so wrapped lines align left on larger screens
+
+---
+
+## [1.19.17] — 2026-05-14
+
+### Changed
+- MovieCard: move hover Remove button from top-right corner into the poster overlay alongside Browse/Upload/Revert, on a second row below them
+
+---
+
+## [1.19.16] — 2026-05-14
+
+### Fixed
+- MovieCard: restore hover X button in poster top-right corner for desktop remove — was lost when the external wrapper was replaced with the onRemove prop
+
+---
+
+## [1.19.15] — 2026-05-14
+
+### Fixed
+- MovieCard context menu: shorten "Remove from Collection" to "Remove" to prevent text wrapping to two lines
+
+---
+
+## [1.19.14] — 2026-05-14
+
+### Added
+- MovieCard: 3-dots context menu in the card's info section exposes Browse Artwork, Upload Artwork, Revert Artwork, and Remove from Collection actions — making them accessible on mobile where hover overlays don't work; Remove includes an inline confirmation step; CollectionDetail grid view updated to pass `onRemove` via prop instead of a hover-only external X button
+
+---
+
+## [1.19.13] — 2026-05-14
+
+### Fixed
+- CollectionDetail: collection name and description now correctly centre on mobile — the EditableField button was `text-left` with no width, preventing parent `text-center` from taking effect; fixed with `w-full justify-center sm:justify-start`
+
+---
+
+## [1.19.12] — 2026-05-14
+
+### Fixed
+- CollectionDetail items controls bar no longer overflows on mobile — restructured into two rows: heading + "Add Items" button on top, library pills + sort + view toggle on a second row
+
+---
+
+## [1.19.11] — 2026-05-14
+
+### Changed
+- CollectionCard: name and description text centred on mobile (`text-center sm:text-left`); context menu button made absolute so it no longer offsets the text
+
+---
+
+## [1.19.10] — 2026-05-14
+
+### Changed
+- Collections page: all elements centred on mobile — header stacks with centred title and full-width "New Collection" button; filter pills centred; grid uses `justify-center` for odd card counts on wider breakpoints
+
+---
+
+## [1.19.9] — 2026-05-14
+
+### Changed
+- Poster card grids now show exactly 2 columns on mobile across Collections, Movies, Shows, and CollectionDetail (including unowned section); auto-fill layout resumes at the `sm` breakpoint
+
+---
+
+## [1.19.8] — 2026-05-14
+
+### Changed
+- Full mobile responsiveness pass across all pages and major components:
+  - Outer page padding reduced on small screens (`p-4` on mobile, `p-8` on sm+) across Dashboard, Collections, Movies, Shows, Settings, and CollectionDetail
+  - Collections filter bar restructured to stack on mobile — pills scroll horizontally, search + view toggle on a second row
+  - Settings tab bar made horizontally scrollable on mobile (was clipped with `max-w-xl`)
+  - CollectionDetail header stacks artwork above info on mobile, with centred alignment; actions row also centred
+  - Collection/movie/show item grids: minimum card width reduced from 160 px to 140 px to fit narrow phones
+  - ArtworkPicker split layout (left panel + image grid) stacks vertically on mobile; left panel height capped at 38 vh; image grid changed from hardcoded 4 columns to `grid-cols-2 sm:grid-cols-3 md:grid-cols-4`
+  - BulkArtworkModal review table wrapped in horizontal scroll container so it never overflows on mobile
+  - MovieListRow remove button and artwork hover overlay always visible on touch devices (hover-only behaviour limited to `md:` and above)
+  - TmdbCollectionModal detail view stacks poster and description vertically on mobile
+  - MdblistModal list items hide the likes count on mobile to prevent crowding
+
+---
+
+## [1.19.7] — 2026-05-12
+
+### Changed
+- Removed redundant "Jellyfin" pill from collection cards — the corner ribbon already identifies Jellyfin-native collections; they now show "Synced" in the status badge like any other in-Jellyfin collection
+
+---
+
+## [1.19.6] — 2026-05-12
+
+### Fixed
+- CI: opt workflow into Node.js 24 ahead of the June 2026 GitHub Actions forced migration
+
+---
+
+## [1.19.5] — 2026-05-12
+
+### Changed
+- Custom collection colour changed from amber to rose/pink (#db2777) throughout — card ribbon, detail page badge, "Convert to Custom" menu hover — to be clearly distinct from MDBList orange for colour-blind users
+
+---
+
+## [1.19.4] — 2026-05-12
+
+### Fixed
+- Jellyfin-native ribbon now uses the actual Jellyfin triangle logomark SVG (paths sourced from jellyfin/jellyfin-ux) instead of a plain triangle
+
+---
+
+## [1.19.3] — 2026-05-12
+
+### Fixed
+- Collection card source ribbon: thicker strip, overflow-hidden wrapper so rectangular corners are clipped cleanly, corner coverage guaranteed by geometry, text centred correctly with system font stack, Jellyfin mark replaced with triangle, Custom Layers icon made chunkier
+
+---
+
+## [1.19.2] — 2026-05-12
+
+### Changed
+- Collection cards now show a diagonal corner ribbon in the top-right instead of a pill badge: TMDB (teal), MDBList (orange), Jellyfin-native (purple with jellyfish mark), Custom (amber with Layers icon)
+
+---
+
+## [1.19.1] — 2026-05-12
+
+### Fixed
+- Collection movie/show counts now deduplicate by TMDB ID, so a film present in both a standard and 4K library counts as one owned item; the detail view also shows only one entry per title (preferring the 4K copy)
+
+---
+
 ## [1.19.0] — 2026-05-12
 
 ### Added
