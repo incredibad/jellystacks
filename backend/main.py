@@ -1,14 +1,17 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from sqlalchemy import text, inspect as sa_inspect
 
 from database import Base, engine, SessionLocal
+import models
+from auth import get_current_user
 from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router, trakt as trakt_router, tvdb as tvdb_router, bulk_artwork as bulk_artwork_router
 import scheduler as collection_scheduler
+import sync_log as _sync_log
 
 Base.metadata.create_all(bind=engine)
 
@@ -112,6 +115,15 @@ app.include_router(mdblist_router.router,  prefix="/api/mdblist",     tags=["mdb
 app.include_router(trakt_router.router,    prefix="/api/trakt",       tags=["trakt"])
 app.include_router(tvdb_router.router,          prefix="/api/tvdb",         tags=["tvdb"])
 app.include_router(bulk_artwork_router.router,  prefix="/api/artwork/bulk", tags=["artwork"])
+
+# ── Sync Log ─────────────────────────────────────────────────────────────────
+@app.get("/api/sync/log", include_in_schema=True)
+async def get_sync_log(user: models.User = Depends(get_current_user)):
+    log = _sync_log.get_latest(user.id)
+    if log is None:
+        return JSONResponse(status_code=404, content={"detail": "No sync log available"})
+    return log
+
 
 # ── Static Frontend ───────────────────────────────────────────────────────────
 static_dir = Path("/app/static")

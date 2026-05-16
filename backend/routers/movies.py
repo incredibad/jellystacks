@@ -14,6 +14,7 @@ from PIL import Image as PILImage
 from database import get_db
 import models
 import schemas
+import sync_log as _sync_log
 from auth import get_current_user
 from routers.settings import _get_settings_dict
 
@@ -313,14 +314,24 @@ async def sync_movies(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
+    run = _sync_log.start(user.id, "movies")
     _sync_progress[user.id] = {"fetched": 0, "total": 0}
     try:
-        return await _do_sync_movies(db, user)
+        result = await _do_sync_movies(db, user, run)
+        _sync_log.finish(user.id, run, "movies", {
+            "synced": result.synced, "deleted": result.deleted,
+            "skipped_cleanup": result.skipped_cleanup,
+        })
+        return result
+    except Exception as exc:
+        _sync_log.log(run, "movies", f"Error: {exc}", "error")
+        _sync_log.finish(user.id, run, "movies", {"error": str(exc)})
+        raise
     finally:
         _sync_progress.pop(user.id, None)
 
 
-async def _do_sync_movies(db: Session, user: models.User) -> schemas.SyncResult:
+async def _do_sync_movies(db: Session, user: models.User, run: _sync_log.SyncRun) -> schemas.SyncResult:
     s = _get_settings_dict(db)
     jf_url = s.get("jellyfin_url")
     api_key = s.get("jellyfin_api_key")
@@ -353,7 +364,7 @@ async def _do_sync_movies(db: Session, user: models.User) -> schemas.SyncResult:
         if not libraries:
             libraries = [{"id": None, "name": None}]
 
-        print(f"[sync:movies] libraries: {[l['name'] for l in libraries]}", flush=True)
+        _sync_log.log(run, "movies", f"Libraries: {', '.join(l['name'] or '(default)' for l in libraries)}")
 
         # ── Step 2a: pre-flight — fetch totals so the progress bar is accurate ─
         expected_total = 0
@@ -370,7 +381,7 @@ async def _do_sync_movies(db: Session, user: models.User) -> schemas.SyncResult:
             except Exception:
                 pass
         _sync_progress[user.id] = {"fetched": 0, "total": expected_total}
-        print(f"[sync:movies] expected total: {expected_total}", flush=True)
+        _sync_log.log(run, "movies", f"Expected: {expected_total} items")
 
         # ── Step 2b: fetch movies per library ─────────────────────────────────
         all_items: list[tuple[dict, str | None, str | None]] = []
@@ -399,7 +410,7 @@ async def _do_sync_movies(db: Session, user: models.User) -> schemas.SyncResult:
                 items = data.get("Items", [])
                 total = data.get("TotalRecordCount", 0)
 
-                print(f"[sync:movies] {lib['name']!r} page start={start}: got {len(items)}/{total}", flush=True)
+                _sync_log.log(run, "movies", f"{lib['name'] or '(default)'} — page {start // 500 + 1}: {len(items)}/{total}")
 
                 for item in items:
                     jf_id = item.get("Id")
@@ -413,7 +424,7 @@ async def _do_sync_movies(db: Session, user: models.User) -> schemas.SyncResult:
                     break
                 start += 500
 
-    print(f"[sync:movies] fetched {len(all_items)} unique items across all libraries", flush=True)
+    _sync_log.log(run, "movies", f"Fetched {len(all_items)} unique items")
 
     # ── Step 3: upsert ────────────────────────────────────────────────────────
     synced = 0
@@ -467,7 +478,7 @@ async def _do_sync_movies(db: Session, user: models.User) -> schemas.SyncResult:
                 models.Movie.jellyfin_id.notin_(seen),
             ).first()
             if stale:
-                print(f"[sync:movies] re-index detected: {title_val!r} ({year_val}) old_id={stale.jellyfin_id} → new_id={jf_id}", flush=True)
+                _sync_log.log(run, "movies", f"Re-indexed: {title_val!r} ({year_val})", "warning")
                 stale.jellyfin_id = jf_id
                 stale.sort_title = item.get("SortName")
                 stale.overview = item.get("Overview")
@@ -482,7 +493,7 @@ async def _do_sync_movies(db: Session, user: models.User) -> schemas.SyncResult:
                 stale.library_id = lib_id
                 stale.last_synced = datetime.utcnow()
             else:
-                print(f"[sync:movies] new: {title_val!r} ({year_val}) lib={lib_name!r} jf_id={jf_id}", flush=True)
+                _sync_log.log(run, "movies", f"New: {title_val!r} ({year_val}) — {lib_name}", "new")
                 db.add(models.Movie(
                     jellyfin_id=jf_id,
                     title=item.get("Name", "Unknown"),
@@ -511,14 +522,14 @@ async def _do_sync_movies(db: Session, user: models.User) -> schemas.SyncResult:
     skipped_cleanup = False
     db_movie_count = db.query(func.count(models.Movie.id)).scalar()
     if expected_total > 0 and len(seen) < expected_total:
-        print(f"[sync:movies] SAFETY: skipping cleanup — fetched {len(seen)} unique items but JF reported {expected_total} total", flush=True)
+        _sync_log.log(run, "movies", f"SAFETY: cleanup skipped — fetched {len(seen)} but JF reported {expected_total}", "warning")
         skipped_cleanup = True
     elif db_movie_count > 0 and len(seen) < db_movie_count * 0.8:
-        print(f"[sync:movies] SAFETY: skipping cleanup — fetched {len(seen)} but DB has {db_movie_count} records (< 80%)", flush=True)
+        _sync_log.log(run, "movies", f"SAFETY: cleanup skipped — fetched {len(seen)} but DB has {db_movie_count} records", "warning")
         skipped_cleanup = True
     else:
         for movie in db.query(models.Movie).filter(models.Movie.jellyfin_id.notin_(seen)).all():
-            print(f"[sync:movies] deleting: {movie.title!r} ({movie.year}) lib={movie.library_name!r} jf_id={movie.jellyfin_id} artwork={movie.custom_artwork_url!r}", flush=True)
+            _sync_log.log(run, "movies", f"Deleted: {movie.title!r} ({movie.year}) [{movie.library_name}]", "deleted")
             if movie.custom_artwork_url:
                 sibling = db.query(models.Movie).filter(
                     models.Movie.title == movie.title,
@@ -533,11 +544,11 @@ async def _do_sync_movies(db: Session, user: models.User) -> schemas.SyncResult:
                         if old_path.exists():
                             old_path.rename(new_path)
                         sibling.custom_artwork_url = str(new_path)
-                        print(f"[sync:movies] artwork transferred to sibling id={sibling.id}", flush=True)
+                        _sync_log.log(run, "movies", f"Artwork transferred to sibling id={sibling.id}")
                     except Exception as e:
-                        print(f"[sync:movies] artwork transfer failed: {e}", flush=True)
+                        _sync_log.log(run, "movies", f"Artwork transfer failed: {e}", "error")
                 else:
-                    print(f"[sync:movies] artwork deleted (no eligible sibling)", flush=True)
+                    _sync_log.log(run, "movies", "Artwork deleted (no eligible sibling)")
                     try:
                         Path(movie.custom_artwork_url).unlink(missing_ok=True)
                     except Exception:
@@ -546,5 +557,4 @@ async def _do_sync_movies(db: Session, user: models.User) -> schemas.SyncResult:
             deleted += 1
 
     db.commit()
-    print(f"[sync:movies] done — fetched={len(all_items)} upserted={synced} deleted={deleted} skipped_cleanup={skipped_cleanup}", flush=True)
     return schemas.SyncResult(synced=synced, total=len(all_items), deleted=deleted, skipped_cleanup=skipped_cleanup)
