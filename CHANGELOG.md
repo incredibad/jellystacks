@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.2] — 2026-05-17
+
+### Changed
+- Sync log now includes every item processed: existing items that were updated are logged as "Updated: …" (shown in the default muted colour), alongside the existing New/Re-indexed/Deleted entries
+
+---
+
 ## [1.23.1] — 2026-05-17
 
 ### Fixed

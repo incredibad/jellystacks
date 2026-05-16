@@ -449,6 +449,7 @@ async def _do_sync_movies(db: Session, user: models.User, run: _sync_log.SyncRun
 
         existing = db.query(models.Movie).filter(models.Movie.jellyfin_id == jf_id).first()
         if existing:
+            _sync_log.log(run, "movies", f"Updated: {item.get('Name', 'Unknown')!r} ({item.get('ProductionYear')}) — {lib_name}")
             existing.title = item.get("Name", "Unknown")
             existing.sort_title = item.get("SortName")
             existing.year = item.get("ProductionYear")

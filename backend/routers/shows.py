@@ -391,6 +391,7 @@ async def _do_sync_shows(db: Session, user: models.User, run: _sync_log.SyncRun)
 
         existing = db.query(models.Show).filter(models.Show.jellyfin_id == jf_id).first()
         if existing:
+            _sync_log.log(run, "shows", f"Updated: {item.get('Name', 'Unknown')!r} ({item.get('ProductionYear')}) — {lib_name}")
             existing.title = item.get("Name", "Unknown")
             existing.sort_title = item.get("SortName")
             existing.year = item.get("ProductionYear")
