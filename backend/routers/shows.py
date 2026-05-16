@@ -275,6 +275,8 @@ async def sync_shows(
         if not libraries:
             libraries = [{"id": None, "name": None}]
 
+        print(f"[sync:shows] libraries: {[l['name'] for l in libraries]}", flush=True)
+
         # ── Step 2: fetch shows per library ───────────────────────────────────
         all_items: list[tuple[dict, str | None, str | None]] = []
         seen: set[str] = set()
@@ -302,6 +304,8 @@ async def sync_shows(
                 items = data.get("Items", [])
                 total = data.get("TotalRecordCount", 0)
 
+                print(f"[sync:shows] {lib['name']!r} page start={start}: got {len(items)}/{total}", flush=True)
+
                 for item in items:
                     jf_id = item.get("Id")
                     if jf_id and jf_id not in seen:
@@ -311,6 +315,8 @@ async def sync_shows(
                 if start + 500 >= total:
                     break
                 start += 500
+
+    print(f"[sync:shows] fetched {len(all_items)} unique items across all libraries", flush=True)
 
     # ── Step 3: upsert ────────────────────────────────────────────────────────
     synced = 0
@@ -366,6 +372,7 @@ async def sync_shows(
                 models.Show.jellyfin_id.notin_(seen),
             ).first()
             if stale:
+                print(f"[sync:shows] re-index detected: {title_val!r} ({year_val}) old_id={stale.jellyfin_id} → new_id={jf_id}", flush=True)
                 stale.jellyfin_id = jf_id
                 stale.sort_title = item.get("SortName")
                 stale.overview = item.get("Overview")
@@ -382,6 +389,7 @@ async def sync_shows(
                 stale.library_id = lib_id
                 stale.last_synced = datetime.utcnow()
             else:
+                print(f"[sync:shows] new: {title_val!r} ({year_val}) lib={lib_name!r} jf_id={jf_id}", flush=True)
                 db.add(models.Show(
                     jellyfin_id=jf_id,
                     title=item.get("Name", "Unknown"),
@@ -406,7 +414,9 @@ async def sync_shows(
 
     # ── Cleanup: remove records Jellyfin no longer reports ────────────────────
     # Transfer artwork to the matching sibling where possible.
+    deleted = 0
     for show in db.query(models.Show).filter(models.Show.jellyfin_id.notin_(seen)).all():
+        print(f"[sync:shows] deleting: {show.title!r} ({show.year}) lib={show.library_name!r} jf_id={show.jellyfin_id} artwork={show.custom_artwork_url!r}", flush=True)
         if show.custom_artwork_url:
             sibling = db.query(models.Show).filter(
                 models.Show.title == show.title,
@@ -421,14 +431,18 @@ async def sync_shows(
                     if old_path.exists():
                         old_path.rename(new_path)
                     sibling.custom_artwork_url = str(new_path)
-                except Exception:
-                    pass
+                    print(f"[sync:shows] artwork transferred to sibling id={sibling.id}", flush=True)
+                except Exception as e:
+                    print(f"[sync:shows] artwork transfer failed: {e}", flush=True)
             else:
+                print(f"[sync:shows] artwork deleted (no eligible sibling)", flush=True)
                 try:
                     Path(show.custom_artwork_url).unlink(missing_ok=True)
                 except Exception:
                     pass
         db.delete(show)
+        deleted += 1
 
     db.commit()
+    print(f"[sync:shows] done — fetched={len(all_items)} upserted={synced} deleted={deleted}", flush=True)
     return schemas.SyncResult(synced=synced, total=len(all_items))
