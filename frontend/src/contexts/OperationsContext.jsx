@@ -43,7 +43,7 @@ const CONFIGS = {
   },
 }
 
-function SyncDoneToast({ t, summary, skippedCleanup }) {
+function SyncDoneToast({ t, summary, skippedCleanup, onRetry }) {
   return (
     <div
       style={{
@@ -65,9 +65,23 @@ function SyncDoneToast({ t, summary, skippedCleanup }) {
         <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Sync complete</p>
         <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#94a3b8' }}>{summary}</p>
         {skippedCleanup && (
-          <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#f59e0b' }}>
-            ⚠ Cleanup skipped — Jellyfin returned fewer items than expected. Run sync again when Jellyfin is stable.
-          </p>
+          <>
+            <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#f59e0b' }}>
+              ⚠ Cleanup skipped — Jellyfin returned fewer items than its reported total.
+              Deletions from Jellyfin won't be reflected until the next successful sync.
+            </p>
+            <button
+              onClick={onRetry}
+              style={{
+                marginTop: '8px', background: 'rgba(245,158,11,0.12)',
+                border: '1px solid rgba(245,158,11,0.3)', borderRadius: '6px',
+                color: '#f59e0b', fontSize: '11px', fontWeight: 600,
+                padding: '3px 10px', cursor: 'pointer',
+              }}
+            >
+              Sync again
+            </button>
+          </>
         )}
       </div>
       <button
@@ -84,9 +98,9 @@ function SyncDoneToast({ t, summary, skippedCleanup }) {
   )
 }
 
-function showSyncComplete(summary, skippedCleanup) {
+function showSyncComplete(summary, skippedCleanup, onRetry) {
   toast.custom(
-    (t) => <SyncDoneToast t={t} summary={summary} skippedCleanup={skippedCleanup} />,
+    (t) => <SyncDoneToast t={t} summary={summary} skippedCleanup={skippedCleanup} onRetry={onRetry} />,
     { id: 'sync', duration: Infinity }
   )
 }
@@ -97,17 +111,7 @@ export function OperationsProvider({ children }) {
   const [lastSynced, setLastSynced] = useState(null)
   const [lastOpAt, setLastOpAt] = useState(null)
   const runningRef = useRef(false)
-
-  // On mount, show any sync result that was stored before a page refresh
-  useEffect(() => {
-    const stored = localStorage.getItem(SYNC_RESULT_KEY)
-    if (!stored) return
-    localStorage.removeItem(SYNC_RESULT_KEY)
-    try {
-      const { summary, skippedCleanup } = JSON.parse(stored)
-      if (summary) showSyncComplete(summary, skippedCleanup)
-    } catch {}
-  }, [])
+  const syncLibrariesRef = useRef(null)
 
   const _execute = useCallback(async (type, targets, startAt, onDone, onEach) => {
     if (runningRef.current || !targets.length) return
@@ -180,24 +184,44 @@ export function OperationsProvider({ children }) {
   const syncLibraries = useCallback(async () => {
     if (syncing) return
     setSyncing(true)
-    toast.loading('Syncing libraries…', { id: 'sync' })
+    toast.loading('Syncing movies and shows…', { id: 'sync' })
+
+    // Track completion of each sync so we can update the toast label
+    let moviesData = null
+    let showsData = null
+
     try {
-      const [moviesRes, showsRes] = await Promise.all([
-        api.post('/movies/sync', null, { timeout: 0 }),
-        api.post('/shows/sync', null, { timeout: 0 }),
+      const [moviesResult, showsResult] = await Promise.allSettled([
+        api.post('/movies/sync', null, { timeout: 0 }).then(res => {
+          moviesData = res.data
+          if (showsData === null) toast.loading('Movies synced — syncing shows…', { id: 'sync' })
+          return res
+        }),
+        api.post('/shows/sync', null, { timeout: 0 }).then(res => {
+          showsData = res.data
+          if (moviesData === null) toast.loading('Shows synced — syncing movies…', { id: 'sync' })
+          return res
+        }),
       ])
-      const movies = moviesRes.data.synced
-      const shows = showsRes.data.synced
-      const deletedMovies = moviesRes.data.deleted ?? 0
-      const deletedShows = showsRes.data.deleted ?? 0
-      const skippedCleanup = !!(moviesRes.data.skipped_cleanup || showsRes.data.skipped_cleanup)
+
+      if (moviesResult.status === 'rejected') throw moviesResult.reason
+      if (showsResult.status === 'rejected') throw showsResult.reason
+
+      const movies = moviesData.synced
+      const shows = showsData.synced
+      const deletedMovies = moviesData.deleted ?? 0
+      const deletedShows = showsData.deleted ?? 0
+      const skippedCleanup = !!(moviesData.skipped_cleanup || showsData.skipped_cleanup)
 
       const parts = [`${movies} movies`, `${shows} shows`]
       if (deletedMovies + deletedShows > 0) parts.push(`${deletedMovies + deletedShows} removed`)
       const summary = parts.join(', ')
 
       localStorage.setItem(SYNC_RESULT_KEY, JSON.stringify({ summary, skippedCleanup }))
-      showSyncComplete(summary, skippedCleanup)
+      showSyncComplete(summary, skippedCleanup, () => {
+        toast.dismiss('sync')
+        syncLibrariesRef.current?.()
+      })
       setLastSynced(Date.now())
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Sync failed. Check Settings.', { id: 'sync' })
@@ -205,6 +229,23 @@ export function OperationsProvider({ children }) {
       setSyncing(false)
     }
   }, [syncing])
+
+  // Keep ref current so retry callbacks in toasts always call the latest version
+  useEffect(() => { syncLibrariesRef.current = syncLibraries }, [syncLibraries])
+
+  // On mount, show any sync result stored before a page refresh
+  useEffect(() => {
+    const stored = localStorage.getItem(SYNC_RESULT_KEY)
+    if (!stored) return
+    localStorage.removeItem(SYNC_RESULT_KEY)
+    try {
+      const { summary, skippedCleanup } = JSON.parse(stored)
+      if (summary) showSyncComplete(summary, skippedCleanup, () => {
+        toast.dismiss('sync')
+        syncLibrariesRef.current?.()
+      })
+    } catch {}
+  }, [])
 
   const notifyCollectionsChanged = useCallback(() => setLastOpAt(Date.now()), [])
 

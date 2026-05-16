@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.22.1] — 2026-05-17
+
+### Changed
+- Sync toast now shows which phase is still running while the two syncs execute in parallel ("Movies synced — syncing shows…" / "Shows synced — syncing movies…")
+- Cleanup-skipped warning now includes a "Sync again" button so the user can immediately retry without reopening the Operations menu; the warning text clarifies that deletions from Jellyfin won't be reflected until a successful sync completes
+
+---
+
 ## [1.22.0] — 2026-05-17
 
 ### Added
