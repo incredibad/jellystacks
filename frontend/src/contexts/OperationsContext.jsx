@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 const OperationsContext = createContext(null)
 
 const LS_KEY = 'jstacks_op'
+const SYNC_RESULT_KEY = 'jstacks_sync_result'
 
 const CONFIGS = {
   'detect-tmdb': {
@@ -42,12 +43,71 @@ const CONFIGS = {
   },
 }
 
+function SyncDoneToast({ t, summary, skippedCleanup }) {
+  return (
+    <div
+      style={{
+        background: '#1a1a2e',
+        border: '1px solid #2d2d44',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '10px',
+        padding: '12px 16px',
+        borderRadius: '12px',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
+        maxWidth: '320px',
+        opacity: t.visible ? 1 : 0,
+        transition: 'opacity 0.15s ease',
+      }}
+    >
+      <span style={{ color: '#10b981', lineHeight: 1, paddingTop: '2px', flexShrink: 0 }}>✓</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Sync complete</p>
+        <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#94a3b8' }}>{summary}</p>
+        {skippedCleanup && (
+          <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#f59e0b' }}>
+            ⚠ Cleanup skipped — Jellyfin returned fewer items than expected. Run sync again when Jellyfin is stable.
+          </p>
+        )}
+      </div>
+      <button
+        onClick={() => toast.dismiss(t.id)}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: '#64748b', padding: '0 0 0 8px', lineHeight: 1,
+          fontSize: '14px', flexShrink: 0,
+        }}
+      >
+        ✕
+      </button>
+    </div>
+  )
+}
+
+function showSyncComplete(summary, skippedCleanup) {
+  toast.custom(
+    (t) => <SyncDoneToast t={t} summary={summary} skippedCleanup={skippedCleanup} />,
+    { id: 'sync', duration: Infinity }
+  )
+}
+
 export function OperationsProvider({ children }) {
   const [progress, setProgress] = useState(null)
   const [syncing, setSyncing] = useState(false)
   const [lastSynced, setLastSynced] = useState(null)
   const [lastOpAt, setLastOpAt] = useState(null)
   const runningRef = useRef(false)
+
+  // On mount, show any sync result that was stored before a page refresh
+  useEffect(() => {
+    const stored = localStorage.getItem(SYNC_RESULT_KEY)
+    if (!stored) return
+    localStorage.removeItem(SYNC_RESULT_KEY)
+    try {
+      const { summary, skippedCleanup } = JSON.parse(stored)
+      if (summary) showSyncComplete(summary, skippedCleanup)
+    } catch {}
+  }, [])
 
   const _execute = useCallback(async (type, targets, startAt, onDone, onEach) => {
     if (runningRef.current || !targets.length) return
@@ -120,15 +180,27 @@ export function OperationsProvider({ children }) {
   const syncLibraries = useCallback(async () => {
     if (syncing) return
     setSyncing(true)
+    toast.loading('Syncing libraries…', { id: 'sync' })
     try {
       const [moviesRes, showsRes] = await Promise.all([
         api.post('/movies/sync', null, { timeout: 0 }),
         api.post('/shows/sync', null, { timeout: 0 }),
       ])
-      toast.success(`Synced ${moviesRes.data.synced} movies and ${showsRes.data.synced} shows.`)
+      const movies = moviesRes.data.synced
+      const shows = showsRes.data.synced
+      const deletedMovies = moviesRes.data.deleted ?? 0
+      const deletedShows = showsRes.data.deleted ?? 0
+      const skippedCleanup = !!(moviesRes.data.skipped_cleanup || showsRes.data.skipped_cleanup)
+
+      const parts = [`${movies} movies`, `${shows} shows`]
+      if (deletedMovies + deletedShows > 0) parts.push(`${deletedMovies + deletedShows} removed`)
+      const summary = parts.join(', ')
+
+      localStorage.setItem(SYNC_RESULT_KEY, JSON.stringify({ summary, skippedCleanup }))
+      showSyncComplete(summary, skippedCleanup)
       setLastSynced(Date.now())
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Sync failed. Check Settings.')
+      toast.error(err.response?.data?.detail || 'Sync failed. Check Settings.', { id: 'sync' })
     } finally {
       setSyncing(false)
     }

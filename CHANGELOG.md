@@ -4,6 +4,18 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.22.0] — 2026-05-17
+
+### Added
+- Sync now shows a persistent loading toast while running (survives route navigation); on completion a dismissable summary toast replaces it showing movie/show counts and removal count
+- If the sync result is available after a page refresh it is re-shown as a toast on next load
+- Sync safety check: if Jellyfin returns fewer unique items than it reported (or fewer than 80% of the current DB count), the cleanup step is skipped and a warning is included in the toast — protects against transient JF API issues silently deleting records
+
+### Changed
+- Removed the spinner from the Operations sidebar button; the loading state is now communicated solely via the sync toast
+
+---
+
 ## [1.21.12] — 2026-05-16
 
 ### Added

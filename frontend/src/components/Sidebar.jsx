@@ -129,8 +129,6 @@ export default function Sidebar() {
     }
   }
 
-  const busy = importing || isRunning || syncing
-
   const opsGroups = [
     {
       label: 'Library',
@@ -289,10 +287,7 @@ export default function Sidebar() {
               onClick={() => setOpsOpen(v => !v)}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-white/5"
             >
-              {busy
-                ? <Loader size={18} className="animate-spin" />
-                : <LayoutGrid size={18} />
-              }
+              <LayoutGrid size={18} />
               <span className="flex-1 text-left">Operations</span>
               <ChevronDown size={14} className={`transition-transform ${opsOpen ? 'rotate-180' : ''}`} />
             </button>
