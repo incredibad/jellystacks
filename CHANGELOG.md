@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.22.2] — 2026-05-17
+
+### Added
+- Sync progress toast now shows live pagination progress with separate bars for Movies and Shows, driven by a polling endpoint that the backend updates after each page fetch; bars start indeterminate and fill as items are retrieved from Jellyfin
+
+---
+
 ## [1.22.1] — 2026-05-17
 
 ### Changed

@@ -19,6 +19,9 @@ from routers.movies import _jellyfin_headers, _push_artwork_to_jf
 
 router = APIRouter()
 
+# In-memory sync progress: user_id -> {"fetched": int, "total": int}
+_sync_progress: dict[int, dict] = {}
+
 _ARTWORK_DIR = Path("/data/artwork/shows")
 _ARTWORK_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -104,6 +107,15 @@ def list_libraries(db: Session = Depends(get_db), _: models.User = Depends(get_c
         .all()
     )
     return [r[0] for r in rows]
+
+
+@router.get("/sync/progress")
+def get_show_sync_progress(user: models.User = Depends(get_current_user)):
+    """Return live pagination progress for an in-progress show sync, or 404 if none is running."""
+    data = _sync_progress.get(user.id)
+    if data is None:
+        raise HTTPException(404, "No show sync in progress")
+    return data
 
 
 @router.get("/{show_id}/poster")
@@ -242,8 +254,16 @@ async def clear_show_artwork(
 @router.post("/sync", response_model=schemas.SyncResult)
 async def sync_shows(
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_user),
+    user: models.User = Depends(get_current_user),
 ):
+    _sync_progress[user.id] = {"fetched": 0, "total": 0}
+    try:
+        return await _do_sync_shows(db, user)
+    finally:
+        _sync_progress.pop(user.id, None)
+
+
+async def _do_sync_shows(db: Session, user: models.User) -> schemas.SyncResult:
     s = _get_settings_dict(db)
     jf_url = s.get("jellyfin_url")
     api_key = s.get("jellyfin_api_key")
@@ -317,6 +337,8 @@ async def sync_shows(
                     if jf_id and jf_id not in seen:
                         seen.add(jf_id)
                         all_items.append((item, lib["name"], lib["id"]))
+
+                _sync_progress[user.id] = {"fetched": len(seen), "total": expected_total}
 
                 if start + 500 >= total:
                     break

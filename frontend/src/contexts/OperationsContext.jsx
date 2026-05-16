@@ -43,6 +43,58 @@ const CONFIGS = {
   },
 }
 
+function SyncBar({ label, fetched, total }) {
+  const indeterminate = total === 0
+  const pct = indeterminate ? 0 : Math.min(100, Math.round((fetched / total) * 100))
+  return (
+    <div style={{ marginBottom: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+        <span style={{ fontSize: '11px', color: '#94a3b8' }}>{label}</span>
+        {indeterminate ? (
+          <span style={{ fontSize: '11px', color: '#4b5563' }}>—</span>
+        ) : (
+          <span style={{ fontSize: '11px', color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>
+            {fetched.toLocaleString()} / {total.toLocaleString()}
+          </span>
+        )}
+      </div>
+      <div style={{ height: '3px', borderRadius: '2px', background: '#2d2d44', overflow: 'hidden' }}>
+        <div
+          className={indeterminate ? 'animate-pulse' : ''}
+          style={{
+            height: '100%',
+            width: indeterminate ? '35%' : `${pct}%`,
+            background: 'linear-gradient(to right, #7c3aed, #0891b2)',
+            borderRadius: '2px',
+            transition: indeterminate ? 'none' : 'width 0.4s ease',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function SyncProgressToast({ t, movies, shows }) {
+  return (
+    <div
+      style={{
+        background: '#1a1a2e',
+        border: '1px solid #2d2d44',
+        padding: '12px 16px',
+        borderRadius: '12px',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
+        width: '280px',
+        opacity: t.visible ? 1 : 0,
+        transition: 'opacity 0.15s ease',
+      }}
+    >
+      <p style={{ margin: '0 0 10px', fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Syncing libraries…</p>
+      <SyncBar label="Movies" fetched={movies.fetched} total={movies.total} />
+      <SyncBar label="Shows" fetched={shows.fetched} total={shows.total} />
+    </div>
+  )
+}
+
 function SyncDoneToast({ t, summary, skippedCleanup, onRetry }) {
   return (
     <div
@@ -101,6 +153,13 @@ function SyncDoneToast({ t, summary, skippedCleanup, onRetry }) {
 function showSyncComplete(summary, skippedCleanup, onRetry) {
   toast.custom(
     (t) => <SyncDoneToast t={t} summary={summary} skippedCleanup={skippedCleanup} onRetry={onRetry} />,
+    { id: 'sync', duration: Infinity }
+  )
+}
+
+function showSyncProgress(movies, shows) {
+  toast.custom(
+    (t) => <SyncProgressToast t={t} movies={movies} shows={shows} />,
     { id: 'sync', duration: Infinity }
   )
 }
@@ -184,25 +243,36 @@ export function OperationsProvider({ children }) {
   const syncLibraries = useCallback(async () => {
     if (syncing) return
     setSyncing(true)
-    toast.loading('Syncing movies and shows…', { id: 'sync' })
 
-    // Track completion of each sync so we can update the toast label
+    // Show the initial progress toast (both bars indeterminate until first poll lands)
+    const EMPTY = { fetched: 0, total: 0 }
+    showSyncProgress(EMPTY, EMPTY)
+
+    // Poll both progress endpoints and update bars independently
+    let moviesProg = EMPTY
+    let showsProg = EMPTY
+    const pollInterval = setInterval(async () => {
+      try {
+        const [mRes, sRes] = await Promise.all([
+          api.get('/movies/sync/progress').catch(() => ({ data: null })),
+          api.get('/shows/sync/progress').catch(() => ({ data: null })),
+        ])
+        if (mRes.data) moviesProg = mRes.data
+        if (sRes.data) showsProg = sRes.data
+        showSyncProgress(moviesProg, showsProg)
+      } catch {}
+    }, 250)
+
     let moviesData = null
     let showsData = null
 
     try {
       const [moviesResult, showsResult] = await Promise.allSettled([
-        api.post('/movies/sync', null, { timeout: 0 }).then(res => {
-          moviesData = res.data
-          if (showsData === null) toast.loading('Movies synced — syncing shows…', { id: 'sync' })
-          return res
-        }),
-        api.post('/shows/sync', null, { timeout: 0 }).then(res => {
-          showsData = res.data
-          if (moviesData === null) toast.loading('Shows synced — syncing movies…', { id: 'sync' })
-          return res
-        }),
+        api.post('/movies/sync', null, { timeout: 0 }).then(res => { moviesData = res.data; return res }),
+        api.post('/shows/sync', null, { timeout: 0 }).then(res => { showsData = res.data; return res }),
       ])
+
+      clearInterval(pollInterval)
 
       if (moviesResult.status === 'rejected') throw moviesResult.reason
       if (showsResult.status === 'rejected') throw showsResult.reason
@@ -224,13 +294,14 @@ export function OperationsProvider({ children }) {
       })
       setLastSynced(Date.now())
     } catch (err) {
+      clearInterval(pollInterval)
       toast.error(err.response?.data?.detail || 'Sync failed. Check Settings.', { id: 'sync' })
     } finally {
       setSyncing(false)
     }
   }, [syncing])
 
-  // Keep ref current so retry callbacks in toasts always call the latest version
+  // Keep ref current so retry callbacks always call the latest version
   useEffect(() => { syncLibrariesRef.current = syncLibraries }, [syncLibraries])
 
   // On mount, show any sync result stored before a page refresh
