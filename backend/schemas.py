@@ -51,6 +51,7 @@ class MovieResponse(BaseModel):
     community_rating: Optional[str]
     has_poster: bool
     custom_artwork_url: Optional[str] = None
+    artwork_version: Optional[int] = None
     library_name: Optional[str]
     library_id: Optional[str]
     last_synced: datetime
@@ -88,6 +89,7 @@ class ShowResponse(BaseModel):
     community_rating: Optional[str]
     has_poster: bool
     custom_artwork_url: Optional[str] = None
+    artwork_version: Optional[int] = None
     library_name: Optional[str]
     library_id: Optional[str]
     last_synced: datetime
