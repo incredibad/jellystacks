@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -95,7 +96,7 @@ function SyncProgressToast({ t, movies, shows }) {
   )
 }
 
-function SyncDoneToast({ t, summary, skippedCleanup, onRetry }) {
+function SyncDoneToast({ t, summary, skippedCleanup, onRetry, onViewLog }) {
   return (
     <div
       style={{
@@ -117,24 +118,45 @@ function SyncDoneToast({ t, summary, skippedCleanup, onRetry }) {
         <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Sync complete</p>
         <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#94a3b8' }}>{summary}</p>
         {skippedCleanup && (
-          <>
-            <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#f59e0b' }}>
-              ⚠ Cleanup skipped — Jellyfin returned fewer items than its reported total.
-              Deletions from Jellyfin won't be reflected until the next successful sync.
-            </p>
+          <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#f59e0b' }}>
+            ⚠ Cleanup skipped — Jellyfin returned fewer items than its reported total.
+            Deletions from Jellyfin won't be reflected until the next successful sync.
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => { toast.dismiss(t.id); onViewLog?.() }}
+            style={{
+              background: 'rgba(124,58,237,0.12)',
+              border: '1px solid rgba(124,58,237,0.3)',
+              borderRadius: '6px',
+              color: '#a78bfa',
+              fontSize: '11px',
+              fontWeight: 600,
+              padding: '3px 10px',
+              cursor: 'pointer',
+            }}
+          >
+            View log →
+          </button>
+          {skippedCleanup && (
             <button
               onClick={onRetry}
               style={{
-                marginTop: '8px', background: 'rgba(245,158,11,0.12)',
-                border: '1px solid rgba(245,158,11,0.3)', borderRadius: '6px',
-                color: '#f59e0b', fontSize: '11px', fontWeight: 600,
-                padding: '3px 10px', cursor: 'pointer',
+                background: 'rgba(245,158,11,0.12)',
+                border: '1px solid rgba(245,158,11,0.3)',
+                borderRadius: '6px',
+                color: '#f59e0b',
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '3px 10px',
+                cursor: 'pointer',
               }}
             >
               Sync again
             </button>
-          </>
-        )}
+          )}
+        </div>
       </div>
       <button
         onClick={() => toast.dismiss(t.id)}
@@ -150,9 +172,9 @@ function SyncDoneToast({ t, summary, skippedCleanup, onRetry }) {
   )
 }
 
-function showSyncComplete(summary, skippedCleanup, onRetry) {
+function showSyncComplete(summary, skippedCleanup, onRetry, onViewLog) {
   toast.custom(
-    (t) => <SyncDoneToast t={t} summary={summary} skippedCleanup={skippedCleanup} onRetry={onRetry} />,
+    (t) => <SyncDoneToast t={t} summary={summary} skippedCleanup={skippedCleanup} onRetry={onRetry} onViewLog={onViewLog} />,
     { id: 'sync', duration: Infinity }
   )
 }
@@ -165,6 +187,7 @@ function showSyncProgress(movies, shows) {
 }
 
 export function OperationsProvider({ children }) {
+  const navigate = useNavigate()
   const [progress, setProgress] = useState(null)
   const [syncing, setSyncing] = useState(false)
   const [lastSynced, setLastSynced] = useState(null)
@@ -291,7 +314,7 @@ export function OperationsProvider({ children }) {
       showSyncComplete(summary, skippedCleanup, () => {
         toast.dismiss('sync')
         syncLibrariesRef.current?.()
-      })
+      }, () => navigate('/settings?tab=system&log=1'))
       setLastSynced(Date.now())
     } catch (err) {
       clearInterval(pollInterval)
@@ -299,7 +322,7 @@ export function OperationsProvider({ children }) {
     } finally {
       setSyncing(false)
     }
-  }, [syncing])
+  }, [syncing, navigate])
 
   // Keep ref current so retry callbacks always call the latest version
   useEffect(() => { syncLibrariesRef.current = syncLibraries }, [syncLibraries])
@@ -314,7 +337,7 @@ export function OperationsProvider({ children }) {
       if (summary) showSyncComplete(summary, skippedCleanup, () => {
         toast.dismiss('sync')
         syncLibrariesRef.current?.()
-      })
+      }, () => navigate('/settings?tab=system&log=1'))
     } catch {}
   }, [])
 

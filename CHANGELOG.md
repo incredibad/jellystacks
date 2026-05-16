@@ -4,6 +4,16 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.0] — 2026-05-17
+
+### Added
+- Sync Log: Settings → System tab now shows a collapsible console-style log of the most recent library sync, with colour-coded lines for new items (green), deletions (red), warnings (amber), and errors, plus a metadata header showing start time, duration, and synced/deleted counts
+- "View log →" button added to the sync completion toast, navigating directly to the System tab with the log pre-expanded
+- `GET /api/sync/log` endpoint returns the structured log for the current user's last completed sync
+- All sync output from movies and shows routers is now routed through the shared `sync_log` module, replacing raw `print()` calls with structured log entries (tag, level, timestamp)
+
+---
+
 ## [1.22.3] — 2026-05-17
 
 ### Fixed

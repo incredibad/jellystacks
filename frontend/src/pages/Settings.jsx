@@ -1,11 +1,22 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useOperations } from '../contexts/OperationsContext'
 import {
-  Server, Key, User, CheckCircle2, XCircle, Loader, ChevronDown,
-  ExternalLink, Trash2, Lock, Download, Upload, RefreshCw, Clock, RotateCcw,
+  Server, Key, User, CheckCircle2, XCircle, Loader, ChevronDown, ChevronUp,
+  ExternalLink, Trash2, Lock, Download, Upload, RefreshCw, Clock, RotateCcw, Terminal,
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
+
+const LOG_COLORS = {
+  new: '#10b981',
+  deleted: '#f87171',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  summary: '#a78bfa',
+  separator: '#1e293b',
+  info: '#94a3b8',
+}
 
 function Section({ title, description, icon: Icon, danger, children }) {
   return (
@@ -61,7 +72,9 @@ function DangerRow({ label, description, buttonLabel, onClick, loading, loadingL
 
 export default function Settings() {
   const { notifyCollectionsChanged } = useOperations()
-  const [activeTab, setActiveTab] = useState('sync')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'sync'
+  const setActiveTab = (tab) => setSearchParams({ tab })
 
   // ── Sync tab ──────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -93,6 +106,38 @@ export default function Settings() {
   const [clearingNative, setClearingNative] = useState(false)
   const [resettingArtwork, setResettingArtwork] = useState(false)
   const importInputRef = useRef(null)
+
+  // ── Sync log ──────────────────────────────────────────────────────────────
+  const [syncLog, setSyncLog] = useState(null)
+  const [loadingLog, setLoadingLog] = useState(false)
+  const [logExpanded, setLogExpanded] = useState(false)
+  const logFetched = useRef(false)
+
+  const fetchSyncLog = useCallback(async () => {
+    setLoadingLog(true)
+    try {
+      const { data } = await api.get('/sync/log')
+      setSyncLog(data)
+    } catch {
+      setSyncLog(null)
+    } finally {
+      setLoadingLog(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'system' && !logFetched.current) {
+      logFetched.current = true
+      fetchSyncLog()
+    }
+  }, [activeTab, fetchSyncLog])
+
+  useEffect(() => {
+    if (searchParams.get('log') === '1' && activeTab === 'system') {
+      setLogExpanded(true)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     api.get('/settings').then(({ data }) => {
@@ -830,6 +875,70 @@ export default function Settings() {
       {/* ── System tab ─────────────────────────────────────────────────────── */}
       {activeTab === 'system' && (
         <div className="space-y-6 max-w-2xl">
+          <Section title="Sync Log" description="Console output from the most recent library sync." icon={Terminal}>
+            {loadingLog && !syncLog ? (
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <Loader size={14} className="animate-spin" />
+                Loading…
+              </div>
+            ) : syncLog ? (
+              <>
+                <div className="text-xs text-slate-500 space-y-1 mb-3">
+                  <p>
+                    {new Date(syncLog.started_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                    {' · '}
+                    {syncLog.duration_seconds}s
+                  </p>
+                  <p>
+                    Movies: {syncLog.movies_synced} synced, {syncLog.movies_deleted} deleted
+                    {' · '}
+                    Shows: {syncLog.shows_synced} synced, {syncLog.shows_deleted} deleted
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setLogExpanded(v => !v)}
+                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors mb-3"
+                >
+                  {logExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  {logExpanded ? 'Hide' : 'Show'} log output
+                </button>
+
+                {logExpanded && (
+                  <div
+                    className="font-mono text-xs rounded-lg overflow-y-auto max-h-96 p-3 leading-relaxed"
+                    style={{ background: '#07070f', border: '1px solid #1e1e30' }}
+                  >
+                    {syncLog.lines.map((line, i) => (
+                      <div key={i} style={{ color: LOG_COLORS[line.level] || LOG_COLORS.info }}>
+                        {line.level === 'separator' ? (
+                          <span style={{ color: '#1e293b' }}>{line.text}</span>
+                        ) : (
+                          <>
+                            <span style={{ color: '#334155' }}>[{line.ts}] </span>
+                            <span style={{ color: '#334155' }}>[{line.tag}] </span>
+                            {line.text}
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-slate-500">No sync log available. Run a sync to see output here.</p>
+            )}
+
+            <button
+              onClick={fetchSyncLog}
+              disabled={loadingLog}
+              className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw size={11} className={loadingLog ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </Section>
+
           <Section title="Danger Zone" description="Destructive actions — use with care." icon={Trash2} danger>
             <div className="space-y-5">
               <DangerRow
