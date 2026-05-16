@@ -410,7 +410,7 @@ async def _do_sync_movies(db: Session, user: models.User, run: _sync_log.SyncRun
                 items = data.get("Items", [])
                 total = data.get("TotalRecordCount", 0)
 
-                _sync_log.log(run, "movies", f"{lib['name'] or '(default)'} — page {start // 500 + 1}: {len(items)}/{total}")
+                _sync_log.log(run, "movies", f"{lib['name'] or '(default)'} — page {start // 500 + 1}: {start + len(items)}/{total}")
 
                 for item in items:
                     jf_id = item.get("Id")
