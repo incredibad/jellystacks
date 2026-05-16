@@ -332,6 +332,8 @@ async def sync_movies(
         if not libraries:
             libraries = [{"id": None, "name": None}]
 
+        print(f"[sync:movies] libraries: {[l['name'] for l in libraries]}", flush=True)
+
         # ── Step 2: fetch movies per library ──────────────────────────────────
         all_items: list[tuple[dict, str | None, str | None]] = []
         seen: set[str] = set()
@@ -359,6 +361,8 @@ async def sync_movies(
                 items = data.get("Items", [])
                 total = data.get("TotalRecordCount", 0)
 
+                print(f"[sync:movies] {lib['name']!r} page start={start}: got {len(items)}/{total}", flush=True)
+
                 for item in items:
                     jf_id = item.get("Id")
                     if jf_id and jf_id not in seen:
@@ -368,6 +372,8 @@ async def sync_movies(
                 if start + 500 >= total:
                     break
                 start += 500
+
+    print(f"[sync:movies] fetched {len(all_items)} unique items across all libraries", flush=True)
 
     # ── Step 3: upsert ────────────────────────────────────────────────────────
     synced = 0
@@ -421,6 +427,7 @@ async def sync_movies(
                 models.Movie.jellyfin_id.notin_(seen),
             ).first()
             if stale:
+                print(f"[sync:movies] re-index detected: {title_val!r} ({year_val}) old_id={stale.jellyfin_id} → new_id={jf_id}", flush=True)
                 stale.jellyfin_id = jf_id
                 stale.sort_title = item.get("SortName")
                 stale.overview = item.get("Overview")
@@ -435,6 +442,7 @@ async def sync_movies(
                 stale.library_id = lib_id
                 stale.last_synced = datetime.utcnow()
             else:
+                print(f"[sync:movies] new: {title_val!r} ({year_val}) lib={lib_name!r} jf_id={jf_id}", flush=True)
                 db.add(models.Movie(
                     jellyfin_id=jf_id,
                     title=item.get("Name", "Unknown"),
@@ -457,7 +465,9 @@ async def sync_movies(
 
     # ── Cleanup: remove records Jellyfin no longer reports ────────────────────
     # Transfer artwork to the matching sibling where possible.
+    deleted = 0
     for movie in db.query(models.Movie).filter(models.Movie.jellyfin_id.notin_(seen)).all():
+        print(f"[sync:movies] deleting: {movie.title!r} ({movie.year}) lib={movie.library_name!r} jf_id={movie.jellyfin_id} artwork={movie.custom_artwork_url!r}", flush=True)
         if movie.custom_artwork_url:
             sibling = db.query(models.Movie).filter(
                 models.Movie.title == movie.title,
@@ -472,14 +482,18 @@ async def sync_movies(
                     if old_path.exists():
                         old_path.rename(new_path)
                     sibling.custom_artwork_url = str(new_path)
-                except Exception:
-                    pass
+                    print(f"[sync:movies] artwork transferred to sibling id={sibling.id}", flush=True)
+                except Exception as e:
+                    print(f"[sync:movies] artwork transfer failed: {e}", flush=True)
             else:
+                print(f"[sync:movies] artwork deleted (no eligible sibling)", flush=True)
                 try:
                     Path(movie.custom_artwork_url).unlink(missing_ok=True)
                 except Exception:
                     pass
         db.delete(movie)
+        deleted += 1
 
     db.commit()
+    print(f"[sync:movies] done — fetched={len(all_items)} upserted={synced} deleted={deleted}", flush=True)
     return schemas.SyncResult(synced=synced, total=len(all_items))

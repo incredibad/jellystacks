@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.12] — 2026-05-16
+
+### Added
+- Sync logging for movies and shows: libraries discovered, per-page fetch counts, re-index detections, new record creation, and every deletion in the cleanup step (visible in container logs)
+
+---
+
 ## [1.21.11] — 2026-05-16
 
 ### Changed
