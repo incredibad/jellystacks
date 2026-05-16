@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.11] — 2026-05-16
+
+### Changed
+- Jellyfin-backed movie and show posters now cache indefinitely when a `primary_image_tag` is available; the tag is used as the URL version key so the cache only busts when a sync detects Jellyfin has changed the image
+
+---
+
 ## [1.21.10] — 2026-05-16
 
 ### Fixed
