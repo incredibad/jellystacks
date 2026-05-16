@@ -64,6 +64,8 @@ class MovieResponse(BaseModel):
 class SyncResult(BaseModel):
     synced: int
     total: int
+    deleted: int = 0
+    skipped_cleanup: bool = False
 
 
 class SuggestionResponse(BaseModel):

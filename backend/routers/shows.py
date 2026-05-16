@@ -280,9 +280,11 @@ async def sync_shows(
         # ── Step 2: fetch shows per library ───────────────────────────────────
         all_items: list[tuple[dict, str | None, str | None]] = []
         seen: set[str] = set()
+        expected_total = 0
 
         for lib in libraries:
             start = 0
+            lib_total_captured = False
             while True:
                 params: dict = {
                     "IncludeItemTypes": "Series",
@@ -303,6 +305,10 @@ async def sync_shows(
                 data = resp.json()
                 items = data.get("Items", [])
                 total = data.get("TotalRecordCount", 0)
+
+                if not lib_total_captured:
+                    expected_total += total
+                    lib_total_captured = True
 
                 print(f"[sync:shows] {lib['name']!r} page start={start}: got {len(items)}/{total}", flush=True)
 
@@ -413,36 +419,47 @@ async def sync_shows(
         synced += 1
 
     # ── Cleanup: remove records Jellyfin no longer reports ────────────────────
-    # Transfer artwork to the matching sibling where possible.
+    # Safety check: if JF returned fewer unique items than it claimed, or fewer
+    # than 80% of the current DB count, skip cleanup to protect against partial
+    # responses caused by transient JF API issues.
     deleted = 0
-    for show in db.query(models.Show).filter(models.Show.jellyfin_id.notin_(seen)).all():
-        print(f"[sync:shows] deleting: {show.title!r} ({show.year}) lib={show.library_name!r} jf_id={show.jellyfin_id} artwork={show.custom_artwork_url!r}", flush=True)
-        if show.custom_artwork_url:
-            sibling = db.query(models.Show).filter(
-                models.Show.title == show.title,
-                models.Show.year == show.year,
-                models.Show.library_name == show.library_name,
-                models.Show.jellyfin_id.in_(seen),
-            ).first()
-            if sibling and not sibling.custom_artwork_url:
-                old_path = Path(show.custom_artwork_url)
-                new_path = _ARTWORK_DIR / f"{sibling.id}.jpg"
-                try:
-                    if old_path.exists():
-                        old_path.rename(new_path)
-                    sibling.custom_artwork_url = str(new_path)
-                    print(f"[sync:shows] artwork transferred to sibling id={sibling.id}", flush=True)
-                except Exception as e:
-                    print(f"[sync:shows] artwork transfer failed: {e}", flush=True)
-            else:
-                print(f"[sync:shows] artwork deleted (no eligible sibling)", flush=True)
-                try:
-                    Path(show.custom_artwork_url).unlink(missing_ok=True)
-                except Exception:
-                    pass
-        db.delete(show)
-        deleted += 1
+    skipped_cleanup = False
+    db_show_count = db.query(func.count(models.Show.id)).scalar()
+    if expected_total > 0 and len(seen) < expected_total:
+        print(f"[sync:shows] SAFETY: skipping cleanup — fetched {len(seen)} unique items but JF reported {expected_total} total", flush=True)
+        skipped_cleanup = True
+    elif db_show_count > 0 and len(seen) < db_show_count * 0.8:
+        print(f"[sync:shows] SAFETY: skipping cleanup — fetched {len(seen)} but DB has {db_show_count} records (< 80%)", flush=True)
+        skipped_cleanup = True
+    else:
+        for show in db.query(models.Show).filter(models.Show.jellyfin_id.notin_(seen)).all():
+            print(f"[sync:shows] deleting: {show.title!r} ({show.year}) lib={show.library_name!r} jf_id={show.jellyfin_id} artwork={show.custom_artwork_url!r}", flush=True)
+            if show.custom_artwork_url:
+                sibling = db.query(models.Show).filter(
+                    models.Show.title == show.title,
+                    models.Show.year == show.year,
+                    models.Show.library_name == show.library_name,
+                    models.Show.jellyfin_id.in_(seen),
+                ).first()
+                if sibling and not sibling.custom_artwork_url:
+                    old_path = Path(show.custom_artwork_url)
+                    new_path = _ARTWORK_DIR / f"{sibling.id}.jpg"
+                    try:
+                        if old_path.exists():
+                            old_path.rename(new_path)
+                        sibling.custom_artwork_url = str(new_path)
+                        print(f"[sync:shows] artwork transferred to sibling id={sibling.id}", flush=True)
+                    except Exception as e:
+                        print(f"[sync:shows] artwork transfer failed: {e}", flush=True)
+                else:
+                    print(f"[sync:shows] artwork deleted (no eligible sibling)", flush=True)
+                    try:
+                        Path(show.custom_artwork_url).unlink(missing_ok=True)
+                    except Exception:
+                        pass
+            db.delete(show)
+            deleted += 1
 
     db.commit()
-    print(f"[sync:shows] done — fetched={len(all_items)} upserted={synced} deleted={deleted}", flush=True)
-    return schemas.SyncResult(synced=synced, total=len(all_items))
+    print(f"[sync:shows] done — fetched={len(all_items)} upserted={synced} deleted={deleted} skipped_cleanup={skipped_cleanup}", flush=True)
+    return schemas.SyncResult(synced=synced, total=len(all_items), deleted=deleted, skipped_cleanup=skipped_cleanup)
