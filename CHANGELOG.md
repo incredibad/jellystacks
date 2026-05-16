@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.22.3] — 2026-05-17
+
+### Fixed
+- Sync progress bars now show the correct total from the start; a lightweight pre-flight request (Limit=1) fetches TotalRecordCount for each library before pagination begins, so bars no longer briefly show 100% when the first small library finishes before the larger ones have started
+
+---
+
 ## [1.22.2] — 2026-05-17
 
 ### Added

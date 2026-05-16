@@ -297,14 +297,29 @@ async def _do_sync_shows(db: Session, user: models.User) -> schemas.SyncResult:
 
         print(f"[sync:shows] libraries: {[l['name'] for l in libraries]}", flush=True)
 
-        # ── Step 2: fetch shows per library ───────────────────────────────────
+        # ── Step 2a: pre-flight — fetch totals so the progress bar is accurate ─
+        expected_total = 0
+        for lib in libraries:
+            count_params: dict = {
+                "IncludeItemTypes": "Series", "Recursive": "true", "Limit": 1, "StartIndex": 0,
+            }
+            if lib["id"]:
+                count_params["ParentId"] = lib["id"]
+            try:
+                cr = await client.get(items_url, headers=headers, params=count_params)
+                if cr.status_code == 200:
+                    expected_total += cr.json().get("TotalRecordCount", 0)
+            except Exception:
+                pass
+        _sync_progress[user.id] = {"fetched": 0, "total": expected_total}
+        print(f"[sync:shows] expected total: {expected_total}", flush=True)
+
+        # ── Step 2b: fetch shows per library ──────────────────────────────────
         all_items: list[tuple[dict, str | None, str | None]] = []
         seen: set[str] = set()
-        expected_total = 0
 
         for lib in libraries:
             start = 0
-            lib_total_captured = False
             while True:
                 params: dict = {
                     "IncludeItemTypes": "Series",
@@ -325,10 +340,6 @@ async def _do_sync_shows(db: Session, user: models.User) -> schemas.SyncResult:
                 data = resp.json()
                 items = data.get("Items", [])
                 total = data.get("TotalRecordCount", 0)
-
-                if not lib_total_captured:
-                    expected_total += total
-                    lib_total_captured = True
 
                 print(f"[sync:shows] {lib['name']!r} page start={start}: got {len(items)}/{total}", flush=True)
 
