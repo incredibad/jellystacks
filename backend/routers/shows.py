@@ -135,7 +135,7 @@ async def show_poster(show_id: int, db: Session = Depends(get_db)):
             )
         if resp.status_code != 200:
             raise HTTPException(404, "Poster not available.")
-        return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"))
+        return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"), headers={"Cache-Control": "public, max-age=3600"})
     except HTTPException:
         raise
     except Exception as e:

@@ -497,7 +497,7 @@ async def get_collection_poster(collection_id: int, db: Session = Depends(get_db
     if resp.status_code != 200:
         raise HTTPException(404, "No image.")
     content_type = resp.headers.get("content-type", "image/jpeg")
-    return Response(content=resp.content, media_type=content_type)
+    return Response(content=resp.content, media_type=content_type, headers={"Cache-Control": "public, max-age=3600"})
 
 
 @router.post("/{collection_id}/artwork/upload")

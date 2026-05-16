@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.9] — 2026-05-16
+
+### Changed
+- Poster images are now cached by the browser: TMDB proxy images indefinitely (`immutable`), Jellyfin-backed posters for movies, shows, and collections for 1 hour; custom artwork remains uncached
+
+---
+
 ## [1.21.8] — 2026-05-14
 
 ### Fixed
