@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.5] — 2026-05-17
+
+### Added
+- Sync log is now persistent across container restarts: the structured result is written to `/data/sync_log.json` after each run and loaded back into memory on first access, so `GET /api/sync/log` continues to work after a restart
+- `/data/sync.log` is written (and overwritten) after each sync run as a human-readable plain-text file mirroring the in-app console output, with a header showing start time, duration, and counts
+
+---
+
 ## [1.23.4] — 2026-05-17
 
 ### Changed
