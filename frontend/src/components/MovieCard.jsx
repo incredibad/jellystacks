@@ -30,7 +30,7 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange, 
     ? movie.artwork_version
     : movie.custom_artwork_url
       ? encodeURIComponent(movie.custom_artwork_url).slice(-24)
-      : null
+      : movie.primary_image_tag || null
   const posterUrl = localPreview ?? (cacheBuster ? `${baseUrl}?t=${cacheBuster}` : stableBuster ? `${baseUrl}?t=${stableBuster}` : baseUrl)
 
   const analyzeImage = (file) => new Promise((resolve) => {

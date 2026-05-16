@@ -52,6 +52,7 @@ class MovieResponse(BaseModel):
     has_poster: bool
     custom_artwork_url: Optional[str] = None
     artwork_version: Optional[int] = None
+    primary_image_tag: Optional[str] = None
     library_name: Optional[str]
     library_id: Optional[str]
     last_synced: datetime
@@ -90,6 +91,7 @@ class ShowResponse(BaseModel):
     has_poster: bool
     custom_artwork_url: Optional[str] = None
     artwork_version: Optional[int] = None
+    primary_image_tag: Optional[str] = None
     library_name: Optional[str]
     library_id: Optional[str]
     last_synced: datetime

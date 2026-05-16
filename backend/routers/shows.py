@@ -48,6 +48,7 @@ def _show_to_response(s: models.Show) -> schemas.ShowResponse:
         has_poster=bool(s.primary_image_tag) or bool(s.custom_artwork_url),
         custom_artwork_url=s.custom_artwork_url,
         artwork_version=artwork_version,
+        primary_image_tag=s.primary_image_tag,
         library_name=s.library_name,
         library_id=s.library_id,
         last_synced=s.last_synced,
@@ -106,7 +107,7 @@ def list_libraries(db: Session = Depends(get_db), _: models.User = Depends(get_c
 
 
 @router.get("/{show_id}/poster")
-async def show_poster(show_id: int, db: Session = Depends(get_db)):
+async def show_poster(show_id: int, t: str | None = Query(None), db: Session = Depends(get_db)):
     show = db.query(models.Show).filter(models.Show.id == show_id).first()
     if not show:
         raise HTTPException(404, "Show not found.")
@@ -141,7 +142,8 @@ async def show_poster(show_id: int, db: Session = Depends(get_db)):
             )
         if resp.status_code != 200:
             raise HTTPException(404, "Poster not available.")
-        return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"), headers={"Cache-Control": "public, max-age=3600"})
+        cache = _IMMUTABLE if t else {"Cache-Control": "public, max-age=3600"}
+        return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"), headers=cache)
     except HTTPException:
         raise
     except Exception as e:

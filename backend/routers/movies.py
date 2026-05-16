@@ -53,6 +53,7 @@ def _movie_to_response(m: models.Movie) -> schemas.MovieResponse:
         has_poster=bool(m.primary_image_tag) or bool(m.custom_artwork_url),
         custom_artwork_url=m.custom_artwork_url,
         artwork_version=artwork_version,
+        primary_image_tag=m.primary_image_tag,
         library_name=m.library_name,
         library_id=m.library_id,
         last_synced=m.last_synced,
@@ -161,7 +162,7 @@ async def _push_artwork_to_jf(
 _IMMUTABLE = {"Cache-Control": "public, max-age=31536000, immutable"}
 
 @router.get("/{movie_id}/poster")
-async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
+async def movie_poster(movie_id: int, t: str | None = Query(None), db: Session = Depends(get_db)):
     movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
     if not movie:
         raise HTTPException(404, "Movie not found.")
@@ -196,7 +197,8 @@ async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
             )
         if resp.status_code != 200:
             raise HTTPException(404, "Poster not available.")
-        return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"), headers={"Cache-Control": "public, max-age=3600"})
+        cache = _IMMUTABLE if t else {"Cache-Control": "public, max-age=3600"}
+        return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"), headers=cache)
     except HTTPException:
         raise
     except Exception as e:
