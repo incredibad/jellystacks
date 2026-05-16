@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.3] — 2026-05-17
+
+### Fixed
+- Sync log page fetch lines now show cumulative item count rather than per-page count, so a 3-page library reads `500/1262 → 1000/1262 → 1262/1262` instead of the repeating `500/1262 → 500/1262 → 262/1262`
+
+---
+
 ## [1.23.2] — 2026-05-17
 
 ### Changed
