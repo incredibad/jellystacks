@@ -22,10 +22,15 @@ router = APIRouter()
 _ARTWORK_DIR = Path("/data/artwork/shows")
 _ARTWORK_DIR.mkdir(parents=True, exist_ok=True)
 
-_NO_STORE = {"Cache-Control": "no-store"}
+_IMMUTABLE = {"Cache-Control": "public, max-age=31536000, immutable"}
 
 
 def _show_to_response(s: models.Show) -> schemas.ShowResponse:
+    artwork_version = None
+    if s.custom_artwork_url and s.custom_artwork_url.startswith('/data/'):
+        p = Path(s.custom_artwork_url)
+        if p.exists():
+            artwork_version = int(p.stat().st_mtime)
     return schemas.ShowResponse(
         id=s.id,
         jellyfin_id=s.jellyfin_id,
@@ -42,6 +47,7 @@ def _show_to_response(s: models.Show) -> schemas.ShowResponse:
         community_rating=s.community_rating,
         has_poster=bool(s.primary_image_tag) or bool(s.custom_artwork_url),
         custom_artwork_url=s.custom_artwork_url,
+        artwork_version=artwork_version,
         library_name=s.library_name,
         library_id=s.library_id,
         last_synced=s.last_synced,
@@ -110,13 +116,13 @@ async def show_poster(show_id: int, db: Session = Depends(get_db)):
         if show.custom_artwork_url.startswith('/data/'):
             p = Path(show.custom_artwork_url)
             if p.exists():
-                return FileResponse(str(p), media_type='image/jpeg', headers=_NO_STORE)
+                return FileResponse(str(p), media_type='image/jpeg', headers=_IMMUTABLE)
         else:
             try:
                 async with httpx.AsyncClient(timeout=15) as client:
                     r = await client.get(show.custom_artwork_url)
                 if r.status_code == 200:
-                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'), headers=_NO_STORE)
+                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'), headers=_IMMUTABLE)
             except Exception:
                 pass
 

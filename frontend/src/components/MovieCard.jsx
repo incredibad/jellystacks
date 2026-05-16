@@ -26,9 +26,11 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange, 
   const baseUrl = isShow
     ? `/api/shows/${movie.id}/poster`
     : `/api/movies/${movie.id}/poster`
-  const stableBuster = movie.custom_artwork_url
-    ? (movie.custom_artwork_url.startsWith('/data/') ? 'local' : encodeURIComponent(movie.custom_artwork_url).slice(-24))
-    : null
+  const stableBuster = movie.artwork_version
+    ? movie.artwork_version
+    : movie.custom_artwork_url
+      ? encodeURIComponent(movie.custom_artwork_url).slice(-24)
+      : null
   const posterUrl = localPreview ?? (cacheBuster ? `${baseUrl}?t=${cacheBuster}` : stableBuster ? `${baseUrl}?t=${stableBuster}` : baseUrl)
 
   const analyzeImage = (file) => new Promise((resolve) => {

@@ -33,6 +33,11 @@ def _jellyfin_headers(api_key: str) -> dict:
 
 
 def _movie_to_response(m: models.Movie) -> schemas.MovieResponse:
+    artwork_version = None
+    if m.custom_artwork_url and m.custom_artwork_url.startswith('/data/'):
+        p = Path(m.custom_artwork_url)
+        if p.exists():
+            artwork_version = int(p.stat().st_mtime)
     return schemas.MovieResponse(
         id=m.id,
         jellyfin_id=m.jellyfin_id,
@@ -47,6 +52,7 @@ def _movie_to_response(m: models.Movie) -> schemas.MovieResponse:
         community_rating=m.community_rating,
         has_poster=bool(m.primary_image_tag) or bool(m.custom_artwork_url),
         custom_artwork_url=m.custom_artwork_url,
+        artwork_version=artwork_version,
         library_name=m.library_name,
         library_id=m.library_id,
         last_synced=m.last_synced,
@@ -152,8 +158,7 @@ async def _push_artwork_to_jf(
         print(f"[artwork] push to JF failed: {e}", flush=True)
 
 
-# ── Poster proxy — no auth required (movie artwork is not sensitive) ──────────
-_NO_STORE = {"Cache-Control": "no-store"}
+_IMMUTABLE = {"Cache-Control": "public, max-age=31536000, immutable"}
 
 @router.get("/{movie_id}/poster")
 async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
@@ -166,13 +171,13 @@ async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
         if movie.custom_artwork_url.startswith('/data/'):
             p = Path(movie.custom_artwork_url)
             if p.exists():
-                return FileResponse(str(p), media_type='image/jpeg', headers=_NO_STORE)
+                return FileResponse(str(p), media_type='image/jpeg', headers=_IMMUTABLE)
         else:
             try:
                 async with httpx.AsyncClient(timeout=15) as client:
                     r = await client.get(movie.custom_artwork_url)
                 if r.status_code == 200:
-                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'), headers=_NO_STORE)
+                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'), headers=_IMMUTABLE)
             except Exception:
                 pass
 

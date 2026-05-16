@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.21.10] — 2026-05-16
+
+### Fixed
+- Custom artwork (uploaded posters) in collection detail views now caches in the browser; the file modification time is used as a version key so re-uploading automatically busts the cache
+
+---
+
 ## [1.21.9] — 2026-05-16
 
 ### Changed
