@@ -271,15 +271,19 @@ export function OperationsProvider({ children }) {
     const EMPTY = { fetched: 0, total: 0 }
     showSyncProgress(EMPTY, EMPTY)
 
-    // Poll both progress endpoints and update bars independently
+    // Poll both progress endpoints and update bars independently.
+    // `cancelled` prevents a still-awaiting poll callback from overwriting
+    // the completion toast after clearInterval has already been called.
     let moviesProg = EMPTY
     let showsProg = EMPTY
+    let cancelled = false
     const pollInterval = setInterval(async () => {
       try {
         const [mRes, sRes] = await Promise.all([
           api.get('/movies/sync/progress').catch(() => ({ data: null })),
           api.get('/shows/sync/progress').catch(() => ({ data: null })),
         ])
+        if (cancelled) return
         if (mRes.data) moviesProg = mRes.data
         if (sRes.data) showsProg = sRes.data
         showSyncProgress(moviesProg, showsProg)
@@ -295,6 +299,7 @@ export function OperationsProvider({ children }) {
         api.post('/shows/sync', null, { timeout: 0 }).then(res => { showsData = res.data; return res }),
       ])
 
+      cancelled = true
       clearInterval(pollInterval)
 
       if (moviesResult.status === 'rejected') throw moviesResult.reason
@@ -317,6 +322,7 @@ export function OperationsProvider({ children }) {
       }, () => navigate('/settings?tab=system&log=1'))
       setLastSynced(Date.now())
     } catch (err) {
+      cancelled = true
       clearInterval(pollInterval)
       toast.error(err.response?.data?.detail || 'Sync failed. Check Settings.', { id: 'sync' })
     } finally {

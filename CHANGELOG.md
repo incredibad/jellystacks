@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.1] — 2026-05-17
+
+### Fixed
+- Sync completion toast no longer gets permanently replaced by the stale progress toast: an in-flight async poll callback could resolve after `clearInterval` was called and overwrite the "Sync complete" toast; a `cancelled` flag now causes any such late callbacks to exit early
+
+---
+
 ## [1.23.0] — 2026-05-17
 
 ### Added
