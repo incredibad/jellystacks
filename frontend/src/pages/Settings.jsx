@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 
 const LOG_COLORS = {
   new: '#10b981',
+  updated: '#60a5fa',
   deleted: '#f87171',
   warning: '#f59e0b',
   error: '#ef4444',

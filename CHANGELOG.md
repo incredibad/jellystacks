@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.4] — 2026-05-17
+
+### Changed
+- Sync log "Updated:" lines now render in blue, distinct from green (New), red (Deleted), amber (Warning), and violet (Summary)
+
+---
+
 ## [1.23.3] — 2026-05-17
 
 ### Fixed
