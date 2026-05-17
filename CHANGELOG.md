@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.7] — 2026-05-17
+
+### Changed
+- Sync log no longer emits per-page fetch lines during the Jellyfin fetch phase; instead logs a "Processing X–Y of Z" batch marker every 500 items during the upsert phase, so range markers appear inline with Updated/New/Deleted entries at the correct point in the log
+
+---
+
 ## [1.23.6] — 2026-05-17
 
 ### Fixed
