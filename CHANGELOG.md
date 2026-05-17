@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.8] — 2026-05-17
+
+### Changed
+- Settings → Sync tab: Scheduled Collection Refresh now occupies the right column of the two-column grid instead of stacking below Jellyfin Server in the left column
+- Settings → System tab: removed max-width constraint so sections use the full content area
+- Settings → System tab: added About section showing app name, version number, and a link to the GitHub repository
+
+---
+
 ## [1.23.7] — 2026-05-17
 
 ### Changed
