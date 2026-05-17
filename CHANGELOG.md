@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.10] — 2026-05-17
+
+### Fixed
+- Settings → System tab: all three sections (About, Sync Log, Danger Zone) are now in a single two-column grid — nothing spans full width
+
+---
+
 ## [1.23.9] — 2026-05-17
 
 ### Fixed
