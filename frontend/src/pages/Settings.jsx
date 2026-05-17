@@ -4,7 +4,9 @@ import { useOperations } from '../contexts/OperationsContext'
 import {
   Server, Key, User, CheckCircle2, XCircle, Loader, ChevronDown, ChevronUp,
   ExternalLink, Trash2, Lock, Download, Upload, RefreshCw, Clock, RotateCcw, Terminal,
+  Github, Info,
 } from 'lucide-react'
+import pkg from '../../package.json'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -420,7 +422,6 @@ export default function Settings() {
       {activeTab === 'sync' && (
         <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
           <Section title="Jellyfin Server" description="Connect to your Jellyfin media server." icon={Server}>
             <Field label="Server URL" hint="Include the protocol, e.g. http://192.168.1.10:8096">
               <input
@@ -565,7 +566,6 @@ export default function Settings() {
               </button>
             </div>
           </Section>
-          </div>
         </div>
         <div className="flex justify-end mt-6">
           <button
@@ -875,7 +875,30 @@ export default function Settings() {
 
       {/* ── System tab ─────────────────────────────────────────────────────── */}
       {activeTab === 'system' && (
-        <div className="space-y-6 max-w-2xl">
+        <div className="space-y-6">
+          <Section title="About" description="Application information." icon={Info}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-white">JellyStacks</p>
+                <p className="text-xs text-slate-500 mt-1">A web-based app for managing your Jellyfin collections library.</p>
+              </div>
+              <span className="flex-shrink-0 text-xs font-mono text-slate-400 px-2 py-1 rounded-md" style={{ background: '#0d0d14', border: '1px solid var(--border)' }}>
+                v{pkg.version}
+              </span>
+            </div>
+            <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+              <a
+                href="https://github.com/incredibad/jellystacks"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300 transition-colors"
+              >
+                <Github size={14} />
+                github.com/incredibad/jellystacks
+              </a>
+            </div>
+          </Section>
+
           <Section title="Sync Log" description="Console output from the most recent library sync." icon={Terminal}>
             {loadingLog && !syncLog ? (
               <div className="flex items-center gap-2 text-sm text-slate-500">
