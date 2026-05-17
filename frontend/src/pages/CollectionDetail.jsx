@@ -592,7 +592,7 @@ export default function CollectionDetail() {
               onClick={handlePush}
               disabled={pushing || (collection.movie_count + (collection.show_count || 0)) === 0 || (collection.in_jellyfin && !needsSync)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                pushing || collection.movie_count === 0
+                pushing || (collection.movie_count + (collection.show_count || 0)) === 0
                   ? 'bg-violet-600 text-white opacity-50 cursor-not-allowed'
                   : needsSync
                     ? 'bg-amber-500 hover:bg-amber-400 text-white'
