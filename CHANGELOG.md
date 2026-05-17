@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.6] — 2026-05-17
+
+### Fixed
+- Sync log page fetch lines now show cross-library cumulative counts: numerator is total unique items seen across all libraries so far, denominator is the overall expected total — so a two-library sync correctly reads `500/1262 → 1000/1262 → 1262/1262` across both movies.py and shows.py
+
+---
+
 ## [1.23.5] — 2026-05-17
 
 ### Added
