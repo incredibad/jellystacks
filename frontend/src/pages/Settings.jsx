@@ -876,6 +876,7 @@ export default function Settings() {
       {/* ── System tab ─────────────────────────────────────────────────────── */}
       {activeTab === 'system' && (
         <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Section title="About" description="Application information." icon={Info}>
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -962,6 +963,7 @@ export default function Settings() {
               Refresh
             </button>
           </Section>
+          </div>
 
           <Section title="Danger Zone" description="Destructive actions — use with care." icon={Trash2} danger>
             <div className="space-y-5">
