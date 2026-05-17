@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.11] — 2026-05-17
+
+### Fixed
+- Push to Jellyfin button incorrectly appeared disabled for collections containing only TV shows (no movies) — className check was testing `movie_count === 0` instead of the combined `movie_count + show_count === 0`
+
+---
+
 ## [1.23.10] — 2026-05-17
 
 ### Fixed
