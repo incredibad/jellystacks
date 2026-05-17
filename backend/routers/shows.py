@@ -359,17 +359,19 @@ async def _do_sync_shows(db: Session, user: models.User, run: _sync_log.SyncRun)
                         all_items.append((item, lib["name"], lib["id"]))
 
                 _sync_progress[user.id] = {"fetched": len(seen), "total": expected_total}
-                _sync_log.log(run, "shows", f"{lib['name'] or '(default)'} — page {start // 500 + 1}: {len(seen)}/{expected_total}")
 
                 if start + 500 >= total:
                     break
                 start += 500
 
-    _sync_log.log(run, "shows", f"Fetched {len(all_items)} unique items")
+    _sync_log.log(run, "shows", f"Fetched {len(all_items)} shows — processing...")
 
     # ── Step 3: upsert ────────────────────────────────────────────────────────
     synced = 0
-    for item, lib_name, lib_id in all_items:
+    total_items = len(all_items)
+    for i, (item, lib_name, lib_id) in enumerate(all_items):
+        if i % 500 == 0:
+            _sync_log.log(run, "shows", f"Processing shows {i + 1}–{min(i + 500, total_items)} of {total_items}")
         jf_id = item.get("Id")
         if not jf_id:
             continue
