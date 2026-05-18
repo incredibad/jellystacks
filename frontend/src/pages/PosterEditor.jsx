@@ -3,16 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Stage, Layer, Image as KonvaImage, Text, Line, Rect, Transformer } from 'react-konva'
 import {
   ArrowLeft, Trash2, Loader, Save, Eye, EyeOff, ChevronUp, ChevronDown,
-  Type, Minus, Image, Layers, Download, Upload, Search,
+  Type, Minus, Image, Layers, Download, Upload, Search, Copy,
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
 const FONTS = [
-  'Abril Fatface', 'Anton', 'Barlow Condensed', 'Bebas Neue', 'Cinzel',
-  'Cormorant Garamond', 'IM Fell English', 'Josefin Sans', 'Lato',
-  'Libre Baskerville', 'Montserrat', 'Oswald', 'Playfair Display',
-  'Questrial', 'Raleway',
+  'Abril Fatface', 'Anton', 'Bangers', 'Barlow Condensed', 'Bebas Neue',
+  'Black Ops One', 'Cinzel', 'Cormorant Garamond', 'IM Fell English',
+  'Josefin Sans', 'Lato', 'Libre Baskerville', 'Montserrat', 'Oswald',
+  'Permanent Marker', 'Playfair Display', 'Questrial', 'Raleway',
+  'Russo One', 'Teko',
 ]
 
 const RESOLUTIONS = [
@@ -32,7 +33,7 @@ const newId = () => `layer_${Date.now()}_${_layerIdCounter++}`
 function makeTextLayer() {
   return {
     id: newId(), type: 'text', visible: true,
-    props: { text: 'TITLE', x: 400, y: 600, fontFamily: 'Bebas Neue', fontSize: 90, fill: '#ffffff', align: 'center', letterSpacing: 4, shadowEnabled: false, shadowColor: '#000000', shadowBlur: 10, shadowOffsetX: 2, shadowOffsetY: 2, shadowOpacity: 0.8, opacity: 1 },
+    props: { text: 'TITLE', x: 400, y: 600, fontFamily: 'Bebas Neue', fontSize: 90, fontWeight: '400', fill: '#ffffff', align: 'center', letterSpacing: 4, shadowEnabled: false, shadowColor: '#000000', shadowBlur: 10, shadowOffsetX: 2, shadowOffsetY: 2, shadowOpacity: 0.8, opacity: 1 },
   }
 }
 
@@ -81,6 +82,53 @@ function ColorSwatch({ value, onChange }) {
   )
 }
 
+function FontPicker({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handle = e => { if (!containerRef.current?.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [open])
+
+  const handleSelect = async (font) => {
+    setOpen(false)
+    try { await document.fonts.load(`bold 1em "${font}"`) } catch {}
+    onChange(font)
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className={`${inputCls} flex items-center justify-between gap-2 cursor-pointer`}
+        style={{ fontFamily: value }}
+      >
+        <span className="truncate">{value}</span>
+        <ChevronDown size={12} className="flex-shrink-0 text-slate-500 transition-transform" style={{ transform: open ? 'rotate(180deg)' : '' }} />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 right-0 z-[100] mt-1 rounded-md border border-[var(--border)] shadow-xl overflow-y-auto" style={{ background: '#0d0d14', maxHeight: 240 }}>
+          {FONTS.map(f => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => handleSelect(f)}
+              className={`w-full px-3 py-2 text-left text-sm transition-colors ${f === value ? 'text-violet-300 bg-violet-500/15' : 'text-slate-300 hover:bg-white/5'}`}
+              style={{ fontFamily: f }}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TextProps({ layer, onChange }) {
   const p = layer.props
   return (
@@ -90,10 +138,17 @@ function TextProps({ layer, onChange }) {
           rows={2} className={inputCls + ' resize-none'} />
       </PropRow>
       <PropRow label="Font">
-        <select value={p.fontFamily} onChange={e => onChange('fontFamily', e.target.value)} className={inputCls}
-          style={{ fontFamily: p.fontFamily }}>
-          {FONTS.map(f => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
-        </select>
+        <FontPicker value={p.fontFamily} onChange={v => onChange('fontFamily', v)} />
+      </PropRow>
+      <PropRow label="Weight">
+        <div className="flex gap-1">
+          {[['400', 'Regular'], ['700', 'Bold'], ['900', 'Heavy']].map(([w, label]) => (
+            <button key={w} onClick={() => onChange('fontWeight', w)}
+              className={`flex-1 py-1 rounded text-xs transition-colors ${(p.fontWeight ?? '400') === w ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white bg-[#0d0d14] border border-[var(--border)]'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </PropRow>
       <PropRow label="Size">
         <input type="number" value={p.fontSize} min={8} max={400} onChange={e => onChange('fontSize', +e.target.value)} className={numCls} />
@@ -560,19 +615,55 @@ export default function PosterEditor() {
     }))
   }
 
-  // Snap drag handler — snaps to canvas edges and centre
+  const duplicateLayer = layerId => {
+    updateCanvas(prev => {
+      const idx = prev.layers.findIndex(l => l.id === layerId)
+      if (idx < 0) return prev
+      const src = prev.layers[idx]
+      const copy = {
+        ...src,
+        id: newId(),
+        props: { ...src.props, x: (src.props.x ?? 0) + 20, y: (src.props.y ?? 0) + 20 },
+      }
+      const layers = [...prev.layers]
+      layers.splice(idx + 1, 0, copy)
+      return { ...prev, layers }
+    })
+  }
+
+  // Snap drag handler — snaps element edges and centre to canvas guides
   const handleDragMove = useCallback((e) => {
     const node = e.target
     const threshold = 8 / scale
-    let { x, y } = node.position()
+    const pos = node.position()
+    const box = node.getClientRect({ relativeTo: node.getLayer() })
+    let newX = pos.x, newY = pos.y
     let snapV = null, snapH = null
-    for (const t of [0, cw / 2, cw]) {
-      if (Math.abs(x - t) < threshold) { x = t; snapV = t; break }
+
+    for (const [elemX, guideX] of [
+      [box.x, 0],
+      [box.x + box.width / 2, cw / 2],
+      [box.x + box.width, cw],
+    ]) {
+      if (Math.abs(elemX - guideX) < threshold) {
+        newX = pos.x + (guideX - elemX)
+        snapV = guideX
+        break
+      }
     }
-    for (const t of [0, ch / 2, ch]) {
-      if (Math.abs(y - t) < threshold) { y = t; snapH = t; break }
+    for (const [elemY, guideY] of [
+      [box.y, 0],
+      [box.y + box.height / 2, ch / 2],
+      [box.y + box.height, ch],
+    ]) {
+      if (Math.abs(elemY - guideY) < threshold) {
+        newY = pos.y + (guideY - elemY)
+        snapH = guideY
+        break
+      }
     }
-    node.position({ x, y })
+
+    node.position({ x: newX, y: newY })
     setSnapLines({ v: snapV, h: snapH })
   }, [scale, cw, ch])
 
@@ -711,6 +802,7 @@ export default function PosterEditor() {
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={e => { e.stopPropagation(); moveLayer(layer.id, -1) }} className="p-0.5 hover:text-white"><ChevronDown size={11} /></button>
                   <button onClick={e => { e.stopPropagation(); moveLayer(layer.id, 1) }} className="p-0.5 hover:text-white"><ChevronUp size={11} /></button>
+                  <button onClick={e => { e.stopPropagation(); duplicateLayer(layer.id) }} className="p-0.5 hover:text-white"><Copy size={11} /></button>
                   <button onClick={e => { e.stopPropagation(); toggleVisible(layer.id) }} className="p-0.5 hover:text-white">
                     {layer.visible ? <Eye size={11} /> : <EyeOff size={11} className="opacity-40" />}
                   </button>
@@ -752,11 +844,13 @@ export default function PosterEditor() {
                   {/* Layers */}
                   {canvas.layers.filter(l => l.visible).map(layer => {
                     if (layer.type === 'text') {
+                      const fw = layer.props.fontWeight ?? '400'
                       return (
                         <Text
                           key={layer.id}
                           id={layer.id}
                           {...layer.props}
+                          fontStyle={fw === '900' ? '900' : fw === '700' ? 'bold' : 'normal'}
                           offsetX={layer.props.align === 'center' ? cw / 2 : layer.props.align === 'right' ? cw : 0}
                           width={cw}
                           draggable
