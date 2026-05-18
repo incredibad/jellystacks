@@ -4,6 +4,23 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.24.0] — 2026-05-18
+
+### Added
+- **Poster Studio** — new page for designing custom movie/show/collection posters
+  - Project list with thumbnail previews, create/delete/rename
+  - Canvas editor built on react-konva with live preview scaled to fit the screen
+  - Layer types: Text (with font, size, colour, alignment, letter spacing, drop shadow), Line (colour, thickness, length), Vignette (bottom/top/radial gradient), PNG image import
+  - 15 curated Google Fonts: Abril Fatface, Anton, Barlow Condensed, Bebas Neue, Cinzel, Cormorant Garamond, IM Fell English, Josefin Sans, Lato, Libre Baskerville, Montserrat, Oswald, Playfair Display, Questrial, Raleway
+  - Background: solid colour, uploaded image, or URL; fill/fit modes; optional colour overlay
+  - Resolution: Jellyfin Default (800×1200), High Quality (1200×1800), or custom
+  - Auto-save (2s debounce) + manual save; thumbnail generated on each save
+  - Export full-resolution JPEG
+  - "Apply to…" — search and apply directly to any movie, show, or collection
+  - Accessible from sidebar navigation
+
+---
+
 ## [1.23.12] — 2026-05-17
 
 ### Fixed

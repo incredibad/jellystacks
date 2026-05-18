@@ -122,3 +122,14 @@ class TmdbRelatedCache(Base):
     tmdb_id = Column(String, primary_key=True)
     related_ids = Column(Text, nullable=False)  # JSON array of TMDB IDs
     cached_at = Column(DateTime, nullable=False)
+
+
+class PosterProject(Base):
+    __tablename__ = "poster_projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, default="Untitled Project")
+    thumbnail = Column(Text, nullable=True)  # base64 data URL of small preview JPEG
+    canvas_json = Column(Text, nullable=True)  # full JSON layer stack
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

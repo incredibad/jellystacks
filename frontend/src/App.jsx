@@ -10,6 +10,8 @@ import Shows from './pages/Shows'
 import Collections from './pages/Collections'
 import CollectionDetail from './pages/CollectionDetail'
 import Settings from './pages/Settings'
+import PosterStudio from './pages/PosterStudio'
+import PosterEditor from './pages/PosterEditor'
 import api from './api/client'
 
 function AppRoutes() {
@@ -61,6 +63,8 @@ function AppRoutes() {
         <Route path="/collections" element={<Collections />} />
         <Route path="/collections/:id" element={<CollectionDetail />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/poster-studio" element={<PosterStudio />} />
+        <Route path="/poster-studio/:id" element={<PosterEditor />} />
         <Route path="*" element={<Navigate to="/collections" replace />} />
       </Routes>
     </Layout>

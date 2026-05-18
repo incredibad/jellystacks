@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Film, Tv, Layers, Settings, LogOut, RefreshCw, Upload, Download, LayoutGrid, Loader, ChevronDown, Image, Menu, X } from 'lucide-react'
+import { Film, Tv, Layers, Settings, LogOut, RefreshCw, Upload, Download, LayoutGrid, Loader, ChevronDown, Image, Menu, X, Wand2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useOperations } from '../contexts/OperationsContext'
 import { useState, useEffect } from 'react'
@@ -9,9 +9,10 @@ import pkg from '../../package.json'
 import BulkArtworkModal from './BulkArtworkModal'
 
 const NAV_ITEMS = [
-  { to: '/collections', icon: Layers, label: 'Collections', countKey: 'collections' },
-  { to: '/movies',      icon: Film,   label: 'Movies',      countKey: 'movies' },
-  { to: '/shows',       icon: Tv,     label: 'Shows',       countKey: 'shows' },
+  { to: '/collections',   icon: Layers, label: 'Collections',   countKey: 'collections' },
+  { to: '/movies',        icon: Film,   label: 'Movies',        countKey: 'movies' },
+  { to: '/shows',         icon: Tv,     label: 'Shows',         countKey: 'shows' },
+  { to: '/poster-studio', icon: Wand2,  label: 'Poster Studio', countKey: null },
 ]
 
 function ConfirmModal({ title, description, confirmLabel, onConfirm, onClose }) {

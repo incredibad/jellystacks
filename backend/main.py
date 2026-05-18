@@ -9,7 +9,7 @@ from sqlalchemy import text, inspect as sa_inspect
 from database import Base, engine, SessionLocal
 import models
 from auth import get_current_user
-from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router, trakt as trakt_router, tvdb as tvdb_router, bulk_artwork as bulk_artwork_router
+from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router, trakt as trakt_router, tvdb as tvdb_router, bulk_artwork as bulk_artwork_router, poster_projects as poster_projects_router
 import scheduler as collection_scheduler
 import sync_log as _sync_log
 
@@ -114,7 +114,8 @@ app.include_router(tmdb.router,            prefix="/api/tmdb",        tags=["tmd
 app.include_router(mdblist_router.router,  prefix="/api/mdblist",     tags=["mdblist"])
 app.include_router(trakt_router.router,    prefix="/api/trakt",       tags=["trakt"])
 app.include_router(tvdb_router.router,          prefix="/api/tvdb",         tags=["tvdb"])
-app.include_router(bulk_artwork_router.router,  prefix="/api/artwork/bulk", tags=["artwork"])
+app.include_router(bulk_artwork_router.router,      prefix="/api/artwork/bulk",     tags=["artwork"])
+app.include_router(poster_projects_router.router,  prefix="/api/poster-projects",  tags=["poster-studio"])
 
 # ── Sync Log ─────────────────────────────────────────────────────────────────
 @app.get("/api/sync/log", include_in_schema=True)
