@@ -1153,6 +1153,58 @@ async def get_mdblist_missing(
     return missing
 
 
+@router.get("/{collection_id}/trakt-missing")
+async def get_trakt_missing(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    col = _load_col(collection_id, db)
+    if not col.trakt_list_id:
+        raise HTTPException(404, "Not a Trakt collection.")
+
+    from routers.trakt import _get_client_id, _trakt_headers
+    client_id = _get_client_id(db)
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"https://api.trakt.tv/lists/{col.trakt_list_id}/items",
+            headers=_trakt_headers(client_id),
+        )
+    if resp.status_code != 200:
+        raise HTTPException(502, "Failed to fetch Trakt list items.")
+
+    entries = resp.json()
+    total = len(entries)
+    if total != col.trakt_total_items:
+        col.trakt_total_items = total
+        db.commit()
+
+    movie_ids, show_ids, raw = set(), set(), []
+    for entry in entries:
+        t = entry.get("type")
+        obj = entry.get(t) or {}
+        tmdb = str((obj.get("ids") or {}).get("tmdb") or "")
+        if tmdb and tmdb != "0":
+            raw.append({"tmdb": tmdb, "type": t, "title": obj.get("title", ""), "year": obj.get("year")})
+            if t == "movie":
+                movie_ids.add(tmdb)
+            elif t == "show":
+                show_ids.add(tmdb)
+
+    owned_movies = set(r[0] for r in db.query(models.Movie.tmdb_id).filter(models.Movie.tmdb_id.in_(movie_ids)).all()) if movie_ids else set()
+    owned_shows = set(r[0] for r in db.query(models.Show.tmdb_id).filter(models.Show.tmdb_id.in_(show_ids)).all()) if show_ids else set()
+
+    missing = []
+    for item in raw:
+        if item["type"] == "movie" and item["tmdb"] not in owned_movies:
+            missing.append({"title": item["title"], "year": item["year"], "mediatype": "movie"})
+        elif item["type"] == "show" and item["tmdb"] not in owned_shows:
+            missing.append({"title": item["title"], "year": item["year"], "mediatype": "show"})
+
+    return missing
+
+
 @router.post("/{collection_id}/verify", response_model=schemas.CollectionResponse)
 async def verify_jellyfin_status(
     collection_id: int,

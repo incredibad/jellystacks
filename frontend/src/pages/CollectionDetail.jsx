@@ -227,9 +227,14 @@ export default function CollectionDetail() {
           .catch(() => {})
       }
 
-      // Fetch MDBList missing items if this is an MDBList collection
+      // Fetch missing items for managed list collections
       if (data.mdblist_list_id) {
         api.get(`/collections/${id}/mdblist-missing`)
+          .then(res => setMdblistMissing(res.data))
+          .catch(() => {})
+      }
+      if (data.trakt_list_id) {
+        api.get(`/collections/${id}/trakt-missing`)
           .then(res => setMdblistMissing(res.data))
           .catch(() => {})
       }
