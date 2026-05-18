@@ -661,8 +661,13 @@ export default function PosterEditor() {
         </div>
 
         {/* Canvas preview */}
-        <div className="flex-1 flex items-center justify-center overflow-auto p-6" style={{ background: '#07070f' }}>
-          <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: cw, height: ch, flexShrink: 0 }}>
+        <div className="flex-1 flex items-center justify-center overflow-auto p-10" style={{ background: '#111118' }}>
+          {/* Outer wrapper at visual (scaled) size — flexbox centres this correctly */}
+          <div style={{ width: Math.round(cw * scale), height: Math.round(ch * scale), flexShrink: 0, position: 'relative' }}>
+            {/* Canvas edge — shadow + 1px border so the canvas boundary is always visible */}
+            <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', boxShadow: '0 0 0 1px rgba(255,255,255,0.12), 0 8px 32px rgba(0,0,0,0.7), 0 24px 80px rgba(0,0,0,0.5)' }} />
+            {/* Inner canvas scaled from top-left to exactly fill the outer wrapper */}
+          <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: cw, height: ch }}>
             <Stage ref={stageRef} width={cw} height={ch}>
               <Layer>
                 {/* Background colour */}
@@ -721,6 +726,7 @@ export default function PosterEditor() {
                 })}
               </Layer>
             </Stage>
+          </div>
           </div>
         </div>
 
