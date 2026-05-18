@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.23.12] — 2026-05-17
+
+### Fixed
+- Trakt collections now show a "Not in your library" section listing movies and shows from the Trakt list that aren't present in your Jellyfin library — previously this section was entirely absent for Trakt collections
+
+---
+
 ## [1.23.11] — 2026-05-17
 
 ### Fixed
