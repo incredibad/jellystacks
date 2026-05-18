@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.24.1] — 2026-05-18
+
+### Fixed
+- Poster Studio: canvas is now properly centred in the workspace, with a visible 1px edge highlight and drop shadow so the canvas boundary is always clear against the background (Affinity/Photoshop style)
+
+---
+
 ## [1.24.0] — 2026-05-18
 
 ### Added
