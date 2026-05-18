@@ -4,6 +4,20 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.24.2] — 2026-05-18
+
+### Fixed
+- Poster Studio editor: snap-to-canvas guides — elements snap to edges and centre (both axes) with violet dashed guide lines while dragging
+- Lines now have a wide invisible hit area so they can be dragged without pixel-perfect aim
+- Toggling layer visibility no longer resets the element's position (all drag handlers now save both X and Y)
+- Uploading an image layer now preserves the original aspect ratio (scaled to fit within 600×600)
+- Renamed "PNG" layer type to "Image" throughout
+- Vignette size is now configurable via a slider (controls gradient spread)
+- Selected elements show a bounding box (Transformer); image layers additionally support resize via drag handles
+- Right panel is now tabbed — Background tab (always visible) and Layer tab (shown only when an element is selected); switching selection auto-activates the Layer tab
+
+---
+
 ## [1.24.1] — 2026-05-18
 
 ### Fixed

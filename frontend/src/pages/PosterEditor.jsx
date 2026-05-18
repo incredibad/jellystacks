@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Stage, Layer, Image as KonvaImage, Text, Line, Rect } from 'react-konva'
+import { Stage, Layer, Image as KonvaImage, Text, Line, Rect, Transformer } from 'react-konva'
 import {
-  ArrowLeft, Plus, Trash2, Loader, Save, Eye, EyeOff, ChevronUp, ChevronDown,
+  ArrowLeft, Trash2, Loader, Save, Eye, EyeOff, ChevronUp, ChevronDown,
   Type, Minus, Image, Layers, Download, Upload, Search,
 } from 'lucide-react'
 import api from '../api/client'
@@ -53,7 +53,7 @@ function makeImageLayer() {
 function makeVignetteLayer() {
   return {
     id: newId(), type: 'vignette', visible: true,
-    props: { direction: 'bottom', color: '#000000', opacity: 0.75 },
+    props: { direction: 'bottom', color: '#000000', opacity: 0.75, size: 0.6 },
   }
 }
 
@@ -103,7 +103,7 @@ function TextProps({ layer, onChange }) {
       </PropRow>
       <PropRow label="Align">
         <div className="flex gap-1">
-          {['left','center','right'].map(a => (
+          {['left', 'center', 'right'].map(a => (
             <button key={a} onClick={() => onChange('align', a)}
               className={`flex-1 py-1 rounded text-xs capitalize transition-colors ${p.align === a ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white bg-[#0d0d14] border border-[var(--border)]'}`}>
               {a}
@@ -187,7 +187,7 @@ function VignetteProps({ layer, onChange }) {
     <>
       <PropRow label="Direction">
         <div className="flex gap-1 flex-wrap">
-          {['bottom','top','radial'].map(d => (
+          {['bottom', 'top', 'radial'].map(d => (
             <button key={d} onClick={() => onChange('direction', d)}
               className={`flex-1 py-1 rounded text-xs capitalize transition-colors ${p.direction === d ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white bg-[#0d0d14] border border-[var(--border)]'}`}>
               {d}
@@ -198,6 +198,10 @@ function VignetteProps({ layer, onChange }) {
       <PropRow label="Colour">
         <ColorSwatch value={p.color} onChange={v => onChange('color', v)} />
       </PropRow>
+      <PropRow label="Size">
+        <input type="range" min={0.1} max={1} step={0.05} value={p.size ?? 0.6}
+          onChange={e => onChange('size', +e.target.value)} className="w-full accent-violet-500" />
+      </PropRow>
       <PropRow label="Strength">
         <input type="range" min={0} max={1} step={0.01} value={p.opacity}
           onChange={e => onChange('opacity', +e.target.value)} className="w-full accent-violet-500" />
@@ -206,7 +210,7 @@ function VignetteProps({ layer, onChange }) {
   )
 }
 
-function ImageLayerProps({ layer, onChange }) {
+function ImageLayerProps({ layer, onChange, onBulk }) {
   const p = layer.props
   const fileRef = useRef(null)
 
@@ -214,7 +218,22 @@ function ImageLayerProps({ layer, onChange }) {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = ev => onChange('imageDataUrl', ev.target.result)
+    reader.onload = ev => {
+      const dataUrl = ev.target.result
+      const img = new window.Image()
+      img.onload = () => {
+        const maxSize = 600
+        let w = img.naturalWidth
+        let h = img.naturalHeight
+        if (w > maxSize || h > maxSize) {
+          const ratio = Math.min(maxSize / w, maxSize / h)
+          w = Math.round(w * ratio)
+          h = Math.round(h * ratio)
+        }
+        onBulk({ imageDataUrl: dataUrl, width: w, height: h })
+      }
+      img.src = dataUrl
+    }
     reader.readAsDataURL(file)
     e.target.value = ''
   }
@@ -224,7 +243,7 @@ function ImageLayerProps({ layer, onChange }) {
       <PropRow label="Image">
         <button onClick={() => fileRef.current?.click()}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-slate-300 bg-[#0d0d14] border border-[var(--border)] hover:border-violet-500 transition-colors">
-          <Upload size={12} /> Upload PNG
+          <Upload size={12} /> Upload image
         </button>
         <input ref={fileRef} type="file" accept="image/png,image/webp,image/jpeg" className="hidden" onChange={handleFile} />
       </PropRow>
@@ -298,11 +317,8 @@ function ApplyModal({ onClose, onApply }) {
         </div>
         <div className="space-y-1 max-h-64 overflow-y-auto">
           {results.map((r, i) => (
-            <button
-              key={i}
-              onClick={() => onApply(r)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm text-slate-300 hover:bg-white/5 transition-colors"
-            >
+            <button key={i} onClick={() => onApply(r)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm text-slate-300 hover:bg-white/5 transition-colors">
               <span className="flex-1 truncate">{r.label}</span>
               <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${typeCls[r.type]}`}>
                 {typeLabel[r.type]}
@@ -324,20 +340,21 @@ function useVignetteImage(layer, cw, ch) {
   const [img, setImg] = useState(null)
   useEffect(() => {
     const p = layer.props
+    const size = p.size ?? 0.6
     const canvas = document.createElement('canvas')
     canvas.width = cw; canvas.height = ch
     const ctx = canvas.getContext('2d')
     let grad
     if (p.direction === 'radial') {
-      grad = ctx.createRadialGradient(cw/2, ch/2, 0, cw/2, ch/2, Math.max(cw, ch) * 0.7)
+      grad = ctx.createRadialGradient(cw / 2, ch / 2, 0, cw / 2, ch / 2, Math.max(cw, ch) * size)
       grad.addColorStop(0, 'transparent')
       grad.addColorStop(1, p.color)
     } else if (p.direction === 'bottom') {
-      grad = ctx.createLinearGradient(0, ch * 0.4, 0, ch)
+      grad = ctx.createLinearGradient(0, ch * (1 - size), 0, ch)
       grad.addColorStop(0, 'transparent')
       grad.addColorStop(1, p.color)
     } else {
-      grad = ctx.createLinearGradient(0, 0, 0, ch * 0.6)
+      grad = ctx.createLinearGradient(0, 0, 0, ch * size)
       grad.addColorStop(0, p.color)
       grad.addColorStop(1, 'transparent')
     }
@@ -346,14 +363,22 @@ function useVignetteImage(layer, cw, ch) {
     const image = new window.Image()
     image.src = canvas.toDataURL()
     image.onload = () => setImg(image)
-  }, [layer.props.direction, layer.props.color, cw, ch])
+  }, [layer.props.direction, layer.props.color, layer.props.size, cw, ch])
   return img
 }
 
 function VignetteKonva({ layer, cw, ch }) {
   const img = useVignetteImage(layer, cw, ch)
   if (!img) return null
-  return <KonvaImage image={img} x={0} y={0} width={cw} height={ch} opacity={layer.props.opacity} listening={false} />
+  return (
+    <KonvaImage
+      id={layer.id}
+      image={img}
+      x={0} y={0} width={cw} height={ch}
+      opacity={layer.props.opacity}
+      listening={false}
+    />
+  )
 }
 
 function useLoadedImage(dataUrl) {
@@ -372,21 +397,37 @@ function BgKonvaImage({ dataUrl, fit, cw, ch }) {
   if (!img) return null
   let x = 0, y = 0, w = cw, h = ch
   if (fit === 'fit') {
-    const scale = Math.min(cw / img.width, ch / img.height)
-    w = img.width * scale; h = img.height * scale
+    const s = Math.min(cw / img.width, ch / img.height)
+    w = img.width * s; h = img.height * s
     x = (cw - w) / 2; y = (ch - h) / 2
   } else {
-    const scale = Math.max(cw / img.width, ch / img.height)
-    w = img.width * scale; h = img.height * scale
+    const s = Math.max(cw / img.width, ch / img.height)
+    w = img.width * s; h = img.height * s
     x = (cw - w) / 2; y = (ch - h) / 2
   }
   return <KonvaImage image={img} x={x} y={y} width={w} height={h} listening={false} />
 }
 
-function ImageLayerKonva({ layer }) {
+function ImageLayerKonva({ layer, onSelect, onDragMove, onDragEnd, onTransformEnd }) {
   const img = useLoadedImage(layer.props.imageDataUrl)
   if (!img || !layer.props.imageDataUrl) return null
-  return <KonvaImage image={img} x={layer.props.x} y={layer.props.y} width={layer.props.width} height={layer.props.height} opacity={layer.props.opacity} draggable onDragEnd={e => {}} />
+  return (
+    <KonvaImage
+      id={layer.id}
+      image={img}
+      x={layer.props.x}
+      y={layer.props.y}
+      width={layer.props.width}
+      height={layer.props.height}
+      opacity={layer.props.opacity}
+      draggable
+      onClick={onSelect}
+      onTap={onSelect}
+      onDragMove={onDragMove}
+      onDragEnd={onDragEnd}
+      onTransformEnd={onTransformEnd}
+    />
+  )
 }
 
 // ── Main editor ─────────────────────────────────────────────────────────────
@@ -395,12 +436,15 @@ export default function PosterEditor() {
   const { id } = useParams()
   const navigate = useNavigate()
   const stageRef = useRef(null)
+  const transformerRef = useRef(null)
   const bgFileRef = useRef(null)
   const saveTimerRef = useRef(null)
 
   const [project, setProject] = useState(null)
   const [canvas, setCanvas] = useState(DEFAULT_CANVAS)
   const [selectedId, setSelectedId] = useState(null)
+  const [rightTab, setRightTab] = useState('background')
+  const [snapLines, setSnapLines] = useState({ v: null, h: null })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [applyOpen, setApplyOpen] = useState(false)
@@ -408,11 +452,31 @@ export default function PosterEditor() {
   const [customRes, setCustomRes] = useState({ width: 800, height: 1200 })
   const [resMode, setResMode] = useState('Jellyfin Default')
 
-  // Scale canvas to fit the preview pane
   const PREVIEW_HEIGHT = 560
   const cw = canvas.resolution.width
   const ch = canvas.resolution.height
   const scale = PREVIEW_HEIGHT / ch
+
+  // Auto-switch right panel tab on selection change
+  useEffect(() => {
+    setRightTab(selectedId ? 'layer' : 'background')
+  }, [selectedId])
+
+  // Attach Transformer to selected node
+  useEffect(() => {
+    const tr = transformerRef.current
+    if (!tr || !stageRef.current) return
+    const selLayer = canvas.layers.find(l => l.id === selectedId)
+    if (!selectedId || !selLayer || selLayer.type === 'vignette') {
+      tr.nodes([])
+      tr.getLayer()?.batchDraw()
+      return
+    }
+    const node = stageRef.current.findOne('#' + selectedId)
+    if (!node) return
+    tr.nodes([node])
+    tr.getLayer()?.batchDraw()
+  }, [selectedId, canvas.layers])
 
   // Load project
   useEffect(() => {
@@ -427,27 +491,16 @@ export default function PosterEditor() {
       .finally(() => setLoading(false))
   }, [id])
 
-  // Auto-save with debounce
-  const scheduleSave = useCallback((canvasState, name) => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(() => {
-      doSave(canvasState, name, false)
-    }, 2000)
-  }, [])
-
   const doSave = async (canvasState, name, showToast = true) => {
     if (!stageRef.current) return
     setSaving(true)
     try {
-      // Generate thumbnail at ~200px wide
-      const thumbScale = 200 / cw
-      const thumbDataUrl = stageRef.current.toDataURL({ pixelRatio: thumbScale })
-      const payload = {
+      const thumbDataUrl = stageRef.current.toDataURL({ pixelRatio: 200 / cw })
+      await api.put(`/poster-projects/${id}`, {
         canvas_json: JSON.stringify(canvasState),
         thumbnail: thumbDataUrl,
         name,
-      }
-      await api.put(`/poster-projects/${id}`, payload)
+      })
       if (showToast) toast.success('Saved.')
     } catch {
       if (showToast) toast.error('Save failed.')
@@ -455,6 +508,11 @@ export default function PosterEditor() {
       setSaving(false)
     }
   }
+
+  const scheduleSave = useCallback((canvasState, name) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => doSave(canvasState, name, false), 2000)
+  }, [])
 
   const updateCanvas = updater => {
     setCanvas(prev => {
@@ -464,13 +522,17 @@ export default function PosterEditor() {
     })
   }
 
-  // Layer helpers
   const addLayer = layer => updateCanvas(prev => ({ ...prev, layers: [...prev.layers, layer] }))
 
-  const updateLayer = (layerId, propKey, value) => {
+  // Supports both updateLayer(id, 'key', value) and updateLayer(id, { key: value })
+  const updateLayer = (layerId, keyOrObject, value) => {
     updateCanvas(prev => ({
       ...prev,
-      layers: prev.layers.map(l => l.id === layerId ? { ...l, props: { ...l.props, [propKey]: value } } : l),
+      layers: prev.layers.map(l => {
+        if (l.id !== layerId) return l
+        const patch = typeof keyOrObject === 'string' ? { [keyOrObject]: value } : keyOrObject
+        return { ...l, props: { ...l.props, ...patch } }
+      }),
     }))
   }
 
@@ -498,7 +560,22 @@ export default function PosterEditor() {
     }))
   }
 
-  // Background image upload
+  // Snap drag handler — snaps to canvas edges and centre
+  const handleDragMove = useCallback((e) => {
+    const node = e.target
+    const threshold = 8 / scale
+    let { x, y } = node.position()
+    let snapV = null, snapH = null
+    for (const t of [0, cw / 2, cw]) {
+      if (Math.abs(x - t) < threshold) { x = t; snapV = t; break }
+    }
+    for (const t of [0, ch / 2, ch]) {
+      if (Math.abs(y - t) < threshold) { y = t; snapH = t; break }
+    }
+    node.position({ x, y })
+    setSnapLines({ v: snapV, h: snapH })
+  }, [scale, cw, ch])
+
   const handleBgFile = e => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -508,12 +585,6 @@ export default function PosterEditor() {
     e.target.value = ''
   }
 
-  // Background URL
-  const handleBgUrl = url => {
-    updateCanvas(prev => ({ ...prev, background: { ...prev.background, type: 'image', imageDataUrl: url } }))
-  }
-
-  // Resolution change
   const applyResolution = (mode) => {
     setResMode(mode)
     if (mode === 'Custom') {
@@ -524,7 +595,6 @@ export default function PosterEditor() {
     }
   }
 
-  // Export full-resolution JPEG
   const handleExport = () => {
     if (!stageRef.current) return
     const dataUrl = stageRef.current.toDataURL({ pixelRatio: 1 / scale, mimeType: 'image/jpeg', quality: 0.95 })
@@ -534,7 +604,6 @@ export default function PosterEditor() {
     a.click()
   }
 
-  // Apply to movie/show/collection
   const handleApply = async (target) => {
     setApplyOpen(false)
     setApplying(true)
@@ -560,7 +629,8 @@ export default function PosterEditor() {
 
   const selectedLayer = canvas.layers.find(l => l.id === selectedId)
   const layerTypeIcon = { text: <Type size={13} />, line: <Minus size={13} />, vignette: <Layers size={13} />, image: <Image size={13} /> }
-  const layerTypeLabel = { text: 'Text', line: 'Line', vignette: 'Vignette', image: 'PNG Image' }
+  const layerTypeLabel = { text: 'Text', line: 'Line', vignette: 'Vignette', image: 'Image' }
+  const isImageSelected = selectedLayer?.type === 'image'
 
   if (loading) {
     return (
@@ -611,10 +681,10 @@ export default function PosterEditor() {
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2">Add Layer</p>
             <div className="grid grid-cols-2 gap-1">
               {[
-                { label: 'Text', icon: <Type size={12} />, fn: () => addLayer(makeTextLayer()) },
-                { label: 'Line', icon: <Minus size={12} />, fn: () => addLayer(makeLineLayer(cw)) },
+                { label: 'Text',    icon: <Type size={12} />,   fn: () => addLayer(makeTextLayer()) },
+                { label: 'Line',    icon: <Minus size={12} />,  fn: () => addLayer(makeLineLayer(cw)) },
                 { label: 'Vignette', icon: <Layers size={12} />, fn: () => addLayer(makeVignetteLayer()) },
-                { label: 'PNG', icon: <Image size={12} />, fn: () => addLayer(makeImageLayer()) },
+                { label: 'Image',   icon: <Image size={12} />,  fn: () => addLayer(makeImageLayer()) },
               ].map(({ label, icon, fn }) => (
                 <button key={label} onClick={fn}
                   className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-slate-400 hover:text-white hover:bg-white/5 border border-[var(--border)] transition-colors">
@@ -628,202 +698,278 @@ export default function PosterEditor() {
             {canvas.layers.length === 0 && (
               <p className="text-xs text-slate-600 px-1 pt-2">No layers yet.</p>
             )}
-            {[...canvas.layers].reverse().map((layer, revIdx) => {
-              const realIdx = canvas.layers.length - 1 - revIdx
-              return (
-                <div
-                  key={layer.id}
-                  onClick={() => setSelectedId(layer.id === selectedId ? null : layer.id)}
-                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md cursor-pointer text-xs transition-colors group ${
-                    selectedId === layer.id ? 'bg-violet-600/20 text-violet-300' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                  }`}
-                >
-                  <span className="flex-shrink-0 opacity-60">{layerTypeIcon[layer.type]}</span>
-                  <span className="flex-1 truncate">{layer.type === 'text' ? (layer.props.text || 'Text') : layerTypeLabel[layer.type]}</span>
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={e => { e.stopPropagation(); moveLayer(layer.id, -1) }} className="p-0.5 hover:text-white">
-                      <ChevronDown size={11} />
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); moveLayer(layer.id, 1) }} className="p-0.5 hover:text-white">
-                      <ChevronUp size={11} />
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); toggleVisible(layer.id) }} className="p-0.5 hover:text-white">
-                      {layer.visible ? <Eye size={11} /> : <EyeOff size={11} className="opacity-40" />}
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); deleteLayer(layer.id) }} className="p-0.5 hover:text-red-400">
-                      <Trash2 size={11} />
-                    </button>
-                  </div>
+            {[...canvas.layers].reverse().map((layer) => (
+              <div
+                key={layer.id}
+                onClick={() => setSelectedId(layer.id === selectedId ? null : layer.id)}
+                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md cursor-pointer text-xs transition-colors group ${
+                  selectedId === layer.id ? 'bg-violet-600/20 text-violet-300' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                }`}
+              >
+                <span className="flex-shrink-0 opacity-60">{layerTypeIcon[layer.type]}</span>
+                <span className="flex-1 truncate">{layer.type === 'text' ? (layer.props.text || 'Text') : layerTypeLabel[layer.type]}</span>
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={e => { e.stopPropagation(); moveLayer(layer.id, -1) }} className="p-0.5 hover:text-white"><ChevronDown size={11} /></button>
+                  <button onClick={e => { e.stopPropagation(); moveLayer(layer.id, 1) }} className="p-0.5 hover:text-white"><ChevronUp size={11} /></button>
+                  <button onClick={e => { e.stopPropagation(); toggleVisible(layer.id) }} className="p-0.5 hover:text-white">
+                    {layer.visible ? <Eye size={11} /> : <EyeOff size={11} className="opacity-40" />}
+                  </button>
+                  <button onClick={e => { e.stopPropagation(); deleteLayer(layer.id) }} className="p-0.5 hover:text-red-400"><Trash2 size={11} /></button>
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Canvas preview */}
-        <div className="flex-1 flex items-center justify-center overflow-auto p-10" style={{ background: '#111118' }}>
-          {/* Outer wrapper at visual (scaled) size — flexbox centres this correctly */}
+        <div
+          className="flex-1 flex items-center justify-center overflow-auto p-10"
+          style={{ background: '#111118' }}
+          onMouseDown={e => { if (e.target === e.currentTarget) setSelectedId(null) }}
+        >
           <div style={{ width: Math.round(cw * scale), height: Math.round(ch * scale), flexShrink: 0, position: 'relative' }}>
-            {/* Canvas edge — shadow + 1px border so the canvas boundary is always visible */}
+            {/* Canvas edge outline */}
             <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', boxShadow: '0 0 0 1px rgba(255,255,255,0.12), 0 8px 32px rgba(0,0,0,0.7), 0 24px 80px rgba(0,0,0,0.5)' }} />
-            {/* Inner canvas scaled from top-left to exactly fill the outer wrapper */}
-          <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: cw, height: ch }}>
-            <Stage ref={stageRef} width={cw} height={ch}>
-              <Layer>
-                {/* Background colour */}
-                {canvas.background.type === 'color' || !canvas.background.imageDataUrl ? (
-                  <Rect x={0} y={0} width={cw} height={ch} fill={canvas.background.color} />
-                ) : null}
-                {/* Background image */}
-                {canvas.background.imageDataUrl && (
-                  <BgKonvaImage dataUrl={canvas.background.imageDataUrl} fit={canvas.background.fit} cw={cw} ch={ch} />
-                )}
-                {/* Background overlay */}
-                {canvas.background.overlayEnabled && (
-                  <Rect x={0} y={0} width={cw} height={ch} fill={canvas.background.overlayColor} opacity={canvas.background.overlayOpacity} />
-                )}
-                {/* Layers */}
-                {canvas.layers.filter(l => l.visible).map(layer => {
-                  if (layer.type === 'text') {
-                    return (
-                      <Text
-                        key={layer.id}
-                        {...layer.props}
-                        offsetX={layer.props.align === 'center' ? cw / 2 : layer.props.align === 'right' ? cw : 0}
-                        width={cw}
-                        draggable
-                        onClick={() => setSelectedId(layer.id)}
-                        onDragEnd={e => updateLayer(layer.id, 'x', Math.round(e.target.x()))}
-                      />
-                    )
-                  }
-                  if (layer.type === 'line') {
-                    return (
-                      <Line
-                        key={layer.id}
-                        x={layer.props.x}
-                        y={layer.props.y}
-                        points={[0, 0, layer.props.length, 0]}
-                        stroke={layer.props.stroke}
-                        strokeWidth={layer.props.strokeWidth}
-                        opacity={layer.props.opacity}
-                        draggable
-                        onClick={() => setSelectedId(layer.id)}
-                        onDragEnd={e => {
-                          updateLayer(layer.id, 'x', Math.round(e.target.x()))
-                          updateLayer(layer.id, 'y', Math.round(e.target.y()))
-                        }}
-                      />
-                    )
-                  }
-                  if (layer.type === 'vignette') {
-                    return <VignetteKonva key={layer.id} layer={layer} cw={cw} ch={ch} />
-                  }
-                  if (layer.type === 'image') {
-                    return <ImageLayerKonva key={layer.id} layer={layer} />
-                  }
-                  return null
-                })}
-              </Layer>
-            </Stage>
-          </div>
+            <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: cw, height: ch }}>
+              <Stage
+                ref={stageRef}
+                width={cw}
+                height={ch}
+                onMouseDown={e => { if (e.target === e.target.getStage()) setSelectedId(null) }}
+              >
+                <Layer>
+                  {/* Background */}
+                  {(canvas.background.type === 'color' || !canvas.background.imageDataUrl) && (
+                    <Rect x={0} y={0} width={cw} height={ch} fill={canvas.background.color} listening={false} />
+                  )}
+                  {canvas.background.imageDataUrl && (
+                    <BgKonvaImage dataUrl={canvas.background.imageDataUrl} fit={canvas.background.fit} cw={cw} ch={ch} />
+                  )}
+                  {canvas.background.overlayEnabled && (
+                    <Rect x={0} y={0} width={cw} height={ch} fill={canvas.background.overlayColor} opacity={canvas.background.overlayOpacity} listening={false} />
+                  )}
+
+                  {/* Layers */}
+                  {canvas.layers.filter(l => l.visible).map(layer => {
+                    if (layer.type === 'text') {
+                      return (
+                        <Text
+                          key={layer.id}
+                          id={layer.id}
+                          {...layer.props}
+                          offsetX={layer.props.align === 'center' ? cw / 2 : layer.props.align === 'right' ? cw : 0}
+                          width={cw}
+                          draggable
+                          onClick={() => setSelectedId(layer.id)}
+                          onTap={() => setSelectedId(layer.id)}
+                          onDragMove={handleDragMove}
+                          onDragEnd={e => {
+                            setSnapLines({ v: null, h: null })
+                            updateLayer(layer.id, { x: Math.round(e.target.x()), y: Math.round(e.target.y()) })
+                          }}
+                        />
+                      )
+                    }
+                    if (layer.type === 'line') {
+                      return (
+                        <Line
+                          key={layer.id}
+                          id={layer.id}
+                          x={layer.props.x}
+                          y={layer.props.y}
+                          points={[0, 0, layer.props.length, 0]}
+                          stroke={layer.props.stroke}
+                          strokeWidth={layer.props.strokeWidth}
+                          opacity={layer.props.opacity}
+                          hitStrokeWidth={Math.max(20, layer.props.strokeWidth)}
+                          draggable
+                          onClick={() => setSelectedId(layer.id)}
+                          onTap={() => setSelectedId(layer.id)}
+                          onDragMove={handleDragMove}
+                          onDragEnd={e => {
+                            setSnapLines({ v: null, h: null })
+                            updateLayer(layer.id, { x: Math.round(e.target.x()), y: Math.round(e.target.y()) })
+                          }}
+                        />
+                      )
+                    }
+                    if (layer.type === 'vignette') {
+                      return <VignetteKonva key={layer.id} layer={layer} cw={cw} ch={ch} />
+                    }
+                    if (layer.type === 'image') {
+                      return (
+                        <ImageLayerKonva
+                          key={layer.id}
+                          layer={layer}
+                          onSelect={() => setSelectedId(layer.id)}
+                          onDragMove={handleDragMove}
+                          onDragEnd={e => {
+                            setSnapLines({ v: null, h: null })
+                            updateLayer(layer.id, { x: Math.round(e.target.x()), y: Math.round(e.target.y()) })
+                          }}
+                          onTransformEnd={e => {
+                            const node = e.target
+                            const sx = node.scaleX()
+                            const sy = node.scaleY()
+                            node.scaleX(1)
+                            node.scaleY(1)
+                            updateLayer(layer.id, {
+                              x: Math.round(node.x()),
+                              y: Math.round(node.y()),
+                              width: Math.round(node.width() * sx),
+                              height: Math.round(node.height() * sy),
+                            })
+                          }}
+                        />
+                      )
+                    }
+                    return null
+                  })}
+
+                  {/* Snap guide lines */}
+                  {snapLines.v !== null && (
+                    <Line points={[snapLines.v, 0, snapLines.v, ch]} stroke="#7c3aed"
+                      strokeWidth={1 / scale} dash={[4 / scale, 4 / scale]} listening={false} />
+                  )}
+                  {snapLines.h !== null && (
+                    <Line points={[0, snapLines.h, cw, snapLines.h]} stroke="#7c3aed"
+                      strokeWidth={1 / scale} dash={[4 / scale, 4 / scale]} listening={false} />
+                  )}
+
+                  {/* Selection transformer */}
+                  <Transformer
+                    ref={transformerRef}
+                    rotateEnabled={false}
+                    resizeEnabled={isImageSelected}
+                    keepRatio={false}
+                    borderStroke="#7c3aed"
+                    borderStrokeWidth={1 / scale}
+                    anchorFill="#7c3aed"
+                    anchorStroke="#5b21b6"
+                    anchorSize={8 / scale}
+                    anchorCornerRadius={2 / scale}
+                  />
+                </Layer>
+              </Stage>
+            </div>
           </div>
         </div>
 
-        {/* Right panel — properties */}
-        <div className="w-64 flex-shrink-0 flex flex-col border-l overflow-y-auto" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+        {/* Right panel — tabbed */}
+        <div className="w-64 flex-shrink-0 flex flex-col border-l" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
 
-          {/* Background settings */}
-          <div className="px-3 pt-3 pb-3 border-b" style={{ borderColor: 'var(--border)' }}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">Background</p>
+          {/* Tab bar */}
+          <div className="flex border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+            <button
+              onClick={() => setRightTab('background')}
+              className={`flex-1 py-2.5 text-xs font-medium transition-colors border-b-2 ${rightTab === 'background' ? 'text-violet-400 border-violet-500' : 'text-slate-500 border-transparent hover:text-slate-300'}`}
+            >
+              Background
+            </button>
+            {selectedLayer && (
+              <button
+                onClick={() => setRightTab('layer')}
+                className={`flex-1 py-2.5 text-xs font-medium transition-colors border-b-2 ${rightTab === 'layer' ? 'text-violet-400 border-violet-500' : 'text-slate-500 border-transparent hover:text-slate-300'}`}
+              >
+                Layer
+              </button>
+            )}
+          </div>
 
-            <div className="flex gap-1 mb-3">
-              {['color', 'image'].map(t => (
-                <button key={t} onClick={() => updateCanvas(prev => ({ ...prev, background: { ...prev.background, type: t } }))}
-                  className={`flex-1 py-1 rounded-md text-xs capitalize transition-colors ${canvas.background.type === t ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white bg-[#0d0d14] border border-[var(--border)]'}`}>
-                  {t}
-                </button>
-              ))}
-            </div>
+          <div className="flex-1 overflow-y-auto">
 
-            {canvas.background.type === 'color' ? (
-              <PropRow label="Colour">
-                <ColorSwatch value={canvas.background.color} onChange={v => updateCanvas(prev => ({ ...prev, background: { ...prev.background, color: v } }))} />
-              </PropRow>
-            ) : (
+            {/* Background tab */}
+            {rightTab === 'background' && (
               <>
-                <button onClick={() => bgFileRef.current?.click()}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 mb-2 rounded-md text-xs text-slate-300 bg-[#0d0d14] border border-[var(--border)] hover:border-violet-500 transition-colors">
-                  <Upload size={12} /> Upload image
-                </button>
-                <input ref={bgFileRef} type="file" accept="image/*" className="hidden" onChange={handleBgFile} />
-                <PropRow label="Or URL">
-                  <input type="text" placeholder="https://…" className={inputCls}
-                    onBlur={e => e.target.value && handleBgUrl(e.target.value)} />
-                </PropRow>
-                <PropRow label="Fit">
-                  <div className="flex gap-1">
-                    {['fill', 'fit'].map(f => (
-                      <button key={f} onClick={() => updateCanvas(prev => ({ ...prev, background: { ...prev.background, fit: f } }))}
-                        className={`flex-1 py-1 rounded-md text-xs capitalize transition-colors ${canvas.background.fit === f ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white bg-[#0d0d14] border border-[var(--border)]'}`}>
-                        {f}
+                <div className="px-3 pt-3 pb-3 border-b" style={{ borderColor: 'var(--border)' }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">Background</p>
+                  <div className="flex gap-1 mb-3">
+                    {['color', 'image'].map(t => (
+                      <button key={t} onClick={() => updateCanvas(prev => ({ ...prev, background: { ...prev.background, type: t } }))}
+                        className={`flex-1 py-1 rounded-md text-xs capitalize transition-colors ${canvas.background.type === t ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white bg-[#0d0d14] border border-[var(--border)]'}`}>
+                        {t}
                       </button>
                     ))}
                   </div>
-                </PropRow>
+                  {canvas.background.type === 'color' ? (
+                    <PropRow label="Colour">
+                      <ColorSwatch value={canvas.background.color}
+                        onChange={v => updateCanvas(prev => ({ ...prev, background: { ...prev.background, color: v } }))} />
+                    </PropRow>
+                  ) : (
+                    <>
+                      <button onClick={() => bgFileRef.current?.click()}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 mb-2 rounded-md text-xs text-slate-300 bg-[#0d0d14] border border-[var(--border)] hover:border-violet-500 transition-colors">
+                        <Upload size={12} /> Upload image
+                      </button>
+                      <input ref={bgFileRef} type="file" accept="image/*" className="hidden" onChange={handleBgFile} />
+                      <PropRow label="Or URL">
+                        <input type="text" placeholder="https://…" className={inputCls}
+                          onBlur={e => e.target.value && updateCanvas(prev => ({ ...prev, background: { ...prev.background, type: 'image', imageDataUrl: e.target.value } }))} />
+                      </PropRow>
+                      <PropRow label="Fit">
+                        <div className="flex gap-1">
+                          {['fill', 'fit'].map(f => (
+                            <button key={f} onClick={() => updateCanvas(prev => ({ ...prev, background: { ...prev.background, fit: f } }))}
+                              className={`flex-1 py-1 rounded-md text-xs capitalize transition-colors ${canvas.background.fit === f ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white bg-[#0d0d14] border border-[var(--border)]'}`}>
+                              {f}
+                            </button>
+                          ))}
+                        </div>
+                      </PropRow>
+                    </>
+                  )}
+                  <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none mt-2">
+                    <input type="checkbox" checked={canvas.background.overlayEnabled}
+                      onChange={e => updateCanvas(prev => ({ ...prev, background: { ...prev.background, overlayEnabled: e.target.checked } }))}
+                      className="accent-violet-500" />
+                    Colour overlay
+                  </label>
+                  {canvas.background.overlayEnabled && (
+                    <div className="mt-2 space-y-2">
+                      <PropRow label="Colour">
+                        <ColorSwatch value={canvas.background.overlayColor}
+                          onChange={v => updateCanvas(prev => ({ ...prev, background: { ...prev.background, overlayColor: v } }))} />
+                      </PropRow>
+                      <PropRow label="Opacity">
+                        <input type="range" min={0} max={1} step={0.01} value={canvas.background.overlayOpacity}
+                          onChange={e => updateCanvas(prev => ({ ...prev, background: { ...prev.background, overlayOpacity: +e.target.value } }))}
+                          className="w-full accent-violet-500" />
+                      </PropRow>
+                    </div>
+                  )}
+                </div>
+
+                {/* Resolution */}
+                <div className="px-3 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">Resolution</p>
+                  <div className="space-y-1 mb-2">
+                    {[...RESOLUTIONS.map(r => r.label), 'Custom'].map(mode => (
+                      <label key={mode} className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                        <input type="radio" name="res" checked={resMode === mode} onChange={() => applyResolution(mode)} className="accent-violet-500" />
+                        {mode}{RESOLUTIONS.find(r => r.label === mode) ? ` — ${RESOLUTIONS.find(r => r.label === mode).width}×${RESOLUTIONS.find(r => r.label === mode).height}` : ''}
+                      </label>
+                    ))}
+                  </div>
+                  {resMode === 'Custom' && (
+                    <div className="flex gap-1 mt-2">
+                      <input type="number" value={customRes.width} min={100} onChange={e => setCustomRes(p => ({ ...p, width: +e.target.value }))} className={numCls} placeholder="W" />
+                      <input type="number" value={customRes.height} min={100} onChange={e => setCustomRes(p => ({ ...p, height: +e.target.value }))} className={numCls} placeholder="H" />
+                      <button onClick={() => applyResolution('Custom')}
+                        className="px-2 py-1.5 rounded-md text-xs text-white bg-violet-600 hover:bg-violet-500 transition-colors flex-shrink-0">
+                        Apply
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
-            <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none mt-2">
-              <input type="checkbox" checked={canvas.background.overlayEnabled}
-                onChange={e => updateCanvas(prev => ({ ...prev, background: { ...prev.background, overlayEnabled: e.target.checked } }))}
-                className="accent-violet-500" />
-              Colour overlay
-            </label>
-            {canvas.background.overlayEnabled && (
-              <div className="mt-2 space-y-2">
-                <PropRow label="Colour">
-                  <ColorSwatch value={canvas.background.overlayColor}
-                    onChange={v => updateCanvas(prev => ({ ...prev, background: { ...prev.background, overlayColor: v } }))} />
-                </PropRow>
-                <PropRow label="Opacity">
-                  <input type="range" min={0} max={1} step={0.01} value={canvas.background.overlayOpacity}
-                    onChange={e => updateCanvas(prev => ({ ...prev, background: { ...prev.background, overlayOpacity: +e.target.value } }))}
-                    className="w-full accent-violet-500" />
-                </PropRow>
-              </div>
-            )}
-          </div>
-
-          {/* Resolution */}
-          <div className="px-3 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">Resolution</p>
-            <div className="space-y-1 mb-2">
-              {[...RESOLUTIONS.map(r => r.label), 'Custom'].map(mode => (
-                <label key={mode} className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
-                  <input type="radio" name="res" checked={resMode === mode} onChange={() => applyResolution(mode)} className="accent-violet-500" />
-                  {mode}{RESOLUTIONS.find(r => r.label === mode) ? ` — ${RESOLUTIONS.find(r => r.label === mode).width}×${RESOLUTIONS.find(r => r.label === mode).height}` : ''}
-                </label>
-              ))}
-            </div>
-            {resMode === 'Custom' && (
-              <div className="flex gap-1 mt-2">
-                <input type="number" value={customRes.width} min={100} onChange={e => setCustomRes(p => ({ ...p, width: +e.target.value }))} className={numCls} placeholder="W" />
-                <input type="number" value={customRes.height} min={100} onChange={e => setCustomRes(p => ({ ...p, height: +e.target.value }))} className={numCls} placeholder="H" />
-                <button onClick={() => applyResolution('Custom')}
-                  className="px-2 py-1.5 rounded-md text-xs text-white bg-violet-600 hover:bg-violet-500 transition-colors flex-shrink-0">
-                  Apply
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Layer properties */}
-          <div className="px-3 py-3 flex-1">
-            {selectedLayer ? (
-              <>
+            {/* Layer tab */}
+            {rightTab === 'layer' && selectedLayer && (
+              <div className="px-3 py-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">
-                  {layerTypeLabel[selectedLayer.type]} Properties
+                  {layerTypeLabel[selectedLayer.type]}
                 </p>
                 {selectedLayer.type === 'text' && (
                   <TextProps layer={selectedLayer} onChange={(k, v) => updateLayer(selectedLayer.id, k, v)} />
@@ -835,11 +981,13 @@ export default function PosterEditor() {
                   <VignetteProps layer={selectedLayer} onChange={(k, v) => updateLayer(selectedLayer.id, k, v)} />
                 )}
                 {selectedLayer.type === 'image' && (
-                  <ImageLayerProps layer={selectedLayer} onChange={(k, v) => updateLayer(selectedLayer.id, k, v)} />
+                  <ImageLayerProps
+                    layer={selectedLayer}
+                    onChange={(k, v) => updateLayer(selectedLayer.id, k, v)}
+                    onBulk={obj => updateLayer(selectedLayer.id, obj)}
+                  />
                 )}
-              </>
-            ) : (
-              <p className="text-xs text-slate-600">Select a layer to edit its properties.</p>
+              </div>
             )}
           </div>
         </div>
