@@ -4,6 +4,19 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.24.3] — 2026-05-18
+
+### Added
+- Poster Studio: 5 new comic/bold/impact fonts — Bangers, Black Ops One, Permanent Marker, Russo One, Teko (20 total)
+- Poster Studio: font weight selector on text layers — Regular, Bold, Heavy (900)
+- Poster Studio: custom font picker dropdown showing each font rendered in its own typeface (works on macOS); ensures font is loaded before updating the canvas
+- Poster Studio: layer duplicate button in the layer list
+
+### Fixed
+- Poster Studio: snap now uses element bounding box — element centres and edges snap correctly, including vertical centring to the horizontal mid-line
+
+---
+
 ## [1.24.2] — 2026-05-18
 
 ### Fixed
