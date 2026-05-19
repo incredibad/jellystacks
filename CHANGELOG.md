@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.25.0] — 2026-05-19
+
+### Added
+- Poster Studio: line height control on text layers
+- Poster Studio: font weight is now a dropdown instead of button group
+
+---
+
 ## [1.24.3] — 2026-05-18
 
 ### Added
