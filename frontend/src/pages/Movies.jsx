@@ -209,7 +209,7 @@ export default function Movies() {
       ) : (
         <>
           {view === 'grid' ? (
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,1fr))]">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
               {movies.map(movie => (
                 <MovieCard
                   key={movie.id}
