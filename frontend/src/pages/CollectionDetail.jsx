@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon,
   CheckCircle2, Circle, AlertCircle, Pencil, X, Check, RefreshCw,
-  LayoutGrid, LayoutList, Import, Film, Settings2, Shuffle, RotateCcw,
+  LayoutGrid, LayoutList, Import, Film, Settings2, Shuffle, RotateCcw, Layers,
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -12,6 +12,7 @@ import MovieCard from '../components/MovieCard'
 import MovieListRow from '../components/MovieListRow'
 import MoviePickerModal from '../components/MoviePickerModal'
 import ArtworkPicker from '../components/ArtworkPicker'
+import PosterStudioPickerModal from '../components/PosterStudioPickerModal'
 
 const VIEW_KEY = 'jellystacks:collection-view'
 
@@ -114,6 +115,7 @@ export default function CollectionDetail() {
   const [revertingArtwork, setRevertingArtwork] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [showArtwork, setShowArtwork] = useState(false)
+  const [posterStudioOpen, setPosterStudioOpen] = useState(false)
   const [uploadingArtwork, setUploadingArtwork] = useState(false)
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
   // pendingUpload: { file, width, height, sizeBytes, targetWidth, targetHeight } | null
@@ -503,6 +505,13 @@ export default function CollectionDetail() {
                   <Upload size={18} />
                   Upload
                 </button>
+                <button
+                  onClick={() => setPosterStudioOpen(true)}
+                  className="flex flex-col items-center gap-1.5 text-white text-[11px] hover:text-violet-300 transition-colors"
+                >
+                  <Layers size={18} />
+                  Studio
+                </button>
               </div>
             )}
           </div>
@@ -626,34 +635,29 @@ export default function CollectionDetail() {
                     className="absolute left-0 top-10 z-20 w-52 rounded-xl shadow-xl py-1"
                     style={{ background: '#1e1e30', border: '1px solid var(--border)' }}
                   >
-                    {collection.jellyfin_collection_id && (
-                      <button
-                        onClick={() => { handleVerify(); setSettingsOpen(false) }}
-                        disabled={verifying}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-40"
-                      >
-                        <RefreshCw size={14} className={verifying ? 'animate-spin' : ''} />
-                        Verify Status
-                      </button>
-                    )}
-                    {collection.in_jellyfin && (
-                      <button
-                        onClick={() => { handleRemoveFromJellyfin(); setSettingsOpen(false) }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-                      >
-                        <X size={14} />
-                        Remove from Jellyfin
-                      </button>
-                    )}
-                    {isLocked && (
-                      <button
-                        onClick={() => { handleConvertToCustom(); setSettingsOpen(false) }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-pink-600/10 hover:text-pink-400 transition-colors"
-                      >
-                        <Shuffle size={14} />
-                        Convert to Custom
-                      </button>
-                    )}
+                    {/* Artwork */}
+                    <p className="px-3.5 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Artwork</p>
+                    <button
+                      onClick={() => { setShowArtwork(true); setSettingsOpen(false) }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-violet-400 transition-colors"
+                    >
+                      <ImageIcon size={14} />
+                      Browse Artwork
+                    </button>
+                    <button
+                      onClick={() => { artworkFileRef.current?.click(); setSettingsOpen(false) }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-violet-400 transition-colors"
+                    >
+                      <Upload size={14} />
+                      Upload Artwork
+                    </button>
+                    <button
+                      onClick={() => { setPosterStudioOpen(true); setSettingsOpen(false) }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-violet-400 transition-colors"
+                    >
+                      <Layers size={14} />
+                      Poster Studio…
+                    </button>
                     <button
                       onClick={() => { handleRevertArtwork(); setSettingsOpen(false) }}
                       disabled={revertingArtwork}
@@ -662,6 +666,44 @@ export default function CollectionDetail() {
                       <RotateCcw size={14} className={revertingArtwork ? 'animate-spin' : ''} />
                       Restore Original Art
                     </button>
+
+                    {/* Collection */}
+                    {(collection.jellyfin_collection_id || collection.in_jellyfin || isLocked) && (
+                      <>
+                        <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
+                        <p className="px-3.5 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Collection</p>
+                        {collection.jellyfin_collection_id && (
+                          <button
+                            onClick={() => { handleVerify(); setSettingsOpen(false) }}
+                            disabled={verifying}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-40"
+                          >
+                            <RefreshCw size={14} className={verifying ? 'animate-spin' : ''} />
+                            Verify Status
+                          </button>
+                        )}
+                        {collection.in_jellyfin && (
+                          <button
+                            onClick={() => { handleRemoveFromJellyfin(); setSettingsOpen(false) }}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                          >
+                            <X size={14} />
+                            Remove from Jellyfin
+                          </button>
+                        )}
+                        {isLocked && (
+                          <button
+                            onClick={() => { handleConvertToCustom(); setSettingsOpen(false) }}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-pink-600/10 hover:text-pink-400 transition-colors"
+                          >
+                            <Shuffle size={14} />
+                            Convert to Custom
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {/* Danger */}
                     <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
                     <button
                       onClick={() => { handleDeleteCollection(); setSettingsOpen(false) }}
@@ -1022,6 +1064,13 @@ export default function CollectionDetail() {
             </button>
           </div>
         </div>
+      )}
+
+      {posterStudioOpen && (
+        <PosterStudioPickerModal
+          onClose={() => setPosterStudioOpen(false)}
+          onApply={file => doUpload(file)}
+        />
       )}
 
       {/* Modals */}

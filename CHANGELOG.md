@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.26.2] — 2026-05-19
+
+### Added
+- Collection detail: Browse, Upload, and Poster Studio… added to the artwork hover overlay and to the ⚙ settings dropdown
+- Collection detail: settings dropdown reorganised into Artwork / Collection / Danger sections
+
+---
+
 ## [1.26.1] — 2026-05-19
 
 ### Fixed
