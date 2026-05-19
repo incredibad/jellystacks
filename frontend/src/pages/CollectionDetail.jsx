@@ -446,7 +446,8 @@ export default function CollectionDetail() {
   const jfPoster = collection.jellyfin_collection_id
     ? `/api/collections/${collection.id}/poster`
     : null
-  const artworkBust = artworkCacheBuster ? `?t=${artworkCacheBuster}` : ''
+  const artworkV = artworkCacheBuster || (collection?.updated_at ? new Date(collection.updated_at).getTime() : 0)
+  const artworkBust = artworkV ? `?v=${artworkV}` : ''
   const artworkSrc = localPreviewUrl ?? (() => {
     if (collection.artwork_url?.startsWith('/api/')) return `${collection.artwork_url}${artworkBust}`
     if (collection.artwork_url) {
