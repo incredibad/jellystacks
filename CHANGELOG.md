@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.26.4] — 2026-05-19
+
+### Fixed
+- Poster grids on Movies, Shows, and Collection detail pages now fill the full available width (changed column max from 200px to 1fr)
+
+---
+
 ## [1.26.3] — 2026-05-19
 
 ### Fixed
