@@ -1453,11 +1453,20 @@ async def revert_collection_artwork(
     jf_key = s.get("jellyfin_api_key")
     headers = _jellyfin_headers(jf_key) if jf_key else {}
 
+    # Clear the collection's own local artwork if present
+    col_artwork_cleared = False
+    if col.artwork_url and col.artwork_url.startswith("/api/collections/"):
+        for old in _ARTWORK_DIR.glob(f"{collection_id}.*"):
+            old.unlink(missing_ok=True)
+        col.artwork_url = None
+        col_artwork_cleared = True
+
     records: list[models.Movie | models.Show] = list(col.movies) + list(col.shows)
     custom = [r for r in records if r.custom_artwork_url]
 
     if not custom:
-        return {"reset": 0}
+        db.commit()
+        return {"reset": 0, "artwork_url": col.artwork_url}
 
     jf_ids = []
     async with httpx.AsyncClient(timeout=15) as client:
@@ -1491,7 +1500,7 @@ async def revert_collection_artwork(
             )
 
     db.commit()
-    return {"reset": len(custom)}
+    return {"reset": len(custom), "artwork_url": col.artwork_url}
 
 
 @router.delete("/{collection_id}/jellyfin")

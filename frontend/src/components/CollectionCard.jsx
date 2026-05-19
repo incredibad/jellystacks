@@ -71,6 +71,7 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [jfImgError, setJfImgError] = useState(false)
   const [posterStudioOpen, setPosterStudioOpen] = useState(false)
+  const [localArtworkUrl, setLocalArtworkUrl] = useState(null)
   const [cacheBuster, setCacheBuster] = useState(0)
 
   const needsSync = collection.in_jellyfin &&
@@ -78,10 +79,11 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
     new Date(collection.updated_at) > new Date(collection.jellyfin_synced_at)
 
   const bust = cacheBuster ? `?t=${cacheBuster}` : ''
+  const effectiveArtworkUrl = localArtworkUrl ?? collection.artwork_url
   const artworkSrc = (() => {
-    if (collection.artwork_url?.startsWith('/api/')) return collection.artwork_url
+    if (effectiveArtworkUrl?.startsWith('/api/')) return `${effectiveArtworkUrl}${bust}`
     if (collection.jellyfin_collection_id && !jfImgError) return `/api/collections/${collection.id}/poster${bust}`
-    if (collection.artwork_url) return `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
+    if (effectiveArtworkUrl) return `/api/tmdb/proxy-image?url=${encodeURIComponent(effectiveArtworkUrl.replace('/original/', '/w342/'))}`
     return null
   })()
 
@@ -169,7 +171,8 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
             try {
               const form = new FormData()
               form.append('file', file)
-              await api.post(`/collections/${collection.id}/artwork/upload`, form)
+              const { data } = await api.post(`/collections/${collection.id}/artwork/upload`, form)
+              setLocalArtworkUrl(data.artwork_url)
               setCacheBuster(Date.now())
               setJfImgError(false)
               toast.success('Artwork updated.', { id: tid })
