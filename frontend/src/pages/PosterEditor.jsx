@@ -33,7 +33,7 @@ const newId = () => `layer_${Date.now()}_${_layerIdCounter++}`
 function makeTextLayer() {
   return {
     id: newId(), type: 'text', visible: true,
-    props: { text: 'TITLE', x: 400, y: 600, fontFamily: 'Bebas Neue', fontSize: 90, fontWeight: '400', fill: '#ffffff', align: 'center', letterSpacing: 4, shadowEnabled: false, shadowColor: '#000000', shadowBlur: 10, shadowOffsetX: 2, shadowOffsetY: 2, shadowOpacity: 0.8, opacity: 1 },
+    props: { text: 'TITLE', x: 400, y: 600, fontFamily: 'Bebas Neue', fontSize: 90, fontWeight: '400', fill: '#ffffff', align: 'center', letterSpacing: 4, lineHeight: 1.2, shadowEnabled: false, shadowColor: '#000000', shadowBlur: 10, shadowOffsetX: 2, shadowOffsetY: 2, shadowOpacity: 0.8, opacity: 1 },
   }
 }
 
@@ -141,14 +141,11 @@ function TextProps({ layer, onChange }) {
         <FontPicker value={p.fontFamily} onChange={v => onChange('fontFamily', v)} />
       </PropRow>
       <PropRow label="Weight">
-        <div className="flex gap-1">
-          {[['400', 'Regular'], ['700', 'Bold'], ['900', 'Heavy']].map(([w, label]) => (
-            <button key={w} onClick={() => onChange('fontWeight', w)}
-              className={`flex-1 py-1 rounded text-xs transition-colors ${(p.fontWeight ?? '400') === w ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white bg-[#0d0d14] border border-[var(--border)]'}`}>
-              {label}
-            </button>
-          ))}
-        </div>
+        <select value={p.fontWeight ?? '400'} onChange={e => onChange('fontWeight', e.target.value)} className={inputCls}>
+          <option value="400">Regular</option>
+          <option value="700">Bold</option>
+          <option value="900">Heavy</option>
+        </select>
       </PropRow>
       <PropRow label="Size">
         <input type="number" value={p.fontSize} min={8} max={400} onChange={e => onChange('fontSize', +e.target.value)} className={numCls} />
@@ -168,6 +165,9 @@ function TextProps({ layer, onChange }) {
       </PropRow>
       <PropRow label="Spacing">
         <input type="number" value={p.letterSpacing} min={-20} max={100} onChange={e => onChange('letterSpacing', +e.target.value)} className={numCls} />
+      </PropRow>
+      <PropRow label="Line height">
+        <input type="number" value={p.lineHeight ?? 1.2} min={0.5} max={5} step={0.1} onChange={e => onChange('lineHeight', +e.target.value)} className={numCls} />
       </PropRow>
       <PropRow label="Opacity">
         <input type="range" min={0} max={1} step={0.01} value={p.opacity}
