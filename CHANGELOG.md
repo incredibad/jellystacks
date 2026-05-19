@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.26.6] — 2026-05-19
+
+### Fixed
+- Collection artwork now shows the updated image after page refresh or navigation — uses `updated_at` timestamp as a version buster so the new artwork is fetched even without a session-local cache buster
+
+---
+
 ## [1.26.5] — 2026-05-19
 
 ### Fixed

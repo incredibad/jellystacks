@@ -78,7 +78,8 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
     collection.jellyfin_synced_at &&
     new Date(collection.updated_at) > new Date(collection.jellyfin_synced_at)
 
-  const bust = cacheBuster ? `?t=${cacheBuster}` : ''
+  const v = cacheBuster || (collection.updated_at ? new Date(collection.updated_at).getTime() : 0)
+  const bust = v ? `?v=${v}` : ''
   const effectiveArtworkUrl = localArtworkUrl ?? collection.artwork_url
   const artworkSrc = (() => {
     if (effectiveArtworkUrl?.startsWith('/api/')) return `${effectiveArtworkUrl}${bust}`
