@@ -550,7 +550,7 @@ export default function PosterEditor() {
     if (!stageRef.current) return
     setSaving(true)
     try {
-      const thumbDataUrl = stageRef.current.toDataURL({ pixelRatio: 600 / cw, mimeType: 'image/jpeg', quality: 0.9 })
+      const thumbDataUrl = stageRef.current.toDataURL({ pixelRatio: 200 / cw })
       await api.put(`/poster-projects/${id}`, {
         canvas_json: JSON.stringify(canvasState),
         thumbnail: thumbDataUrl,

@@ -4,11 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.26.1] — 2026-05-19
+
+### Fixed
+- Poster Studio picker: artwork is now rendered at the project's native resolution using an off-screen Konva stage, not from the thumbnail; thumbnails remain small (200px PNG)
+
 ## [1.26.0] — 2026-05-19
 
 ### Added
 - Poster Studio: apply a design directly from movie/show cards (hover overlay and 3-dots menu → "Poster Studio…") and from collection cards (3-dots menu → "Poster Studio…")
-- Poster Studio: thumbnails now saved at 600px wide JPEG (up from 200px PNG) so they're usable as full-quality artwork
 
 ---
 
