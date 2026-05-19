@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.26.5] — 2026-05-19
+
+### Fixed
+- Poster grid minimum column width increased from 140px to 160px to prevent cards becoming too small on wide screens
+
+---
+
 ## [1.26.4] — 2026-05-19
 
 ### Fixed
