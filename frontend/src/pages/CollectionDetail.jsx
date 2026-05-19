@@ -116,6 +116,7 @@ export default function CollectionDetail() {
   const [showPicker, setShowPicker] = useState(false)
   const [showArtwork, setShowArtwork] = useState(false)
   const [posterStudioOpen, setPosterStudioOpen] = useState(false)
+  const [artworkCacheBuster, setArtworkCacheBuster] = useState(0)
   const [uploadingArtwork, setUploadingArtwork] = useState(false)
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
   // pendingUpload: { file, width, height, sizeBytes, targetWidth, targetHeight } | null
@@ -184,6 +185,7 @@ export default function CollectionDetail() {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       setCollection(prev => ({ ...prev, artwork_url: data.artwork_url, updated_at: data.updated_at }))
+      setArtworkCacheBuster(Date.now())
       setLocalPreviewUrl(null)
       toast.success('Artwork saved.')
     } catch {
@@ -353,7 +355,12 @@ export default function CollectionDetail() {
     const tid = toast.loading('Reverting artwork…')
     try {
       const { data } = await api.delete(`/collections/${id}/artwork`)
-      toast.success(data.reset > 0 ? `Reverted artwork for ${data.reset} item${data.reset !== 1 ? 's' : ''}.` : 'No custom artwork to revert.', { id: tid })
+      setCollection(prev => ({ ...prev, artwork_url: data.artwork_url ?? null }))
+      setArtworkCacheBuster(Date.now())
+      const parts = []
+      if (data.artwork_url === null || data.artwork_url === undefined) parts.push('collection artwork cleared')
+      if (data.reset > 0) parts.push(`${data.reset} item${data.reset !== 1 ? 's' : ''} reverted`)
+      toast.success(parts.length ? parts.join(', ') : 'Nothing to revert.', { id: tid })
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to revert artwork.', { id: tid })
     } finally {
@@ -439,12 +446,13 @@ export default function CollectionDetail() {
   const jfPoster = collection.jellyfin_collection_id
     ? `/api/collections/${collection.id}/poster`
     : null
+  const artworkBust = artworkCacheBuster ? `?t=${artworkCacheBuster}` : ''
   const artworkSrc = localPreviewUrl ?? (() => {
-    if (collection.artwork_url?.startsWith('/api/')) return collection.artwork_url
+    if (collection.artwork_url?.startsWith('/api/')) return `${collection.artwork_url}${artworkBust}`
     if (collection.artwork_url) {
       return `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
     }
-    return (!jfImgError && jfPoster) ? jfPoster : null
+    return (!jfImgError && jfPoster) ? `${jfPoster}${artworkBust}` : null
   })()
 
   // True when the collection is in Jellyfin but has been modified locally since the last sync.

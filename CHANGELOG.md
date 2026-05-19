@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.26.3] — 2026-05-19
+
+### Fixed
+- Collection artwork now updates visually immediately after upload (cache-busting on `/artwork/local` URL)
+- "Restore Original Art" now correctly clears the collection's own uploaded artwork (previously only reverted individual movie/show artwork within the collection)
+- CollectionCard now shows the new artwork immediately after Poster Studio apply without requiring a page refresh
+
+---
+
 ## [1.26.2] — 2026-05-19
 
 ### Added
