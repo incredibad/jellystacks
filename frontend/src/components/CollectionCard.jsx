@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
 import { Layers, CheckCircle2, Circle, AlertCircle, MoreVertical, Upload, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import api from '../api/client'
+import toast from 'react-hot-toast'
+import PosterStudioPickerModal from './PosterStudioPickerModal'
 
 const JellyfinMark = () => (
   <svg viewBox="0 0 512 512" width="19" height="19" aria-hidden>
@@ -67,14 +70,17 @@ function SourceRibbon({ collection }) {
 export default function CollectionCard({ collection, onPush, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [jfImgError, setJfImgError] = useState(false)
+  const [posterStudioOpen, setPosterStudioOpen] = useState(false)
+  const [cacheBuster, setCacheBuster] = useState(0)
 
   const needsSync = collection.in_jellyfin &&
     collection.jellyfin_synced_at &&
     new Date(collection.updated_at) > new Date(collection.jellyfin_synced_at)
 
+  const bust = cacheBuster ? `?t=${cacheBuster}` : ''
   const artworkSrc = (() => {
     if (collection.artwork_url?.startsWith('/api/')) return collection.artwork_url
-    if (collection.jellyfin_collection_id && !jfImgError) return `/api/collections/${collection.id}/poster`
+    if (collection.jellyfin_collection_id && !jfImgError) return `/api/collections/${collection.id}/poster${bust}`
     if (collection.artwork_url) return `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
     return null
   })()
@@ -155,6 +161,26 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
         </div>
       </Link>
 
+      {posterStudioOpen && (
+        <PosterStudioPickerModal
+          onClose={() => setPosterStudioOpen(false)}
+          onApply={async (file) => {
+            const tid = toast.loading('Applying poster…')
+            try {
+              const form = new FormData()
+              form.append('file', file)
+              await api.post(`/collections/${collection.id}/artwork/upload`, form)
+              setCacheBuster(Date.now())
+              setJfImgError(false)
+              toast.success('Artwork updated.', { id: tid })
+            } catch {
+              toast.error('Upload failed.', { id: tid })
+              throw new Error('upload failed')
+            }
+          }}
+        />
+      )}
+
       {/* Info + actions */}
       <div className="p-3 relative">
         <div className="min-w-0 pr-7 text-center sm:text-left">
@@ -190,6 +216,13 @@ export default function CollectionCard({ collection, onPush, onDelete }) {
                 >
                   <Upload size={14} />
                   Push to Jellyfin
+                </button>
+                <button
+                  onClick={() => { setPosterStudioOpen(true); setMenuOpen(false) }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-slate-300 hover:bg-white/5 hover:text-violet-400 transition-colors"
+                >
+                  <Layers size={14} />
+                  Poster Studio…
                 </button>
                 <button
                   onClick={() => { onDelete(collection); setMenuOpen(false) }}
