@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
+import { renderCanvasToDataUrl } from '../utils/posterRender'
 
 const FONTS = [
   'Abril Fatface', 'Anton', 'Bangers', 'Barlow Condensed', 'Bebas Neue',
@@ -547,10 +548,14 @@ export default function PosterEditor() {
   }, [id])
 
   const doSave = async (canvasState, name, showToast = true) => {
-    if (!stageRef.current) return
     setSaving(true)
     try {
-      const thumbDataUrl = stageRef.current.toDataURL({ pixelRatio: 200 / cw })
+      const { width: canvasCw } = canvasState.resolution
+      const thumbDataUrl = await renderCanvasToDataUrl(canvasState, {
+        mimeType: 'image/jpeg',
+        quality: 0.8,
+        pixelRatio: 200 / canvasCw,
+      })
       await api.put(`/poster-projects/${id}`, {
         canvas_json: JSON.stringify(canvasState),
         thumbnail: thumbDataUrl,

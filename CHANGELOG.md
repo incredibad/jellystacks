@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.26.7] — 2026-05-19
+
+### Fixed
+- Poster Studio thumbnails now use the same headless off-screen Konva render as applied artwork, ensuring text alignment, vignettes, and image layers all render accurately in the browser grid and picker modal
+
+---
+
 ## [1.26.6] — 2026-05-19
 
 ### Fixed
