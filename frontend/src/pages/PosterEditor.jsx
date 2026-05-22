@@ -555,13 +555,24 @@ export default function PosterEditor() {
     konvaLayer.batchDraw()
   }, [canvas, cw])
 
-  // Load project
+  // Load project — wait for all fonts used in the project before rendering canvas
   useEffect(() => {
     api.get(`/poster-projects/${id}`)
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         setProject(data)
         if (data.canvas_json) {
-          try { setCanvas(JSON.parse(data.canvas_json)) } catch {}
+          try {
+            const parsed = JSON.parse(data.canvas_json)
+            const fonts = [...new Set(
+              (parsed.layers || [])
+                .filter(l => l.type === 'text' && l.props?.fontFamily)
+                .map(l => l.props.fontFamily)
+            )]
+            await Promise.all(fonts.map(f =>
+              document.fonts.load(`bold 1em "${f}"`).catch(() => {})
+            ))
+            setCanvas(parsed)
+          } catch {}
         }
       })
       .catch(() => { toast.error('Failed to load project.'); navigate('/poster-studio') })
