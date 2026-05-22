@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.4] — 2026-05-22
+
+### Fixed
+- Settings page crash: `fetchAppLog` was referenced in a `useEffect` dependency array before its `const` declaration, causing a temporal dead zone ReferenceError
+
+---
+
 ## [1.28.3] — 2026-05-22
 
 ### Added
