@@ -14,6 +14,7 @@ from PIL import Image as PILImage
 from database import get_db
 import models
 import schemas
+import sync_log as _sync_log
 from auth import get_current_user
 from routers.settings import _get_settings_dict
 
@@ -21,6 +22,10 @@ router = APIRouter()
 
 _ARTWORK_DIR = Path("/data/artwork/movies")
 _ARTWORK_DIR.mkdir(parents=True, exist_ok=True)
+
+# In-memory sync progress: user_id -> {"fetched": int, "total": int}
+# Updated after each paginated fetch so the frontend can poll for live progress.
+_sync_progress: dict[int, dict] = {}
 
 
 def _jellyfin_headers(api_key: str) -> dict:
@@ -33,6 +38,11 @@ def _jellyfin_headers(api_key: str) -> dict:
 
 
 def _movie_to_response(m: models.Movie) -> schemas.MovieResponse:
+    artwork_version = None
+    if m.custom_artwork_url and m.custom_artwork_url.startswith('/data/'):
+        p = Path(m.custom_artwork_url)
+        if p.exists():
+            artwork_version = int(p.stat().st_mtime)
     return schemas.MovieResponse(
         id=m.id,
         jellyfin_id=m.jellyfin_id,
@@ -47,6 +57,8 @@ def _movie_to_response(m: models.Movie) -> schemas.MovieResponse:
         community_rating=m.community_rating,
         has_poster=bool(m.primary_image_tag) or bool(m.custom_artwork_url),
         custom_artwork_url=m.custom_artwork_url,
+        artwork_version=artwork_version,
+        primary_image_tag=m.primary_image_tag,
         library_name=m.library_name,
         library_id=m.library_id,
         last_synced=m.last_synced,
@@ -110,6 +122,15 @@ def list_libraries(db: Session = Depends(get_db), _: models.User = Depends(get_c
     return [r[0] for r in rows]
 
 
+@router.get("/sync/progress")
+def get_movie_sync_progress(user: models.User = Depends(get_current_user)):
+    """Return live pagination progress for an in-progress movie sync, or 404 if none is running."""
+    data = _sync_progress.get(user.id)
+    if data is None:
+        raise HTTPException(404, "No movie sync in progress")
+    return data
+
+
 async def _push_artwork_to_jf(
     jf_url: str, api_key: str, jellyfin_id: str, custom_artwork_url: str
 ) -> None:
@@ -152,11 +173,10 @@ async def _push_artwork_to_jf(
         print(f"[artwork] push to JF failed: {e}", flush=True)
 
 
-# ── Poster proxy — no auth required (movie artwork is not sensitive) ──────────
-_NO_STORE = {"Cache-Control": "no-store"}
+_IMMUTABLE = {"Cache-Control": "public, max-age=31536000, immutable"}
 
 @router.get("/{movie_id}/poster")
-async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
+async def movie_poster(movie_id: int, t: str | None = Query(None), db: Session = Depends(get_db)):
     movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
     if not movie:
         raise HTTPException(404, "Movie not found.")
@@ -166,13 +186,13 @@ async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
         if movie.custom_artwork_url.startswith('/data/'):
             p = Path(movie.custom_artwork_url)
             if p.exists():
-                return FileResponse(str(p), media_type='image/jpeg', headers=_NO_STORE)
+                return FileResponse(str(p), media_type='image/jpeg', headers=_IMMUTABLE)
         else:
             try:
                 async with httpx.AsyncClient(timeout=15) as client:
                     r = await client.get(movie.custom_artwork_url)
                 if r.status_code == 200:
-                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'), headers=_NO_STORE)
+                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'), headers=_IMMUTABLE)
             except Exception:
                 pass
 
@@ -191,7 +211,8 @@ async def movie_poster(movie_id: int, db: Session = Depends(get_db)):
             )
         if resp.status_code != 200:
             raise HTTPException(404, "Poster not available.")
-        return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"))
+        cache = _IMMUTABLE if t else {"Cache-Control": "public, max-age=3600"}
+        return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"), headers=cache)
     except HTTPException:
         raise
     except Exception as e:
@@ -291,8 +312,26 @@ async def clear_movie_artwork(
 @router.post("/sync", response_model=schemas.SyncResult)
 async def sync_movies(
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_user),
+    user: models.User = Depends(get_current_user),
 ):
+    run = _sync_log.start(user.id, "movies")
+    _sync_progress[user.id] = {"fetched": 0, "total": 0}
+    try:
+        result = await _do_sync_movies(db, user, run)
+        _sync_log.finish(user.id, run, "movies", {
+            "synced": result.synced, "deleted": result.deleted,
+            "skipped_cleanup": result.skipped_cleanup,
+        })
+        return result
+    except Exception as exc:
+        _sync_log.log(run, "movies", f"Error: {exc}", "error")
+        _sync_log.finish(user.id, run, "movies", {"error": str(exc)})
+        raise
+    finally:
+        _sync_progress.pop(user.id, None)
+
+
+async def _do_sync_movies(db: Session, user: models.User, run: _sync_log.SyncRun) -> schemas.SyncResult:
     s = _get_settings_dict(db)
     jf_url = s.get("jellyfin_url")
     api_key = s.get("jellyfin_api_key")
@@ -325,7 +364,26 @@ async def sync_movies(
         if not libraries:
             libraries = [{"id": None, "name": None}]
 
-        # ── Step 2: fetch movies per library ──────────────────────────────────
+        _sync_log.log(run, "movies", f"Libraries: {', '.join(l['name'] or '(default)' for l in libraries)}")
+
+        # ── Step 2a: pre-flight — fetch totals so the progress bar is accurate ─
+        expected_total = 0
+        for lib in libraries:
+            count_params: dict = {
+                "IncludeItemTypes": "Movie", "Recursive": "true", "Limit": 1, "StartIndex": 0,
+            }
+            if lib["id"]:
+                count_params["ParentId"] = lib["id"]
+            try:
+                cr = await client.get(items_url, headers=headers, params=count_params)
+                if cr.status_code == 200:
+                    expected_total += cr.json().get("TotalRecordCount", 0)
+            except Exception:
+                pass
+        _sync_progress[user.id] = {"fetched": 0, "total": expected_total}
+        _sync_log.log(run, "movies", f"Expected: {expected_total} items")
+
+        # ── Step 2b: fetch movies per library ─────────────────────────────────
         all_items: list[tuple[dict, str | None, str | None]] = []
         seen: set[str] = set()
 
@@ -358,13 +416,20 @@ async def sync_movies(
                         seen.add(jf_id)
                         all_items.append((item, lib["name"], lib["id"]))
 
+                _sync_progress[user.id] = {"fetched": len(seen), "total": expected_total}
+
                 if start + 500 >= total:
                     break
                 start += 500
 
+    _sync_log.log(run, "movies", f"Fetched {len(all_items)} movies — processing...")
+
     # ── Step 3: upsert ────────────────────────────────────────────────────────
     synced = 0
-    for item, lib_name, lib_id in all_items:
+    total_items = len(all_items)
+    for i, (item, lib_name, lib_id) in enumerate(all_items):
+        if i % 500 == 0:
+            _sync_log.log(run, "movies", f"Processing movies {i + 1}–{min(i + 500, total_items)} of {total_items}")
         jf_id = item.get("Id")
         if not jf_id:
             continue
@@ -385,6 +450,7 @@ async def sync_movies(
 
         existing = db.query(models.Movie).filter(models.Movie.jellyfin_id == jf_id).first()
         if existing:
+            _sync_log.log(run, "movies", f"Updated: {item.get('Name', 'Unknown')!r} ({item.get('ProductionYear')}) — {lib_name}", "updated")
             existing.title = item.get("Name", "Unknown")
             existing.sort_title = item.get("SortName")
             existing.year = item.get("ProductionYear")
@@ -414,6 +480,7 @@ async def sync_movies(
                 models.Movie.jellyfin_id.notin_(seen),
             ).first()
             if stale:
+                _sync_log.log(run, "movies", f"Re-indexed: {title_val!r} ({year_val})", "warning")
                 stale.jellyfin_id = jf_id
                 stale.sort_title = item.get("SortName")
                 stale.overview = item.get("Overview")
@@ -428,6 +495,7 @@ async def sync_movies(
                 stale.library_id = lib_id
                 stale.last_synced = datetime.utcnow()
             else:
+                _sync_log.log(run, "movies", f"New: {title_val!r} ({year_val}) — {lib_name}", "new")
                 db.add(models.Movie(
                     jellyfin_id=jf_id,
                     title=item.get("Name", "Unknown"),
@@ -449,30 +517,46 @@ async def sync_movies(
         synced += 1
 
     # ── Cleanup: remove records Jellyfin no longer reports ────────────────────
-    # Transfer artwork to the matching sibling where possible.
-    for movie in db.query(models.Movie).filter(models.Movie.jellyfin_id.notin_(seen)).all():
-        if movie.custom_artwork_url:
-            sibling = db.query(models.Movie).filter(
-                models.Movie.title == movie.title,
-                models.Movie.year == movie.year,
-                models.Movie.library_name == movie.library_name,
-                models.Movie.jellyfin_id.in_(seen),
-            ).first()
-            if sibling and not sibling.custom_artwork_url:
-                old_path = Path(movie.custom_artwork_url)
-                new_path = _ARTWORK_DIR / f"{sibling.id}.jpg"
-                try:
-                    if old_path.exists():
-                        old_path.rename(new_path)
-                    sibling.custom_artwork_url = str(new_path)
-                except Exception:
-                    pass
-            else:
-                try:
-                    Path(movie.custom_artwork_url).unlink(missing_ok=True)
-                except Exception:
-                    pass
-        db.delete(movie)
+    # Safety check: if JF returned fewer unique items than it claimed, or fewer
+    # than 80% of the current DB count, skip cleanup to protect against partial
+    # responses caused by transient JF API issues.
+    deleted = 0
+    skipped_cleanup = False
+    db_movie_count = db.query(func.count(models.Movie.id)).scalar()
+    if expected_total > 0 and len(seen) < expected_total:
+        _sync_log.log(run, "movies", f"SAFETY: cleanup skipped — fetched {len(seen)} but JF reported {expected_total}", "warning")
+        skipped_cleanup = True
+    elif db_movie_count > 0 and len(seen) < db_movie_count * 0.8:
+        _sync_log.log(run, "movies", f"SAFETY: cleanup skipped — fetched {len(seen)} but DB has {db_movie_count} records", "warning")
+        skipped_cleanup = True
+    else:
+        for movie in db.query(models.Movie).filter(models.Movie.jellyfin_id.notin_(seen)).all():
+            _sync_log.log(run, "movies", f"Deleted: {movie.title!r} ({movie.year}) [{movie.library_name}]", "deleted")
+            if movie.custom_artwork_url:
+                sibling = db.query(models.Movie).filter(
+                    models.Movie.title == movie.title,
+                    models.Movie.year == movie.year,
+                    models.Movie.library_name == movie.library_name,
+                    models.Movie.jellyfin_id.in_(seen),
+                ).first()
+                if sibling and not sibling.custom_artwork_url:
+                    old_path = Path(movie.custom_artwork_url)
+                    new_path = _ARTWORK_DIR / f"{sibling.id}.jpg"
+                    try:
+                        if old_path.exists():
+                            old_path.rename(new_path)
+                        sibling.custom_artwork_url = str(new_path)
+                        _sync_log.log(run, "movies", f"Artwork transferred to sibling id={sibling.id}")
+                    except Exception as e:
+                        _sync_log.log(run, "movies", f"Artwork transfer failed: {e}", "error")
+                else:
+                    _sync_log.log(run, "movies", "Artwork deleted (no eligible sibling)")
+                    try:
+                        Path(movie.custom_artwork_url).unlink(missing_ok=True)
+                    except Exception:
+                        pass
+            db.delete(movie)
+            deleted += 1
 
     db.commit()
-    return schemas.SyncResult(synced=synced, total=len(all_items))
+    return schemas.SyncResult(synced=synced, total=len(all_items), deleted=deleted, skipped_cleanup=skipped_cleanup)

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Film, Tv, Layers, Settings, LogOut, RefreshCw, Upload, Download, LayoutGrid, Loader, ChevronDown, Image, Menu, X } from 'lucide-react'
+import { Film, Tv, Layers, Settings, LogOut, RefreshCw, Upload, Download, LayoutGrid, Loader, ChevronDown, Image, Menu, X, Wand2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useOperations } from '../contexts/OperationsContext'
 import { useState, useEffect } from 'react'
@@ -9,9 +9,10 @@ import pkg from '../../package.json'
 import BulkArtworkModal from './BulkArtworkModal'
 
 const NAV_ITEMS = [
-  { to: '/collections', icon: Layers, label: 'Collections', countKey: 'collections' },
-  { to: '/movies',      icon: Film,   label: 'Movies',      countKey: 'movies' },
-  { to: '/shows',       icon: Tv,     label: 'Shows',       countKey: 'shows' },
+  { to: '/collections',   icon: Layers, label: 'Collections',   countKey: 'collections' },
+  { to: '/movies',        icon: Film,   label: 'Movies',        countKey: 'movies' },
+  { to: '/shows',         icon: Tv,     label: 'Shows',         countKey: 'shows' },
+  { to: '/poster-studio', icon: Wand2,  label: 'Poster Studio', countKey: null },
 ]
 
 function ConfirmModal({ title, description, confirmLabel, onConfirm, onClose }) {
@@ -128,8 +129,6 @@ export default function Sidebar() {
       toast.error('Failed to fetch collections.')
     }
   }
-
-  const busy = importing || isRunning || syncing
 
   const opsGroups = [
     {
@@ -289,10 +288,7 @@ export default function Sidebar() {
               onClick={() => setOpsOpen(v => !v)}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-white/5"
             >
-              {busy
-                ? <Loader size={18} className="animate-spin" />
-                : <LayoutGrid size={18} />
-              }
+              <LayoutGrid size={18} />
               <span className="flex-1 text-left">Operations</span>
               <ChevronDown size={14} className={`transition-transform ${opsOpen ? 'rotate-180' : ''}`} />
             </button>

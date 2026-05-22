@@ -4,6 +4,421 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.10] — 2026-05-22
+
+### Added
+- Poster Studio AI Generate: "Powered by Pollinations.ai" link shown below the Generate button, opens pollinations.ai in a new tab
+
+---
+
+## [1.28.9] — 2026-05-22
+
+### Fixed
+- Poster Studio: numeric property fields no longer snap to 0 when the value is deleted — the field stays empty while typing and only reverts to the previous value on blur if left empty
+
+---
+
+## [1.28.8] — 2026-05-22
+
+### Added
+- Poster Studio: 10 new fonts — Big Shoulders Display, Creepster, Graduate, Nosifer, Passion One, Pirata One, Rubik Dirt, Rye, Staatliches, Ultra (30 total; mix of distressed and bold/impact styles)
+- Poster Studio font picker: arrow keys (Up/Down) cycle through fonts while the dropdown is open; Enter/Space selects; Escape closes
+- Poster Studio font picker: dropdown scrolls to the currently selected font on open
+
+---
+
+## [1.28.7] — 2026-05-22
+
+### Fixed
+- Poster Studio: font and text alignment now correct on initial load — all fonts used in the project are pre-loaded via `document.fonts.load()` before the canvas renders, preventing Konva from laying out text with the wrong fallback font metrics
+
+---
+
+## [1.28.6] — 2026-05-22
+
+### Changed
+- README.md fully rewritten to reflect current feature set: TV shows, MDBList/Trakt/TheTVDB integrations, Poster Studio, bulk artwork, scheduled syncs, log viewer, updated docker-compose with `TZ` variable, environment variable table, providers setup table, and data persistence details
+
+---
+
+## [1.28.5] — 2026-05-22
+
+### Fixed
+- Log timestamps now respect the `TZ` environment variable set in docker-compose — set e.g. `TZ=Europe/London` to get local-time timestamps in both the sync log and app.log
+
+---
+
+## [1.28.4] — 2026-05-22
+
+### Fixed
+- Settings page crash: `fetchAppLog` was referenced in a `useEffect` dependency array before its `const` declaration, causing a temporal dead zone ReferenceError
+
+---
+
+## [1.28.3] — 2026-05-22
+
+### Added
+- "Download full log" link in the Application Log panel on the System tab — downloads the complete `/data/app.log` file
+
+---
+
+## [1.28.2] — 2026-05-22
+
+### Added
+- Application log viewer on the System tab in Settings — shows last 500 lines from the backend with error/warning highlighting, auto-loads on tab open, and has a Refresh button
+- Backend now writes a rotating log file to `/data/app.log` capturing scheduler events, errors, and general output with full timestamps
+
+### Changed
+- Merged "Scheduled Collection Refresh" and "Scheduled Library Sync" into a single "Schedules" section on the Sync tab
+
+---
+
+## [1.28.1] — 2026-05-22
+
+### Added
+- Scheduled library sync: new setting to automatically import movies and shows from Jellyfin on a configurable interval (6h / 12h / 24h / weekly), independent of the collection refresh schedule
+
+---
+
+## [1.28.0] — 2026-05-22
+
+### Added
+- `source_url` column stored in the database when creating MDBList or Trakt collections, so the source pill link is always correct regardless of URL format changes
+- MDBList pill now links to the exact list URL (`/lists/{user}/{slug}`) saved at creation time, with a fallback for older collections
+
+---
+
+## [1.27.7] — 2026-05-22
+
+### Fixed
+- MDBList pill link updated to use `?list={id}` query param format instead of `/lists/{id}` path which returned a blank page
+
+---
+
+## [1.27.6] — 2026-05-22
+
+### Changed
+- TMDB, MDBList, and Trakt source pills on the collection detail page are now links that open the source collection/list in a new tab
+
+---
+
+## [1.27.5] — 2026-05-22
+
+### Fixed
+- AI-generated backgrounds no longer have stretched content — Pollinations was stretching non-native portrait dimensions; now always requests 1024×1024 (native square) and lets BgKonvaImage fill-crop to the canvas aspect ratio
+
+---
+
+## [1.27.4] — 2026-05-22
+
+### Fixed
+- AI generation requests dimensions rounded up to the next multiple of 64 (FLUX native block size), ensuring we always download slightly above canvas size and downscale — previously we requested below canvas size and upscaled, which is lossy
+
+---
+
+## [1.27.3] — 2026-05-22
+
+### Fixed
+- AI-generated backgrounds no longer appear stretched — Pollinations is now requested at a FLUX-native resolution (≤1024px on the long side, multiples of 8) matching the canvas aspect ratio, rather than the exact canvas dimensions which Pollinations was stretching non-uniformly
+
+---
+
+## [1.27.2] — 2026-05-22
+
+### Fixed
+- Text alignment no longer resets visually in the Poster Studio editor after background changes (e.g. AI generation) — a defensive effect now re-applies offsetX and width to Konva text nodes after every canvas update, bypassing React Konva's reconciliation timing
+
+---
+
+## [1.27.1] — 2026-05-22
+
+### Added
+- AI generation history in Poster Studio — the last 5 generated backgrounds are shown as clickable thumbnails below the Generate button; clicking one instantly restores it as the background (session-only)
+
+---
+
+## [1.27.0] — 2026-05-22
+
+### Added
+- AI background generation in Poster Studio via Pollinations.ai (free, no API key required) — enter a prompt in the Background panel to generate an image at the canvas resolution
+
+---
+
+## [1.26.7] — 2026-05-19
+
+### Fixed
+- Poster Studio thumbnails now use the same headless off-screen Konva render as applied artwork, ensuring text alignment, vignettes, and image layers all render accurately in the browser grid and picker modal
+
+---
+
+## [1.26.6] — 2026-05-19
+
+### Fixed
+- Collection artwork now shows the updated image after page refresh or navigation — uses `updated_at` timestamp as a version buster so the new artwork is fetched even without a session-local cache buster
+
+---
+
+## [1.26.5] — 2026-05-19
+
+### Fixed
+- Poster grid minimum column width increased from 140px to 160px to prevent cards becoming too small on wide screens
+
+---
+
+## [1.26.4] — 2026-05-19
+
+### Fixed
+- Poster grids on Movies, Shows, and Collection detail pages now fill the full available width (changed column max from 200px to 1fr)
+
+---
+
+## [1.26.3] — 2026-05-19
+
+### Fixed
+- Collection artwork now updates visually immediately after upload (cache-busting on `/artwork/local` URL)
+- "Restore Original Art" now correctly clears the collection's own uploaded artwork (previously only reverted individual movie/show artwork within the collection)
+- CollectionCard now shows the new artwork immediately after Poster Studio apply without requiring a page refresh
+
+---
+
+## [1.26.2] — 2026-05-19
+
+### Added
+- Collection detail: Browse, Upload, and Poster Studio… added to the artwork hover overlay and to the ⚙ settings dropdown
+- Collection detail: settings dropdown reorganised into Artwork / Collection / Danger sections
+
+---
+
+## [1.26.1] — 2026-05-19
+
+### Fixed
+- Poster Studio picker: artwork is now rendered at the project's native resolution using an off-screen Konva stage, not from the thumbnail; thumbnails remain small (200px PNG)
+
+## [1.26.0] — 2026-05-19
+
+### Added
+- Poster Studio: apply a design directly from movie/show cards (hover overlay and 3-dots menu → "Poster Studio…") and from collection cards (3-dots menu → "Poster Studio…")
+
+---
+
+## [1.25.0] — 2026-05-19
+
+### Added
+- Poster Studio: line height control on text layers
+- Poster Studio: font weight is now a dropdown instead of button group
+
+---
+
+## [1.24.3] — 2026-05-18
+
+### Added
+- Poster Studio: 5 new comic/bold/impact fonts — Bangers, Black Ops One, Permanent Marker, Russo One, Teko (20 total)
+- Poster Studio: font weight selector on text layers — Regular, Bold, Heavy (900)
+- Poster Studio: custom font picker dropdown showing each font rendered in its own typeface (works on macOS); ensures font is loaded before updating the canvas
+- Poster Studio: layer duplicate button in the layer list
+
+### Fixed
+- Poster Studio: snap now uses element bounding box — element centres and edges snap correctly, including vertical centring to the horizontal mid-line
+
+---
+
+## [1.24.2] — 2026-05-18
+
+### Fixed
+- Poster Studio editor: snap-to-canvas guides — elements snap to edges and centre (both axes) with violet dashed guide lines while dragging
+- Lines now have a wide invisible hit area so they can be dragged without pixel-perfect aim
+- Toggling layer visibility no longer resets the element's position (all drag handlers now save both X and Y)
+- Uploading an image layer now preserves the original aspect ratio (scaled to fit within 600×600)
+- Renamed "PNG" layer type to "Image" throughout
+- Vignette size is now configurable via a slider (controls gradient spread)
+- Selected elements show a bounding box (Transformer); image layers additionally support resize via drag handles
+- Right panel is now tabbed — Background tab (always visible) and Layer tab (shown only when an element is selected); switching selection auto-activates the Layer tab
+
+---
+
+## [1.24.1] — 2026-05-18
+
+### Fixed
+- Poster Studio: canvas is now properly centred in the workspace, with a visible 1px edge highlight and drop shadow so the canvas boundary is always clear against the background (Affinity/Photoshop style)
+
+---
+
+## [1.24.0] — 2026-05-18
+
+### Added
+- **Poster Studio** — new page for designing custom movie/show/collection posters
+  - Project list with thumbnail previews, create/delete/rename
+  - Canvas editor built on react-konva with live preview scaled to fit the screen
+  - Layer types: Text (with font, size, colour, alignment, letter spacing, drop shadow), Line (colour, thickness, length), Vignette (bottom/top/radial gradient), PNG image import
+  - 15 curated Google Fonts: Abril Fatface, Anton, Barlow Condensed, Bebas Neue, Cinzel, Cormorant Garamond, IM Fell English, Josefin Sans, Lato, Libre Baskerville, Montserrat, Oswald, Playfair Display, Questrial, Raleway
+  - Background: solid colour, uploaded image, or URL; fill/fit modes; optional colour overlay
+  - Resolution: Jellyfin Default (800×1200), High Quality (1200×1800), or custom
+  - Auto-save (2s debounce) + manual save; thumbnail generated on each save
+  - Export full-resolution JPEG
+  - "Apply to…" — search and apply directly to any movie, show, or collection
+  - Accessible from sidebar navigation
+
+---
+
+## [1.23.12] — 2026-05-17
+
+### Fixed
+- Trakt collections now show a "Not in your library" section listing movies and shows from the Trakt list that aren't present in your Jellyfin library — previously this section was entirely absent for Trakt collections
+
+---
+
+## [1.23.11] — 2026-05-17
+
+### Fixed
+- Push to Jellyfin button incorrectly appeared disabled for collections containing only TV shows (no movies) — className check was testing `movie_count === 0` instead of the combined `movie_count + show_count === 0`
+
+---
+
+## [1.23.10] — 2026-05-17
+
+### Fixed
+- Settings → System tab: all three sections (About, Sync Log, Danger Zone) are now in a single two-column grid — nothing spans full width
+
+---
+
+## [1.23.9] — 2026-05-17
+
+### Fixed
+- Settings → System tab: About and Sync Log now sit side by side in a two-column grid; Danger Zone spans full width below
+
+---
+
+## [1.23.8] — 2026-05-17
+
+### Changed
+- Settings → Sync tab: Scheduled Collection Refresh now occupies the right column of the two-column grid instead of stacking below Jellyfin Server in the left column
+- Settings → System tab: removed max-width constraint so sections use the full content area
+- Settings → System tab: added About section showing app name, version number, and a link to the GitHub repository
+
+---
+
+## [1.23.7] — 2026-05-17
+
+### Changed
+- Sync log no longer emits per-page fetch lines during the Jellyfin fetch phase; instead logs a "Processing X–Y of Z" batch marker every 500 items during the upsert phase, so range markers appear inline with Updated/New/Deleted entries at the correct point in the log
+
+---
+
+## [1.23.6] — 2026-05-17
+
+### Fixed
+- Sync log page fetch lines now show cross-library cumulative counts: numerator is total unique items seen across all libraries so far, denominator is the overall expected total — so a two-library sync correctly reads `500/1262 → 1000/1262 → 1262/1262` across both movies.py and shows.py
+
+---
+
+## [1.23.5] — 2026-05-17
+
+### Added
+- Sync log is now persistent across container restarts: the structured result is written to `/data/sync_log.json` after each run and loaded back into memory on first access, so `GET /api/sync/log` continues to work after a restart
+- `/data/sync.log` is written (and overwritten) after each sync run as a human-readable plain-text file mirroring the in-app console output, with a header showing start time, duration, and counts
+
+---
+
+## [1.23.4] — 2026-05-17
+
+### Changed
+- Sync log "Updated:" lines now render in blue, distinct from green (New), red (Deleted), amber (Warning), and violet (Summary)
+
+---
+
+## [1.23.3] — 2026-05-17
+
+### Fixed
+- Sync log page fetch lines now show cumulative item count rather than per-page count, so a 3-page library reads `500/1262 → 1000/1262 → 1262/1262` instead of the repeating `500/1262 → 500/1262 → 262/1262`
+
+---
+
+## [1.23.2] — 2026-05-17
+
+### Changed
+- Sync log now includes every item processed: existing items that were updated are logged as "Updated: …" (shown in the default muted colour), alongside the existing New/Re-indexed/Deleted entries
+
+---
+
+## [1.23.1] — 2026-05-17
+
+### Fixed
+- Sync completion toast no longer gets permanently replaced by the stale progress toast: an in-flight async poll callback could resolve after `clearInterval` was called and overwrite the "Sync complete" toast; a `cancelled` flag now causes any such late callbacks to exit early
+
+---
+
+## [1.23.0] — 2026-05-17
+
+### Added
+- Sync Log: Settings → System tab now shows a collapsible console-style log of the most recent library sync, with colour-coded lines for new items (green), deletions (red), warnings (amber), and errors, plus a metadata header showing start time, duration, and synced/deleted counts
+- "View log →" button added to the sync completion toast, navigating directly to the System tab with the log pre-expanded
+- `GET /api/sync/log` endpoint returns the structured log for the current user's last completed sync
+- All sync output from movies and shows routers is now routed through the shared `sync_log` module, replacing raw `print()` calls with structured log entries (tag, level, timestamp)
+
+---
+
+## [1.22.3] — 2026-05-17
+
+### Fixed
+- Sync progress bars now show the correct total from the start; a lightweight pre-flight request (Limit=1) fetches TotalRecordCount for each library before pagination begins, so bars no longer briefly show 100% when the first small library finishes before the larger ones have started
+
+---
+
+## [1.22.2] — 2026-05-17
+
+### Added
+- Sync progress toast now shows live pagination progress with separate bars for Movies and Shows, driven by a polling endpoint that the backend updates after each page fetch; bars start indeterminate and fill as items are retrieved from Jellyfin
+
+---
+
+## [1.22.1] — 2026-05-17
+
+### Changed
+- Sync toast now shows which phase is still running while the two syncs execute in parallel ("Movies synced — syncing shows…" / "Shows synced — syncing movies…")
+- Cleanup-skipped warning now includes a "Sync again" button so the user can immediately retry without reopening the Operations menu; the warning text clarifies that deletions from Jellyfin won't be reflected until a successful sync completes
+
+---
+
+## [1.22.0] — 2026-05-17
+
+### Added
+- Sync now shows a persistent loading toast while running (survives route navigation); on completion a dismissable summary toast replaces it showing movie/show counts and removal count
+- If the sync result is available after a page refresh it is re-shown as a toast on next load
+- Sync safety check: if Jellyfin returns fewer unique items than it reported (or fewer than 80% of the current DB count), the cleanup step is skipped and a warning is included in the toast — protects against transient JF API issues silently deleting records
+
+### Changed
+- Removed the spinner from the Operations sidebar button; the loading state is now communicated solely via the sync toast
+
+---
+
+## [1.21.12] — 2026-05-16
+
+### Added
+- Sync logging for movies and shows: libraries discovered, per-page fetch counts, re-index detections, new record creation, and every deletion in the cleanup step (visible in container logs)
+
+---
+
+## [1.21.11] — 2026-05-16
+
+### Changed
+- Jellyfin-backed movie and show posters now cache indefinitely when a `primary_image_tag` is available; the tag is used as the URL version key so the cache only busts when a sync detects Jellyfin has changed the image
+
+---
+
+## [1.21.10] — 2026-05-16
+
+### Fixed
+- Custom artwork (uploaded posters) in collection detail views now caches in the browser; the file modification time is used as a version key so re-uploading automatically busts the cache
+
+---
+
+## [1.21.9] — 2026-05-16
+
+### Changed
+- Poster images are now cached by the browser: TMDB proxy images indefinitely (`immutable`), Jellyfin-backed posters for movies, shows, and collections for 1 hour; custom artwork remains uncached
+
+---
+
 ## [1.21.8] — 2026-05-14
 
 ### Fixed

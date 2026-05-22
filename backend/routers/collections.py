@@ -5,6 +5,7 @@ import json
 import mimetypes
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from fastapi.responses import FileResponse, Response
@@ -53,6 +54,7 @@ def _collection_to_response(c: models.Collection) -> schemas.CollectionResponse:
         mdblist_total_items=c.mdblist_total_items,
         trakt_list_id=c.trakt_list_id,
         trakt_total_items=c.trakt_total_items,
+        source_url=c.source_url,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
@@ -79,6 +81,7 @@ def _collection_to_detail(c: models.Collection) -> schemas.CollectionDetailRespo
         mdblist_total_items=c.mdblist_total_items,
         trakt_list_id=c.trakt_list_id,
         trakt_total_items=c.trakt_total_items,
+        source_url=c.source_url,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
@@ -497,7 +500,7 @@ async def get_collection_poster(collection_id: int, db: Session = Depends(get_db
     if resp.status_code != 200:
         raise HTTPException(404, "No image.")
     content_type = resp.headers.get("content-type", "image/jpeg")
-    return Response(content=resp.content, media_type=content_type)
+    return Response(content=resp.content, media_type=content_type, headers={"Cache-Control": "public, max-age=3600"})
 
 
 @router.post("/{collection_id}/artwork/upload")
@@ -970,6 +973,7 @@ class TmdbImportRequest(BaseModel):
 class MdblistImportRequest(BaseModel):
     mdblist_list_id: int
     name: str
+    source_url: Optional[str] = None
 
 
 @router.post("/import-from-tmdb", response_model=schemas.CollectionDetailResponse)
@@ -1045,6 +1049,7 @@ async def create_from_mdblist(
         name=data.name,
         mdblist_list_id=data.mdblist_list_id,
         mdblist_total_items=total,
+        source_url=data.source_url,
     )
     col.movies = movies
     col.shows = shows
@@ -1057,6 +1062,7 @@ async def create_from_mdblist(
 class TraktImportRequest(BaseModel):
     trakt_list_id: int
     name: str
+    source_url: Optional[str] = None
 
 
 @router.post("/from-trakt", response_model=schemas.CollectionDetailResponse)
@@ -1097,6 +1103,7 @@ async def create_from_trakt(
         name=data.name,
         trakt_list_id=data.trakt_list_id,
         trakt_total_items=total,
+        source_url=data.source_url,
     )
     col.movies = movies
     col.shows = shows
@@ -1149,6 +1156,58 @@ async def get_mdblist_missing(
         tmdb = str((item.get("ids") or {}).get("tmdb") or item.get("id") or 0)
         if tmdb and tmdb not in owned_show_ids:
             missing.append({"title": item.get("title", ""), "year": item.get("release_year"), "mediatype": "show"})
+
+    return missing
+
+
+@router.get("/{collection_id}/trakt-missing")
+async def get_trakt_missing(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_user),
+):
+    col = _load_col(collection_id, db)
+    if not col.trakt_list_id:
+        raise HTTPException(404, "Not a Trakt collection.")
+
+    from routers.trakt import _get_client_id, _trakt_headers
+    client_id = _get_client_id(db)
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"https://api.trakt.tv/lists/{col.trakt_list_id}/items",
+            headers=_trakt_headers(client_id),
+        )
+    if resp.status_code != 200:
+        raise HTTPException(502, "Failed to fetch Trakt list items.")
+
+    entries = resp.json()
+    total = len(entries)
+    if total != col.trakt_total_items:
+        col.trakt_total_items = total
+        db.commit()
+
+    movie_ids, show_ids, raw = set(), set(), []
+    for entry in entries:
+        t = entry.get("type")
+        obj = entry.get(t) or {}
+        tmdb = str((obj.get("ids") or {}).get("tmdb") or "")
+        if tmdb and tmdb != "0":
+            raw.append({"tmdb": tmdb, "type": t, "title": obj.get("title", ""), "year": obj.get("year")})
+            if t == "movie":
+                movie_ids.add(tmdb)
+            elif t == "show":
+                show_ids.add(tmdb)
+
+    owned_movies = set(r[0] for r in db.query(models.Movie.tmdb_id).filter(models.Movie.tmdb_id.in_(movie_ids)).all()) if movie_ids else set()
+    owned_shows = set(r[0] for r in db.query(models.Show.tmdb_id).filter(models.Show.tmdb_id.in_(show_ids)).all()) if show_ids else set()
+
+    missing = []
+    for item in raw:
+        if item["type"] == "movie" and item["tmdb"] not in owned_movies:
+            missing.append({"title": item["title"], "year": item["year"], "mediatype": "movie"})
+        elif item["type"] == "show" and item["tmdb"] not in owned_shows:
+            missing.append({"title": item["title"], "year": item["year"], "mediatype": "show"})
 
     return missing
 
@@ -1401,11 +1460,20 @@ async def revert_collection_artwork(
     jf_key = s.get("jellyfin_api_key")
     headers = _jellyfin_headers(jf_key) if jf_key else {}
 
+    # Clear the collection's own local artwork if present
+    col_artwork_cleared = False
+    if col.artwork_url and col.artwork_url.startswith("/api/collections/"):
+        for old in _ARTWORK_DIR.glob(f"{collection_id}.*"):
+            old.unlink(missing_ok=True)
+        col.artwork_url = None
+        col_artwork_cleared = True
+
     records: list[models.Movie | models.Show] = list(col.movies) + list(col.shows)
     custom = [r for r in records if r.custom_artwork_url]
 
     if not custom:
-        return {"reset": 0}
+        db.commit()
+        return {"reset": 0, "artwork_url": col.artwork_url}
 
     jf_ids = []
     async with httpx.AsyncClient(timeout=15) as client:
@@ -1439,7 +1507,7 @@ async def revert_collection_artwork(
             )
 
     db.commit()
-    return {"reset": len(custom)}
+    return {"reset": len(custom), "artwork_url": col.artwork_url}
 
 
 @router.delete("/{collection_id}/jellyfin")

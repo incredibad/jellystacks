@@ -13,19 +13,28 @@ from PIL import Image as PILImage
 from database import get_db
 import models
 import schemas
+import sync_log as _sync_log
 from auth import get_current_user
 from routers.settings import _get_settings_dict
 from routers.movies import _jellyfin_headers, _push_artwork_to_jf
 
 router = APIRouter()
 
+# In-memory sync progress: user_id -> {"fetched": int, "total": int}
+_sync_progress: dict[int, dict] = {}
+
 _ARTWORK_DIR = Path("/data/artwork/shows")
 _ARTWORK_DIR.mkdir(parents=True, exist_ok=True)
 
-_NO_STORE = {"Cache-Control": "no-store"}
+_IMMUTABLE = {"Cache-Control": "public, max-age=31536000, immutable"}
 
 
 def _show_to_response(s: models.Show) -> schemas.ShowResponse:
+    artwork_version = None
+    if s.custom_artwork_url and s.custom_artwork_url.startswith('/data/'):
+        p = Path(s.custom_artwork_url)
+        if p.exists():
+            artwork_version = int(p.stat().st_mtime)
     return schemas.ShowResponse(
         id=s.id,
         jellyfin_id=s.jellyfin_id,
@@ -42,6 +51,8 @@ def _show_to_response(s: models.Show) -> schemas.ShowResponse:
         community_rating=s.community_rating,
         has_poster=bool(s.primary_image_tag) or bool(s.custom_artwork_url),
         custom_artwork_url=s.custom_artwork_url,
+        artwork_version=artwork_version,
+        primary_image_tag=s.primary_image_tag,
         library_name=s.library_name,
         library_id=s.library_id,
         last_synced=s.last_synced,
@@ -99,8 +110,17 @@ def list_libraries(db: Session = Depends(get_db), _: models.User = Depends(get_c
     return [r[0] for r in rows]
 
 
+@router.get("/sync/progress")
+def get_show_sync_progress(user: models.User = Depends(get_current_user)):
+    """Return live pagination progress for an in-progress show sync, or 404 if none is running."""
+    data = _sync_progress.get(user.id)
+    if data is None:
+        raise HTTPException(404, "No show sync in progress")
+    return data
+
+
 @router.get("/{show_id}/poster")
-async def show_poster(show_id: int, db: Session = Depends(get_db)):
+async def show_poster(show_id: int, t: str | None = Query(None), db: Session = Depends(get_db)):
     show = db.query(models.Show).filter(models.Show.id == show_id).first()
     if not show:
         raise HTTPException(404, "Show not found.")
@@ -110,13 +130,13 @@ async def show_poster(show_id: int, db: Session = Depends(get_db)):
         if show.custom_artwork_url.startswith('/data/'):
             p = Path(show.custom_artwork_url)
             if p.exists():
-                return FileResponse(str(p), media_type='image/jpeg', headers=_NO_STORE)
+                return FileResponse(str(p), media_type='image/jpeg', headers=_IMMUTABLE)
         else:
             try:
                 async with httpx.AsyncClient(timeout=15) as client:
                     r = await client.get(show.custom_artwork_url)
                 if r.status_code == 200:
-                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'), headers=_NO_STORE)
+                    return Response(content=r.content, media_type=r.headers.get('content-type', 'image/jpeg'), headers=_IMMUTABLE)
             except Exception:
                 pass
 
@@ -135,7 +155,8 @@ async def show_poster(show_id: int, db: Session = Depends(get_db)):
             )
         if resp.status_code != 200:
             raise HTTPException(404, "Poster not available.")
-        return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"))
+        cache = _IMMUTABLE if t else {"Cache-Control": "public, max-age=3600"}
+        return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"), headers=cache)
     except HTTPException:
         raise
     except Exception as e:
@@ -234,8 +255,26 @@ async def clear_show_artwork(
 @router.post("/sync", response_model=schemas.SyncResult)
 async def sync_shows(
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_user),
+    user: models.User = Depends(get_current_user),
 ):
+    run = _sync_log.start(user.id, "shows")
+    _sync_progress[user.id] = {"fetched": 0, "total": 0}
+    try:
+        result = await _do_sync_shows(db, user, run)
+        _sync_log.finish(user.id, run, "shows", {
+            "synced": result.synced, "deleted": result.deleted,
+            "skipped_cleanup": result.skipped_cleanup,
+        })
+        return result
+    except Exception as exc:
+        _sync_log.log(run, "shows", f"Error: {exc}", "error")
+        _sync_log.finish(user.id, run, "shows", {"error": str(exc)})
+        raise
+    finally:
+        _sync_progress.pop(user.id, None)
+
+
+async def _do_sync_shows(db: Session, user: models.User, run: _sync_log.SyncRun) -> schemas.SyncResult:
     s = _get_settings_dict(db)
     jf_url = s.get("jellyfin_url")
     api_key = s.get("jellyfin_api_key")
@@ -267,7 +306,26 @@ async def sync_shows(
         if not libraries:
             libraries = [{"id": None, "name": None}]
 
-        # ── Step 2: fetch shows per library ───────────────────────────────────
+        _sync_log.log(run, "shows", f"Libraries: {', '.join(l['name'] or '(default)' for l in libraries)}")
+
+        # ── Step 2a: pre-flight — fetch totals so the progress bar is accurate ─
+        expected_total = 0
+        for lib in libraries:
+            count_params: dict = {
+                "IncludeItemTypes": "Series", "Recursive": "true", "Limit": 1, "StartIndex": 0,
+            }
+            if lib["id"]:
+                count_params["ParentId"] = lib["id"]
+            try:
+                cr = await client.get(items_url, headers=headers, params=count_params)
+                if cr.status_code == 200:
+                    expected_total += cr.json().get("TotalRecordCount", 0)
+            except Exception:
+                pass
+        _sync_progress[user.id] = {"fetched": 0, "total": expected_total}
+        _sync_log.log(run, "shows", f"Expected: {expected_total} items")
+
+        # ── Step 2b: fetch shows per library ──────────────────────────────────
         all_items: list[tuple[dict, str | None, str | None]] = []
         seen: set[str] = set()
 
@@ -300,13 +358,20 @@ async def sync_shows(
                         seen.add(jf_id)
                         all_items.append((item, lib["name"], lib["id"]))
 
+                _sync_progress[user.id] = {"fetched": len(seen), "total": expected_total}
+
                 if start + 500 >= total:
                     break
                 start += 500
 
+    _sync_log.log(run, "shows", f"Fetched {len(all_items)} shows — processing...")
+
     # ── Step 3: upsert ────────────────────────────────────────────────────────
     synced = 0
-    for item, lib_name, lib_id in all_items:
+    total_items = len(all_items)
+    for i, (item, lib_name, lib_id) in enumerate(all_items):
+        if i % 500 == 0:
+            _sync_log.log(run, "shows", f"Processing shows {i + 1}–{min(i + 500, total_items)} of {total_items}")
         jf_id = item.get("Id")
         if not jf_id:
             continue
@@ -327,6 +392,7 @@ async def sync_shows(
 
         existing = db.query(models.Show).filter(models.Show.jellyfin_id == jf_id).first()
         if existing:
+            _sync_log.log(run, "shows", f"Updated: {item.get('Name', 'Unknown')!r} ({item.get('ProductionYear')}) — {lib_name}", "updated")
             existing.title = item.get("Name", "Unknown")
             existing.sort_title = item.get("SortName")
             existing.year = item.get("ProductionYear")
@@ -358,6 +424,7 @@ async def sync_shows(
                 models.Show.jellyfin_id.notin_(seen),
             ).first()
             if stale:
+                _sync_log.log(run, "shows", f"Re-indexed: {title_val!r} ({year_val})", "warning")
                 stale.jellyfin_id = jf_id
                 stale.sort_title = item.get("SortName")
                 stale.overview = item.get("Overview")
@@ -374,6 +441,7 @@ async def sync_shows(
                 stale.library_id = lib_id
                 stale.last_synced = datetime.utcnow()
             else:
+                _sync_log.log(run, "shows", f"New: {title_val!r} ({year_val}) — {lib_name}", "new")
                 db.add(models.Show(
                     jellyfin_id=jf_id,
                     title=item.get("Name", "Unknown"),
@@ -397,30 +465,46 @@ async def sync_shows(
         synced += 1
 
     # ── Cleanup: remove records Jellyfin no longer reports ────────────────────
-    # Transfer artwork to the matching sibling where possible.
-    for show in db.query(models.Show).filter(models.Show.jellyfin_id.notin_(seen)).all():
-        if show.custom_artwork_url:
-            sibling = db.query(models.Show).filter(
-                models.Show.title == show.title,
-                models.Show.year == show.year,
-                models.Show.library_name == show.library_name,
-                models.Show.jellyfin_id.in_(seen),
-            ).first()
-            if sibling and not sibling.custom_artwork_url:
-                old_path = Path(show.custom_artwork_url)
-                new_path = _ARTWORK_DIR / f"{sibling.id}.jpg"
-                try:
-                    if old_path.exists():
-                        old_path.rename(new_path)
-                    sibling.custom_artwork_url = str(new_path)
-                except Exception:
-                    pass
-            else:
-                try:
-                    Path(show.custom_artwork_url).unlink(missing_ok=True)
-                except Exception:
-                    pass
-        db.delete(show)
+    # Safety check: if JF returned fewer unique items than it claimed, or fewer
+    # than 80% of the current DB count, skip cleanup to protect against partial
+    # responses caused by transient JF API issues.
+    deleted = 0
+    skipped_cleanup = False
+    db_show_count = db.query(func.count(models.Show.id)).scalar()
+    if expected_total > 0 and len(seen) < expected_total:
+        _sync_log.log(run, "shows", f"SAFETY: cleanup skipped — fetched {len(seen)} but JF reported {expected_total}", "warning")
+        skipped_cleanup = True
+    elif db_show_count > 0 and len(seen) < db_show_count * 0.8:
+        _sync_log.log(run, "shows", f"SAFETY: cleanup skipped — fetched {len(seen)} but DB has {db_show_count} records", "warning")
+        skipped_cleanup = True
+    else:
+        for show in db.query(models.Show).filter(models.Show.jellyfin_id.notin_(seen)).all():
+            _sync_log.log(run, "shows", f"Deleted: {show.title!r} ({show.year}) [{show.library_name}]", "deleted")
+            if show.custom_artwork_url:
+                sibling = db.query(models.Show).filter(
+                    models.Show.title == show.title,
+                    models.Show.year == show.year,
+                    models.Show.library_name == show.library_name,
+                    models.Show.jellyfin_id.in_(seen),
+                ).first()
+                if sibling and not sibling.custom_artwork_url:
+                    old_path = Path(show.custom_artwork_url)
+                    new_path = _ARTWORK_DIR / f"{sibling.id}.jpg"
+                    try:
+                        if old_path.exists():
+                            old_path.rename(new_path)
+                        sibling.custom_artwork_url = str(new_path)
+                        _sync_log.log(run, "shows", f"Artwork transferred to sibling id={sibling.id}")
+                    except Exception as e:
+                        _sync_log.log(run, "shows", f"Artwork transfer failed: {e}", "error")
+                else:
+                    _sync_log.log(run, "shows", "Artwork deleted (no eligible sibling)")
+                    try:
+                        Path(show.custom_artwork_url).unlink(missing_ok=True)
+                    except Exception:
+                        pass
+            db.delete(show)
+            deleted += 1
 
     db.commit()
-    return schemas.SyncResult(synced=synced, total=len(all_items))
+    return schemas.SyncResult(synced=synced, total=len(all_items), deleted=deleted, skipped_cleanup=skipped_cleanup)
