@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Stage, Layer, Image as KonvaImage, Text, Line, Rect, Transformer } from 'react-konva'
 import {
   ArrowLeft, Trash2, Loader, Save, Eye, EyeOff, ChevronUp, ChevronDown,
-  Type, Minus, Image, Layers, Download, Upload, Search, Copy,
+  Type, Minus, Image, Layers, Download, Upload, Search, Copy, Sparkles,
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -507,6 +507,8 @@ export default function PosterEditor() {
   const [applying, setApplying] = useState(false)
   const [customRes, setCustomRes] = useState({ width: 800, height: 1200 })
   const [resMode, setResMode] = useState('Jellyfin Default')
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [aiGenerating, setAiGenerating] = useState(false)
 
   const PREVIEW_HEIGHT = 560
   const cw = canvas.resolution.width
@@ -688,6 +690,35 @@ export default function PosterEditor() {
     } else {
       const res = RESOLUTIONS.find(r => r.label === mode) || RESOLUTIONS[0]
       updateCanvas(prev => ({ ...prev, resolution: res }))
+    }
+  }
+
+  const handleAiGenerate = async () => {
+    if (!aiPrompt.trim() || aiGenerating) return
+    setAiGenerating(true)
+    const tid = toast.loading('Generating image…')
+    try {
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=${cw}&height=${ch}&nologo=true&model=flux&seed=${Date.now()}`
+      const response = await fetch(url)
+      if (!response.ok) throw new Error('bad response')
+      const blob = await response.blob()
+      await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = ev => {
+          updateCanvas(prev => ({
+            ...prev,
+            background: { ...prev.background, type: 'image', imageDataUrl: ev.target.result },
+          }))
+          resolve()
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+      toast.success('Generated!', { id: tid })
+    } catch {
+      toast.error('Generation failed.', { id: tid })
+    } finally {
+      setAiGenerating(false)
     }
   }
 
@@ -1018,7 +1049,31 @@ export default function PosterEditor() {
                       </PropRow>
                     </>
                   )}
-                  <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none mt-2">
+                  {/* AI Generate */}
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                      <Sparkles size={10} /> AI Generate
+                    </p>
+                    <textarea
+                      value={aiPrompt}
+                      onChange={e => setAiPrompt(e.target.value)}
+                      placeholder="Describe the background image…"
+                      rows={3}
+                      className={inputCls + ' resize-none mb-2'}
+                    />
+                    <button
+                      onClick={handleAiGenerate}
+                      disabled={aiGenerating || !aiPrompt.trim()}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-colors"
+                    >
+                      {aiGenerating
+                        ? <><Loader size={12} className="animate-spin" /> Generating…</>
+                        : <><Sparkles size={12} /> Generate</>
+                      }
+                    </button>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none mt-3">
                     <input type="checkbox" checked={canvas.background.overlayEnabled}
                       onChange={e => updateCanvas(prev => ({ ...prev, background: { ...prev.background, overlayEnabled: e.target.checked } }))}
                       className="accent-violet-500" />
