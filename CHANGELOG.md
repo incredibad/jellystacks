@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.27.7] — 2026-05-22
+
+### Fixed
+- MDBList pill link updated to use `?list={id}` query param format instead of `/lists/{id}` path which returned a blank page
+
+---
+
 ## [1.27.6] — 2026-05-22
 
 ### Changed
