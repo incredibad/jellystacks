@@ -129,14 +129,6 @@ export default function Settings() {
     }
   }, [])
 
-  useEffect(() => {
-    if (activeTab === 'system' && !logFetched.current) {
-      logFetched.current = true
-      fetchSyncLog()
-      fetchAppLog()
-    }
-  }, [activeTab, fetchSyncLog, fetchAppLog])
-
   // ── Application log ───────────────────────────────────────────────────────
   const [appLog, setAppLog] = useState(null)
   const [loadingAppLog, setLoadingAppLog] = useState(false)
@@ -153,6 +145,14 @@ export default function Settings() {
       setLoadingAppLog(false)
     }
   }, [])
+
+  useEffect(() => {
+    if (activeTab === 'system' && !logFetched.current) {
+      logFetched.current = true
+      fetchSyncLog()
+      fetchAppLog()
+    }
+  }, [activeTab, fetchSyncLog, fetchAppLog])
 
   useEffect(() => {
     if (searchParams.get('log') === '1' && activeTab === 'system') {
