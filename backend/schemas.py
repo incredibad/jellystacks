@@ -191,6 +191,7 @@ class SettingsUpdate(BaseModel):
     trakt_client_id: Optional[str] = None
     tvdb_api_key: Optional[str] = None
     collection_refresh_interval: Optional[str] = None
+    library_sync_interval: Optional[str] = None
 
 
 class SettingsResponse(BaseModel):
@@ -203,6 +204,7 @@ class SettingsResponse(BaseModel):
     trakt_client_id_set: bool
     tvdb_api_key_set: bool
     collection_refresh_interval: str
+    library_sync_interval: str
 
 
 class JellyfinTestResult(BaseModel):
