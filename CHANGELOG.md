@@ -4,6 +4,15 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.8] — 2026-05-22
+
+### Added
+- Poster Studio: 10 new fonts — Big Shoulders Display, Creepster, Graduate, Nosifer, Passion One, Pirata One, Rubik Dirt, Rye, Staatliches, Ultra (30 total; mix of distressed and bold/impact styles)
+- Poster Studio font picker: arrow keys (Up/Down) cycle through fonts while the dropdown is open; Enter/Space selects; Escape closes
+- Poster Studio font picker: dropdown scrolls to the currently selected font on open
+
+---
+
 ## [1.28.7] — 2026-05-22
 
 ### Fixed

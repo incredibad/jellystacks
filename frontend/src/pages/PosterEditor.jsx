@@ -11,10 +11,11 @@ import { renderCanvasToDataUrl } from '../utils/posterRender'
 
 const FONTS = [
   'Abril Fatface', 'Anton', 'Bangers', 'Barlow Condensed', 'Bebas Neue',
-  'Black Ops One', 'Cinzel', 'Cormorant Garamond', 'IM Fell English',
-  'Josefin Sans', 'Lato', 'Libre Baskerville', 'Montserrat', 'Oswald',
-  'Permanent Marker', 'Playfair Display', 'Questrial', 'Raleway',
-  'Russo One', 'Teko',
+  'Big Shoulders Display', 'Black Ops One', 'Cinzel', 'Cormorant Garamond',
+  'Creepster', 'Graduate', 'IM Fell English', 'Josefin Sans', 'Lato',
+  'Libre Baskerville', 'Montserrat', 'Nosifer', 'Oswald', 'Passion One',
+  'Permanent Marker', 'Pirata One', 'Playfair Display', 'Questrial', 'Raleway',
+  'Rubik Dirt', 'Russo One', 'Rye', 'Staatliches', 'Teko', 'Ultra',
 ]
 
 const RESOLUTIONS = [
@@ -85,7 +86,10 @@ function ColorSwatch({ value, onChange }) {
 
 function FontPicker({ value, onChange }) {
   const [open, setOpen] = useState(false)
+  const [focusedIdx, setFocusedIdx] = useState(0)
   const containerRef = useRef(null)
+  const listRef = useRef(null)
+  const itemRefs = useRef([])
 
   useEffect(() => {
     if (!open) return
@@ -94,17 +98,52 @@ function FontPicker({ value, onChange }) {
     return () => document.removeEventListener('mousedown', handle)
   }, [open])
 
+  // Scroll focused item into view whenever it changes or dropdown opens
+  useEffect(() => {
+    if (!open) return
+    itemRefs.current[focusedIdx]?.scrollIntoView({ block: 'nearest' })
+  }, [open, focusedIdx])
+
+  const openDropdown = () => {
+    const idx = FONTS.indexOf(value)
+    setFocusedIdx(idx >= 0 ? idx : 0)
+    setOpen(true)
+  }
+
   const handleSelect = async (font) => {
     setOpen(false)
     try { await document.fonts.load(`bold 1em "${font}"`) } catch {}
     onChange(font)
   }
 
+  const handleKeyDown = (e) => {
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        openDropdown()
+      }
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setFocusedIdx(i => Math.min(i + 1, FONTS.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setFocusedIdx(i => Math.max(i - 1, 0))
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleSelect(FONTS[focusedIdx])
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => open ? setOpen(false) : openDropdown()}
+        onKeyDown={handleKeyDown}
         className={`${inputCls} flex items-center justify-between gap-2 cursor-pointer`}
         style={{ fontFamily: value }}
       >
@@ -112,13 +151,17 @@ function FontPicker({ value, onChange }) {
         <ChevronDown size={12} className="flex-shrink-0 text-slate-500 transition-transform" style={{ transform: open ? 'rotate(180deg)' : '' }} />
       </button>
       {open && (
-        <div className="absolute top-full left-0 right-0 z-[100] mt-1 rounded-md border border-[var(--border)] shadow-xl overflow-y-auto" style={{ background: '#0d0d14', maxHeight: 240 }}>
-          {FONTS.map(f => (
+        <div ref={listRef} className="absolute top-full left-0 right-0 z-[100] mt-1 rounded-md border border-[var(--border)] shadow-xl overflow-y-auto" style={{ background: '#0d0d14', maxHeight: 240 }}>
+          {FONTS.map((f, i) => (
             <button
               key={f}
+              ref={el => { itemRefs.current[i] = el }}
               type="button"
               onClick={() => handleSelect(f)}
-              className={`w-full px-3 py-2 text-left text-sm transition-colors ${f === value ? 'text-violet-300 bg-violet-500/15' : 'text-slate-300 hover:bg-white/5'}`}
+              onMouseEnter={() => setFocusedIdx(i)}
+              className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                i === focusedIdx ? 'text-violet-300 bg-violet-500/15' : 'text-slate-300 hover:bg-white/5'
+              }`}
               style={{ fontFamily: f }}
             >
               {f}
