@@ -509,6 +509,7 @@ export default function PosterEditor() {
   const [resMode, setResMode] = useState('Jellyfin Default')
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiGenerating, setAiGenerating] = useState(false)
+  const [aiHistory, setAiHistory] = useState([])
 
   const PREVIEW_HEIGHT = 560
   const cw = canvas.resolution.width
@@ -705,10 +706,12 @@ export default function PosterEditor() {
       await new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = ev => {
+          const dataUrl = ev.target.result
           updateCanvas(prev => ({
             ...prev,
-            background: { ...prev.background, type: 'image', imageDataUrl: ev.target.result },
+            background: { ...prev.background, type: 'image', imageDataUrl: dataUrl },
           }))
+          setAiHistory(prev => [{ prompt: aiPrompt.trim(), dataUrl }, ...prev].slice(0, 5))
           resolve()
         }
         reader.onerror = reject
@@ -1071,6 +1074,27 @@ export default function PosterEditor() {
                         : <><Sparkles size={12} /> Generate</>
                       }
                     </button>
+                    {aiHistory.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-[10px] text-slate-600 mb-1.5">Recent</p>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {aiHistory.map((item, i) => (
+                            <button
+                              key={i}
+                              onClick={() => updateCanvas(prev => ({
+                                ...prev,
+                                background: { ...prev.background, type: 'image', imageDataUrl: item.dataUrl },
+                              }))}
+                              title={item.prompt}
+                              className="relative rounded overflow-hidden flex-shrink-0 ring-1 ring-white/10 hover:ring-violet-400 transition-all"
+                              style={{ width: 40, height: 60 }}
+                            >
+                              <img src={item.dataUrl} alt={item.prompt} className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none mt-3">
