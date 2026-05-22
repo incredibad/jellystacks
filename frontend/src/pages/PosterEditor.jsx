@@ -717,12 +717,9 @@ export default function PosterEditor() {
     setAiGenerating(true)
     const tid = toast.loading('Generating image…')
     try {
-      // Round UP to the next multiple of 64 (FLUX's native block size) so the
-      // requested size is always >= the canvas — BgKonvaImage then downscales
-      // slightly to fit, which is lossless compared to upscaling.
-      const reqW = Math.ceil(cw / 64) * 64
-      const reqH = Math.ceil(ch / 64) * 64
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=${reqW}&height=${reqH}&nologo=true&model=flux&seed=${Date.now()}`
+      // Always request 1024x1024 — the native square resolution Pollinations/FLUX
+      // generates without stretching. BgKonvaImage fill-crops it to the canvas ratio.
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Date.now()}`
       const response = await fetch(url)
       if (!response.ok) throw new Error('bad response')
       const blob = await response.blob()
