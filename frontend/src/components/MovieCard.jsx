@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react'
-import { Film, Upload, Image as ImageIcon, Loader, RotateCcw, MoreVertical, X } from 'lucide-react'
+import { Film, Upload, Image as ImageIcon, Loader, RotateCcw, MoreVertical, X, Layers } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import { libraryColor } from '../utils/libraryColor'
 import MediaArtworkModal from './MediaArtworkModal'
+import PosterStudioPickerModal from './PosterStudioPickerModal'
 
 const POSTER_MAX_DIM = 1000
 const SIZE_THRESHOLD = 2 * 1024 * 1024
@@ -17,6 +18,7 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange, 
   const [localPreview, setLocalPreview] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
+  const [posterStudioOpen, setPosterStudioOpen] = useState(false)
   const fileInputRef = useRef(null)
 
   const isShow = movie.media_type === 'show'
@@ -26,9 +28,11 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange, 
   const baseUrl = isShow
     ? `/api/shows/${movie.id}/poster`
     : `/api/movies/${movie.id}/poster`
-  const stableBuster = movie.custom_artwork_url
-    ? (movie.custom_artwork_url.startsWith('/data/') ? 'local' : encodeURIComponent(movie.custom_artwork_url).slice(-24))
-    : null
+  const stableBuster = movie.artwork_version
+    ? movie.artwork_version
+    : movie.custom_artwork_url
+      ? encodeURIComponent(movie.custom_artwork_url).slice(-24)
+      : movie.primary_image_tag || null
   const posterUrl = localPreview ?? (cacheBuster ? `${baseUrl}?t=${cacheBuster}` : stableBuster ? `${baseUrl}?t=${stableBuster}` : baseUrl)
 
   const analyzeImage = (file) => new Promise((resolve) => {
@@ -212,6 +216,13 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange, 
                   <Upload size={16} />
                   Upload
                 </button>
+                <button
+                  onClick={e => { e.stopPropagation(); setPosterStudioOpen(true) }}
+                  className="flex flex-col items-center gap-1 text-white text-[10px] hover:text-violet-300 transition-colors"
+                >
+                  <Layers size={16} />
+                  Studio
+                </button>
                 {movie.custom_artwork_url && (
                   <button
                     onClick={e => { e.stopPropagation(); handleRevert() }}
@@ -293,6 +304,13 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange, 
                       >
                         <Upload size={13} />
                         Upload Artwork
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); setPosterStudioOpen(true); closeMenu() }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-300 hover:bg-white/5 hover:text-violet-400 transition-colors"
+                      >
+                        <Layers size={13} />
+                        Poster Studio…
                       </button>
                       {movie.custom_artwork_url && (
                         <button
@@ -423,6 +441,13 @@ export default function MovieCard({ movie, selected, onToggle, onArtworkChange, 
           mediaType={isShow ? 'show' : 'movie'}
           onClose={() => setArtworkModal(false)}
           onUpdated={handleArtworkUpdated}
+        />
+      )}
+
+      {posterStudioOpen && (
+        <PosterStudioPickerModal
+          onClose={() => setPosterStudioOpen(false)}
+          onApply={file => doUpload(file)}
         />
       )}
     </div>

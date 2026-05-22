@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon,
   CheckCircle2, Circle, AlertCircle, Pencil, X, Check, RefreshCw,
-  LayoutGrid, LayoutList, Import, Film, Settings2, Shuffle, RotateCcw,
+  LayoutGrid, LayoutList, Import, Film, Settings2, Shuffle, RotateCcw, Layers, ExternalLink,
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -12,6 +12,7 @@ import MovieCard from '../components/MovieCard'
 import MovieListRow from '../components/MovieListRow'
 import MoviePickerModal from '../components/MoviePickerModal'
 import ArtworkPicker from '../components/ArtworkPicker'
+import PosterStudioPickerModal from '../components/PosterStudioPickerModal'
 
 const VIEW_KEY = 'jellystacks:collection-view'
 
@@ -114,6 +115,8 @@ export default function CollectionDetail() {
   const [revertingArtwork, setRevertingArtwork] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [showArtwork, setShowArtwork] = useState(false)
+  const [posterStudioOpen, setPosterStudioOpen] = useState(false)
+  const [artworkCacheBuster, setArtworkCacheBuster] = useState(0)
   const [uploadingArtwork, setUploadingArtwork] = useState(false)
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
   // pendingUpload: { file, width, height, sizeBytes, targetWidth, targetHeight } | null
@@ -182,6 +185,7 @@ export default function CollectionDetail() {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       setCollection(prev => ({ ...prev, artwork_url: data.artwork_url, updated_at: data.updated_at }))
+      setArtworkCacheBuster(Date.now())
       setLocalPreviewUrl(null)
       toast.success('Artwork saved.')
     } catch {
@@ -227,9 +231,14 @@ export default function CollectionDetail() {
           .catch(() => {})
       }
 
-      // Fetch MDBList missing items if this is an MDBList collection
+      // Fetch missing items for managed list collections
       if (data.mdblist_list_id) {
         api.get(`/collections/${id}/mdblist-missing`)
+          .then(res => setMdblistMissing(res.data))
+          .catch(() => {})
+      }
+      if (data.trakt_list_id) {
+        api.get(`/collections/${id}/trakt-missing`)
           .then(res => setMdblistMissing(res.data))
           .catch(() => {})
       }
@@ -346,7 +355,12 @@ export default function CollectionDetail() {
     const tid = toast.loading('Reverting artwork…')
     try {
       const { data } = await api.delete(`/collections/${id}/artwork`)
-      toast.success(data.reset > 0 ? `Reverted artwork for ${data.reset} item${data.reset !== 1 ? 's' : ''}.` : 'No custom artwork to revert.', { id: tid })
+      setCollection(prev => ({ ...prev, artwork_url: data.artwork_url ?? null }))
+      setArtworkCacheBuster(Date.now())
+      const parts = []
+      if (data.artwork_url === null || data.artwork_url === undefined) parts.push('collection artwork cleared')
+      if (data.reset > 0) parts.push(`${data.reset} item${data.reset !== 1 ? 's' : ''} reverted`)
+      toast.success(parts.length ? parts.join(', ') : 'Nothing to revert.', { id: tid })
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to revert artwork.', { id: tid })
     } finally {
@@ -432,12 +446,14 @@ export default function CollectionDetail() {
   const jfPoster = collection.jellyfin_collection_id
     ? `/api/collections/${collection.id}/poster`
     : null
+  const artworkV = artworkCacheBuster || (collection?.updated_at ? new Date(collection.updated_at).getTime() : 0)
+  const artworkBust = artworkV ? `?v=${artworkV}` : ''
   const artworkSrc = localPreviewUrl ?? (() => {
-    if (collection.artwork_url?.startsWith('/api/')) return collection.artwork_url
+    if (collection.artwork_url?.startsWith('/api/')) return `${collection.artwork_url}${artworkBust}`
     if (collection.artwork_url) {
       return `/api/tmdb/proxy-image?url=${encodeURIComponent(collection.artwork_url.replace('/original/', '/w342/'))}`
     }
-    return (!jfImgError && jfPoster) ? jfPoster : null
+    return (!jfImgError && jfPoster) ? `${jfPoster}${artworkBust}` : null
   })()
 
   // True when the collection is in Jellyfin but has been modified locally since the last sync.
@@ -498,6 +514,13 @@ export default function CollectionDetail() {
                   <Upload size={18} />
                   Upload
                 </button>
+                <button
+                  onClick={() => setPosterStudioOpen(true)}
+                  className="flex flex-col items-center gap-1.5 text-white text-[11px] hover:text-violet-300 transition-colors"
+                >
+                  <Layers size={18} />
+                  Studio
+                </button>
               </div>
             )}
           </div>
@@ -548,24 +571,44 @@ export default function CollectionDetail() {
               </span>
             )}
             {collection.tmdb_collection_id ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-violet-600 text-white">
+              <a
+                href={`https://www.themoviedb.org/collection/${collection.tmdb_collection_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-violet-600 text-white hover:bg-violet-500 transition-colors"
+              >
                 <Film size={12} />
                 TMDB Collection
-              </span>
+                <ExternalLink size={10} className="opacity-70" />
+              </a>
             ) : detectionDone && !collection.mdblist_list_id && !collection.trakt_list_id ? (
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-pink-600 text-white">
                 Custom Collection
               </span>
             ) : null}
             {collection.mdblist_list_id && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white" style={{ background: '#f97316' }}>
+              <a
+                href={collection.source_url || `https://mdblist.com/lists/${collection.mdblist_list_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white hover:opacity-80 transition-opacity"
+                style={{ background: '#f97316' }}
+              >
                 MDBList
-              </span>
+                <ExternalLink size={10} className="opacity-70" />
+              </a>
             )}
             {collection.trakt_list_id && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white" style={{ background: '#ed1c24' }}>
+              <a
+                href={`https://trakt.tv/lists/${collection.trakt_list_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white hover:opacity-80 transition-opacity"
+                style={{ background: '#ed1c24' }}
+              >
                 Trakt
-              </span>
+                <ExternalLink size={10} className="opacity-70" />
+              </a>
             )}
           </div>
 
@@ -592,7 +635,7 @@ export default function CollectionDetail() {
               onClick={handlePush}
               disabled={pushing || (collection.movie_count + (collection.show_count || 0)) === 0 || (collection.in_jellyfin && !needsSync)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                pushing || collection.movie_count === 0
+                pushing || (collection.movie_count + (collection.show_count || 0)) === 0
                   ? 'bg-violet-600 text-white opacity-50 cursor-not-allowed'
                   : needsSync
                     ? 'bg-amber-500 hover:bg-amber-400 text-white'
@@ -621,34 +664,29 @@ export default function CollectionDetail() {
                     className="absolute left-0 top-10 z-20 w-52 rounded-xl shadow-xl py-1"
                     style={{ background: '#1e1e30', border: '1px solid var(--border)' }}
                   >
-                    {collection.jellyfin_collection_id && (
-                      <button
-                        onClick={() => { handleVerify(); setSettingsOpen(false) }}
-                        disabled={verifying}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-40"
-                      >
-                        <RefreshCw size={14} className={verifying ? 'animate-spin' : ''} />
-                        Verify Status
-                      </button>
-                    )}
-                    {collection.in_jellyfin && (
-                      <button
-                        onClick={() => { handleRemoveFromJellyfin(); setSettingsOpen(false) }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-                      >
-                        <X size={14} />
-                        Remove from Jellyfin
-                      </button>
-                    )}
-                    {isLocked && (
-                      <button
-                        onClick={() => { handleConvertToCustom(); setSettingsOpen(false) }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-pink-600/10 hover:text-pink-400 transition-colors"
-                      >
-                        <Shuffle size={14} />
-                        Convert to Custom
-                      </button>
-                    )}
+                    {/* Artwork */}
+                    <p className="px-3.5 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Artwork</p>
+                    <button
+                      onClick={() => { setShowArtwork(true); setSettingsOpen(false) }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-violet-400 transition-colors"
+                    >
+                      <ImageIcon size={14} />
+                      Browse Artwork
+                    </button>
+                    <button
+                      onClick={() => { artworkFileRef.current?.click(); setSettingsOpen(false) }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-violet-400 transition-colors"
+                    >
+                      <Upload size={14} />
+                      Upload Artwork
+                    </button>
+                    <button
+                      onClick={() => { setPosterStudioOpen(true); setSettingsOpen(false) }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-violet-400 transition-colors"
+                    >
+                      <Layers size={14} />
+                      Poster Studio…
+                    </button>
                     <button
                       onClick={() => { handleRevertArtwork(); setSettingsOpen(false) }}
                       disabled={revertingArtwork}
@@ -657,6 +695,44 @@ export default function CollectionDetail() {
                       <RotateCcw size={14} className={revertingArtwork ? 'animate-spin' : ''} />
                       Restore Original Art
                     </button>
+
+                    {/* Collection */}
+                    {(collection.jellyfin_collection_id || collection.in_jellyfin || isLocked) && (
+                      <>
+                        <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
+                        <p className="px-3.5 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Collection</p>
+                        {collection.jellyfin_collection_id && (
+                          <button
+                            onClick={() => { handleVerify(); setSettingsOpen(false) }}
+                            disabled={verifying}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-40"
+                          >
+                            <RefreshCw size={14} className={verifying ? 'animate-spin' : ''} />
+                            Verify Status
+                          </button>
+                        )}
+                        {collection.in_jellyfin && (
+                          <button
+                            onClick={() => { handleRemoveFromJellyfin(); setSettingsOpen(false) }}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                          >
+                            <X size={14} />
+                            Remove from Jellyfin
+                          </button>
+                        )}
+                        {isLocked && (
+                          <button
+                            onClick={() => { handleConvertToCustom(); setSettingsOpen(false) }}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-300 hover:bg-pink-600/10 hover:text-pink-400 transition-colors"
+                          >
+                            <Shuffle size={14} />
+                            Convert to Custom
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {/* Danger */}
                     <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
                     <button
                       onClick={() => { handleDeleteCollection(); setSettingsOpen(false) }}
@@ -796,7 +872,7 @@ export default function CollectionDetail() {
               <p className="text-sm">No movies in this collection yet.</p>
             </div>
           ) : view === 'grid' ? (
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
               {sortedMovies.map(movie => (
                 <MovieCard
                   key={movie.id}
@@ -841,7 +917,7 @@ export default function CollectionDetail() {
             <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-3">Shows</h3>
           )}
           {view === 'grid' ? (
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
               {sortedShows.map(show => (
                 <MovieCard
                   key={show.id}
@@ -952,7 +1028,7 @@ export default function CollectionDetail() {
           </button>
 
           {showUnowned && (
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(140px,200px))]">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
               {unownedMovies.map(movie => (
                 <UnownedMovieCard key={movie.tmdb_id} movie={movie} />
               ))}
@@ -1017,6 +1093,13 @@ export default function CollectionDetail() {
             </button>
           </div>
         </div>
+      )}
+
+      {posterStudioOpen && (
+        <PosterStudioPickerModal
+          onClose={() => setPosterStudioOpen(false)}
+          onApply={file => doUpload(file)}
+        />
       )}
 
       {/* Modals */}

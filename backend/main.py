@@ -1,14 +1,29 @@
 from contextlib import asynccontextmanager
+import logging
+import logging.handlers
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from sqlalchemy import text, inspect as sa_inspect
 
+# ── Application-level log file ────────────────────────────────────────────────
+_LOG_FILE = Path("/data/app.log")
+_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+_file_handler = logging.handlers.RotatingFileHandler(
+    _LOG_FILE, maxBytes=2 * 1024 * 1024, backupCount=2, encoding="utf-8"
+)
+_file_handler.setFormatter(logging.Formatter("%(asctime)s [%(name)s] %(levelname)s: %(message)s"))
+logging.getLogger().addHandler(_file_handler)
+logging.getLogger().setLevel(logging.INFO)
+
 from database import Base, engine, SessionLocal
-from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router, trakt as trakt_router, tvdb as tvdb_router, bulk_artwork as bulk_artwork_router
+import models
+from auth import get_current_user
+from routers import auth, movies, collections, settings as settings_router, tmdb, shows as shows_router, mdblist as mdblist_router, trakt as trakt_router, tvdb as tvdb_router, bulk_artwork as bulk_artwork_router, poster_projects as poster_projects_router
 import scheduler as collection_scheduler
+import sync_log as _sync_log
 
 Base.metadata.create_all(bind=engine)
 
@@ -60,6 +75,8 @@ def _run_migrations():
             conn.execute(text("ALTER TABLE collections ADD COLUMN trakt_list_id INTEGER"))
         if "trakt_total_items" not in col_cols:
             conn.execute(text("ALTER TABLE collections ADD COLUMN trakt_total_items INTEGER"))
+        if "source_url" not in col_cols:
+            conn.execute(text("ALTER TABLE collections ADD COLUMN source_url TEXT"))
 
         # One-time fix: native collections imported before v0.2.22 have updated_at
         # a few microseconds ahead of jellyfin_synced_at due to SQLAlchemy insert
@@ -111,7 +128,38 @@ app.include_router(tmdb.router,            prefix="/api/tmdb",        tags=["tmd
 app.include_router(mdblist_router.router,  prefix="/api/mdblist",     tags=["mdblist"])
 app.include_router(trakt_router.router,    prefix="/api/trakt",       tags=["trakt"])
 app.include_router(tvdb_router.router,          prefix="/api/tvdb",         tags=["tvdb"])
-app.include_router(bulk_artwork_router.router,  prefix="/api/artwork/bulk", tags=["artwork"])
+app.include_router(bulk_artwork_router.router,      prefix="/api/artwork/bulk",     tags=["artwork"])
+app.include_router(poster_projects_router.router,  prefix="/api/poster-projects",  tags=["poster-studio"])
+
+# ── Sync Log ─────────────────────────────────────────────────────────────────
+@app.get("/api/sync/log", include_in_schema=True)
+async def get_sync_log(user: models.User = Depends(get_current_user)):
+    log = _sync_log.get_latest(user.id)
+    if log is None:
+        return JSONResponse(status_code=404, content={"detail": "No sync log available"})
+    return log
+
+
+# ── Application Log ───────────────────────────────────────────────────────────
+@app.get("/api/logs", include_in_schema=True)
+async def get_app_log(_: models.User = Depends(get_current_user)):
+    if not _LOG_FILE.exists():
+        return {"lines": []}
+    text_content = _LOG_FILE.read_text(encoding="utf-8", errors="replace")
+    lines = text_content.splitlines()
+    return {"lines": lines[-500:]}
+
+
+@app.get("/api/logs/download")
+async def download_app_log(_: models.User = Depends(get_current_user)):
+    if not _LOG_FILE.exists():
+        return JSONResponse(status_code=404, content={"detail": "No log file found"})
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(
+        _LOG_FILE.read_text(encoding="utf-8", errors="replace"),
+        headers={"Content-Disposition": "attachment; filename=app.log"},
+    )
+
 
 # ── Static Frontend ───────────────────────────────────────────────────────────
 static_dir = Path("/app/static")

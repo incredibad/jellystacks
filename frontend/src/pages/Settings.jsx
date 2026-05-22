@@ -1,11 +1,25 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useOperations } from '../contexts/OperationsContext'
 import {
-  Server, Key, User, CheckCircle2, XCircle, Loader, ChevronDown,
-  ExternalLink, Trash2, Lock, Download, Upload, RefreshCw, Clock, RotateCcw,
+  Server, Key, User, CheckCircle2, XCircle, Loader, ChevronDown, ChevronUp,
+  ExternalLink, Trash2, Lock, Download, Upload, RefreshCw, Clock, RotateCcw, Terminal,
+  Github, Info,
 } from 'lucide-react'
+import pkg from '../../package.json'
 import api from '../api/client'
 import toast from 'react-hot-toast'
+
+const LOG_COLORS = {
+  new: '#10b981',
+  updated: '#60a5fa',
+  deleted: '#f87171',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  summary: '#a78bfa',
+  separator: '#1e293b',
+  info: '#94a3b8',
+}
 
 function Section({ title, description, icon: Icon, danger, children }) {
   return (
@@ -61,7 +75,9 @@ function DangerRow({ label, description, buttonLabel, onClick, loading, loadingL
 
 export default function Settings() {
   const { notifyCollectionsChanged } = useOperations()
-  const [activeTab, setActiveTab] = useState('sync')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'sync'
+  const setActiveTab = (tab) => setSearchParams({ tab })
 
   // ── Sync tab ──────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -74,6 +90,7 @@ export default function Settings() {
     trakt_client_id: '',
     tvdb_api_key: '',
     collection_refresh_interval: 'disabled',
+    library_sync_interval: 'disabled',
   })
   const [refreshing, setRefreshing] = useState(false)
   const [original, setOriginal] = useState({})
@@ -94,6 +111,56 @@ export default function Settings() {
   const [resettingArtwork, setResettingArtwork] = useState(false)
   const importInputRef = useRef(null)
 
+  // ── Sync log ──────────────────────────────────────────────────────────────
+  const [syncLog, setSyncLog] = useState(null)
+  const [loadingLog, setLoadingLog] = useState(false)
+  const [logExpanded, setLogExpanded] = useState(false)
+  const logFetched = useRef(false)
+
+  const fetchSyncLog = useCallback(async () => {
+    setLoadingLog(true)
+    try {
+      const { data } = await api.get('/sync/log')
+      setSyncLog(data)
+    } catch {
+      setSyncLog(null)
+    } finally {
+      setLoadingLog(false)
+    }
+  }, [])
+
+  // ── Application log ───────────────────────────────────────────────────────
+  const [appLog, setAppLog] = useState(null)
+  const [loadingAppLog, setLoadingAppLog] = useState(false)
+  const appLogRef = useRef(null)
+
+  const fetchAppLog = useCallback(async () => {
+    setLoadingAppLog(true)
+    try {
+      const { data } = await api.get('/logs')
+      setAppLog(data.lines)
+    } catch {
+      setAppLog(null)
+    } finally {
+      setLoadingAppLog(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'system' && !logFetched.current) {
+      logFetched.current = true
+      fetchSyncLog()
+      fetchAppLog()
+    }
+  }, [activeTab, fetchSyncLog, fetchAppLog])
+
+  useEffect(() => {
+    if (searchParams.get('log') === '1' && activeTab === 'system') {
+      setLogExpanded(true)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     api.get('/settings').then(({ data }) => {
       setForm({
@@ -106,6 +173,7 @@ export default function Settings() {
         trakt_client_id: '',
         tvdb_api_key: '',
         collection_refresh_interval: data.collection_refresh_interval || 'disabled',
+        library_sync_interval: data.library_sync_interval || 'disabled',
       })
       setOriginal(data)
     })
@@ -129,6 +197,7 @@ export default function Settings() {
       if (form.tvdb_api_key) payload.tvdb_api_key = form.tvdb_api_key
       if (form.tmdb_related_enabled !== original.tmdb_related_enabled) payload.tmdb_related_enabled = form.tmdb_related_enabled
       if (form.collection_refresh_interval !== original.collection_refresh_interval) payload.collection_refresh_interval = form.collection_refresh_interval
+      if (form.library_sync_interval !== original.library_sync_interval) payload.library_sync_interval = form.library_sync_interval
 
       if (Object.keys(payload).length === 0) {
         toast('No changes to save.', { icon: 'ℹ️' })
@@ -374,7 +443,6 @@ export default function Settings() {
       {activeTab === 'sync' && (
         <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
           <Section title="Jellyfin Server" description="Connect to your Jellyfin media server." icon={Server}>
             <Field label="Server URL" hint="Include the protocol, e.g. http://192.168.1.10:8096">
               <input
@@ -479,13 +547,31 @@ export default function Settings() {
           </Section>
 
           <Section
-            title="Scheduled Collection Refresh"
-            description="Automatically update managed collections from their source on a schedule."
+            title="Schedules"
+            description="Configure automatic library syncs and collection refreshes."
             icon={Clock}
           >
             <Field
-              label="Refresh frequency"
-              hint="All managed collections are re-scanned at the chosen interval, adding newly available movies and shows from your library."
+              label="Library sync"
+              hint="Scans all Jellyfin movie and TV libraries and imports any new items into Jellystacks."
+            >
+              <select
+                value={form.library_sync_interval}
+                onChange={e => set('library_sync_interval', e.target.value)}
+                className={inputClass}
+                style={inputStyle}
+              >
+                <option value="disabled">Disabled</option>
+                <option value="6h">Every 6 hours</option>
+                <option value="12h">Every 12 hours</option>
+                <option value="24h">Every 24 hours</option>
+                <option value="weekly">Weekly</option>
+              </select>
+            </Field>
+
+            <Field
+              label="Collection refresh"
+              hint="Re-scans all managed collections at the chosen interval, adding newly available items from your library."
             >
               <select
                 value={form.collection_refresh_interval}
@@ -503,7 +589,7 @@ export default function Settings() {
 
             <div className="flex items-center justify-between gap-4 pt-1">
               <div>
-                <p className="text-sm text-slate-300 font-medium">Run now</p>
+                <p className="text-sm text-slate-300 font-medium">Refresh collections now</p>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Immediately refresh all managed collections regardless of the schedule.
                 </p>
@@ -519,7 +605,6 @@ export default function Settings() {
               </button>
             </div>
           </Section>
-          </div>
         </div>
         <div className="flex justify-end mt-6">
           <button
@@ -829,7 +914,136 @@ export default function Settings() {
 
       {/* ── System tab ─────────────────────────────────────────────────────── */}
       {activeTab === 'system' && (
-        <div className="space-y-6 max-w-2xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Section title="About" description="Application information." icon={Info}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-white">JellyStacks</p>
+                <p className="text-xs text-slate-500 mt-1">A web-based app for managing your Jellyfin collections library.</p>
+              </div>
+              <span className="flex-shrink-0 text-xs font-mono text-slate-400 px-2 py-1 rounded-md" style={{ background: '#0d0d14', border: '1px solid var(--border)' }}>
+                v{pkg.version}
+              </span>
+            </div>
+            <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+              <a
+                href="https://github.com/incredibad/jellystacks"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300 transition-colors"
+              >
+                <Github size={14} />
+                github.com/incredibad/jellystacks
+              </a>
+            </div>
+          </Section>
+
+          <Section title="Sync Log" description="Console output from the most recent library sync." icon={Terminal}>
+            {loadingLog && !syncLog ? (
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <Loader size={14} className="animate-spin" />
+                Loading…
+              </div>
+            ) : syncLog ? (
+              <>
+                <div className="text-xs text-slate-500 space-y-1 mb-3">
+                  <p>
+                    {new Date(syncLog.started_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                    {' · '}
+                    {syncLog.duration_seconds}s
+                  </p>
+                  <p>
+                    Movies: {syncLog.movies_synced} synced, {syncLog.movies_deleted} deleted
+                    {' · '}
+                    Shows: {syncLog.shows_synced} synced, {syncLog.shows_deleted} deleted
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setLogExpanded(v => !v)}
+                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors mb-3"
+                >
+                  {logExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  {logExpanded ? 'Hide' : 'Show'} log output
+                </button>
+
+                {logExpanded && (
+                  <div
+                    className="font-mono text-xs rounded-lg overflow-y-auto max-h-96 p-3 leading-relaxed"
+                    style={{ background: '#07070f', border: '1px solid #1e1e30' }}
+                  >
+                    {syncLog.lines.map((line, i) => (
+                      <div key={i} style={{ color: LOG_COLORS[line.level] || LOG_COLORS.info }}>
+                        {line.level === 'separator' ? (
+                          <span style={{ color: '#1e293b' }}>{line.text}</span>
+                        ) : (
+                          <>
+                            <span style={{ color: '#334155' }}>[{line.ts}] </span>
+                            <span style={{ color: '#334155' }}>[{line.tag}] </span>
+                            {line.text}
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-slate-500">No sync log available. Run a sync to see output here.</p>
+            )}
+
+            <button
+              onClick={fetchSyncLog}
+              disabled={loadingLog}
+              className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw size={11} className={loadingLog ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </Section>
+
+          <Section title="Application Log" description="Last 500 lines from the backend. Includes scheduler events and errors." icon={Terminal}>
+            <div
+              ref={appLogRef}
+              className="font-mono text-xs rounded-lg overflow-y-auto h-72 p-3 leading-relaxed"
+              style={{ background: '#07070f', border: '1px solid #1e1e30' }}
+            >
+              {loadingAppLog && !appLog ? (
+                <span className="text-slate-500">Loading…</span>
+              ) : appLog && appLog.length > 0 ? (
+                appLog.map((line, i) => {
+                  const isError = /ERROR|CRITICAL/i.test(line)
+                  const isWarn = /WARNING/i.test(line)
+                  return (
+                    <div key={i} style={{ color: isError ? '#f87171' : isWarn ? '#fb923c' : '#94a3b8' }}>
+                      {line}
+                    </div>
+                  )
+                })
+              ) : (
+                <span className="text-slate-600">No log entries yet.</span>
+              )}
+            </div>
+            <div className="mt-3 flex items-center gap-4">
+              <button
+                onClick={() => { fetchAppLog().then(() => { if (appLogRef.current) appLogRef.current.scrollTop = appLogRef.current.scrollHeight }) }}
+                disabled={loadingAppLog}
+                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw size={11} className={loadingAppLog ? 'animate-spin' : ''} />
+                Refresh
+              </button>
+              <a
+                href="/api/logs/download"
+                download="app.log"
+                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                <Download size={11} />
+                Download full log
+              </a>
+            </div>
+          </Section>
+
           <Section title="Danger Zone" description="Destructive actions — use with care." icon={Trash2} danger>
             <div className="space-y-5">
               <DangerRow

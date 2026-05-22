@@ -293,6 +293,7 @@ async def proxy_image(
         return Response(
             content=resp.content,
             media_type=resp.headers.get("content-type", "image/jpeg"),
+            headers={"Cache-Control": "public, max-age=31536000, immutable"},
         )
     except HTTPException:
         raise
