@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.27.5] — 2026-05-22
+
+### Fixed
+- AI-generated backgrounds no longer have stretched content — Pollinations was stretching non-native portrait dimensions; now always requests 1024×1024 (native square) and lets BgKonvaImage fill-crop to the canvas aspect ratio
+
+---
+
 ## [1.27.4] — 2026-05-22
 
 ### Fixed
