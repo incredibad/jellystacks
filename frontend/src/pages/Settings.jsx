@@ -90,6 +90,7 @@ export default function Settings() {
     trakt_client_id: '',
     tvdb_api_key: '',
     collection_refresh_interval: 'disabled',
+    library_sync_interval: 'disabled',
   })
   const [refreshing, setRefreshing] = useState(false)
   const [original, setOriginal] = useState({})
@@ -154,6 +155,7 @@ export default function Settings() {
         trakt_client_id: '',
         tvdb_api_key: '',
         collection_refresh_interval: data.collection_refresh_interval || 'disabled',
+        library_sync_interval: data.library_sync_interval || 'disabled',
       })
       setOriginal(data)
     })
@@ -177,6 +179,7 @@ export default function Settings() {
       if (form.tvdb_api_key) payload.tvdb_api_key = form.tvdb_api_key
       if (form.tmdb_related_enabled !== original.tmdb_related_enabled) payload.tmdb_related_enabled = form.tmdb_related_enabled
       if (form.collection_refresh_interval !== original.collection_refresh_interval) payload.collection_refresh_interval = form.collection_refresh_interval
+      if (form.library_sync_interval !== original.library_sync_interval) payload.library_sync_interval = form.library_sync_interval
 
       if (Object.keys(payload).length === 0) {
         toast('No changes to save.', { icon: 'ℹ️' })
@@ -565,6 +568,30 @@ export default function Settings() {
                 {refreshing ? 'Refreshing…' : 'Refresh Now'}
               </button>
             </div>
+          </Section>
+
+          <Section
+            title="Scheduled Library Sync"
+            description="Automatically import new movies and shows from your Jellyfin libraries on a schedule."
+            icon={Clock}
+          >
+            <Field
+              label="Sync frequency"
+              hint="Scans all Jellyfin movie and TV libraries and imports any new items into Jellystacks."
+            >
+              <select
+                value={form.library_sync_interval}
+                onChange={e => set('library_sync_interval', e.target.value)}
+                className={inputClass}
+                style={inputStyle}
+              >
+                <option value="disabled">Disabled</option>
+                <option value="6h">Every 6 hours</option>
+                <option value="12h">Every 12 hours</option>
+                <option value="24h">Every 24 hours</option>
+                <option value="weekly">Weekly</option>
+              </select>
+            </Field>
           </Section>
         </div>
         <div className="flex justify-end mt-6">

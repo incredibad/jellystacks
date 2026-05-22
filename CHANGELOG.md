@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.1] — 2026-05-22
+
+### Added
+- Scheduled library sync: new setting to automatically import movies and shows from Jellyfin on a configurable interval (6h / 12h / 24h / weekly), independent of the collection refresh schedule
+
+---
+
 ## [1.28.0] — 2026-05-22
 
 ### Added
