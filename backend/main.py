@@ -150,6 +150,17 @@ async def get_app_log(_: models.User = Depends(get_current_user)):
     return {"lines": lines[-500:]}
 
 
+@app.get("/api/logs/download")
+async def download_app_log(_: models.User = Depends(get_current_user)):
+    if not _LOG_FILE.exists():
+        return JSONResponse(status_code=404, content={"detail": "No log file found"})
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(
+        _LOG_FILE.read_text(encoding="utf-8", errors="replace"),
+        headers={"Content-Disposition": "attachment; filename=app.log"},
+    )
+
+
 # ── Static Frontend ───────────────────────────────────────────────────────────
 static_dir = Path("/app/static")
 dev_static = Path(__file__).parent / "static"
