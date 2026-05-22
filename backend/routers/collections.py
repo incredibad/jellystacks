@@ -5,6 +5,7 @@ import json
 import mimetypes
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from fastapi.responses import FileResponse, Response
@@ -53,6 +54,7 @@ def _collection_to_response(c: models.Collection) -> schemas.CollectionResponse:
         mdblist_total_items=c.mdblist_total_items,
         trakt_list_id=c.trakt_list_id,
         trakt_total_items=c.trakt_total_items,
+        source_url=c.source_url,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
@@ -79,6 +81,7 @@ def _collection_to_detail(c: models.Collection) -> schemas.CollectionDetailRespo
         mdblist_total_items=c.mdblist_total_items,
         trakt_list_id=c.trakt_list_id,
         trakt_total_items=c.trakt_total_items,
+        source_url=c.source_url,
         in_jellyfin=c.in_jellyfin,
         is_jellyfin_native=c.is_jellyfin_native,
         jellyfin_synced_at=c.jellyfin_synced_at,
@@ -970,6 +973,7 @@ class TmdbImportRequest(BaseModel):
 class MdblistImportRequest(BaseModel):
     mdblist_list_id: int
     name: str
+    source_url: Optional[str] = None
 
 
 @router.post("/import-from-tmdb", response_model=schemas.CollectionDetailResponse)
@@ -1045,6 +1049,7 @@ async def create_from_mdblist(
         name=data.name,
         mdblist_list_id=data.mdblist_list_id,
         mdblist_total_items=total,
+        source_url=data.source_url,
     )
     col.movies = movies
     col.shows = shows
@@ -1057,6 +1062,7 @@ async def create_from_mdblist(
 class TraktImportRequest(BaseModel):
     trakt_list_id: int
     name: str
+    source_url: Optional[str] = None
 
 
 @router.post("/from-trakt", response_model=schemas.CollectionDetailResponse)
@@ -1097,6 +1103,7 @@ async def create_from_trakt(
         name=data.name,
         trakt_list_id=data.trakt_list_id,
         trakt_total_items=total,
+        source_url=data.source_url,
     )
     col.movies = movies
     col.shows = shows

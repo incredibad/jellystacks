@@ -99,6 +99,7 @@ class Collection(Base):
     mdblist_total_items = Column(Integer, nullable=True)
     trakt_list_id = Column(Integer, nullable=True)
     trakt_total_items = Column(Integer, nullable=True)
+    source_url = Column(String, nullable=True)
     in_jellyfin = Column(Boolean, default=False)
     is_jellyfin_native = Column(Boolean, default=False)  # True = existed in Jellyfin before JellyStacks
     jellyfin_synced_at = Column(DateTime, nullable=True)

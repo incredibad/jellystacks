@@ -84,6 +84,7 @@ export default function MdblistModal({ onClose, onCreate, onBack }) {
       const { data } = await api.post('/collections/from-mdblist', {
         mdblist_list_id: selected.id,
         name: name.trim(),
+        source_url: selected.slug ? `https://mdblist.com/lists/${selected.user_name}/${selected.slug}` : null,
       })
       const owned = (preview?.movie_count || 0) + (preview?.show_count || 0)
       toast.success(`"${data.name}" created with ${owned} item${owned !== 1 ? 's' : ''}.`)
