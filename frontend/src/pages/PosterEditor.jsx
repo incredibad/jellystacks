@@ -537,6 +537,24 @@ export default function PosterEditor() {
     tr.getLayer()?.batchDraw()
   }, [selectedId, canvas.layers])
 
+  // Re-apply offsetX/width on text nodes after any canvas change.
+  // React Konva skips props that haven't changed, so a background update can leave
+  // stale node state if the Konva node was ever in an intermediate default state.
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+    const konvaLayer = stage.getLayers()[0]
+    if (!konvaLayer) return
+    for (const l of canvas.layers) {
+      if (l.type !== 'text') continue
+      const node = konvaLayer.findOne(`#${l.id}`)
+      if (!node) continue
+      node.offsetX(l.props.align === 'center' ? cw / 2 : l.props.align === 'right' ? cw : 0)
+      node.width(cw)
+    }
+    konvaLayer.batchDraw()
+  }, [canvas, cw])
+
   // Load project
   useEffect(() => {
     api.get(`/poster-projects/${id}`)
