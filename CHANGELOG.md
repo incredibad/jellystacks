@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.27.1] — 2026-05-22
+
+### Added
+- AI generation history in Poster Studio — the last 5 generated backgrounds are shown as clickable thumbnails below the Generate button; clicking one instantly restores it as the background (session-only)
+
+---
+
 ## [1.27.0] — 2026-05-22
 
 ### Added
