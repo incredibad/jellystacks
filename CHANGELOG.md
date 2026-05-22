@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.27.4] — 2026-05-22
+
+### Fixed
+- AI generation requests dimensions rounded up to the next multiple of 64 (FLUX native block size), ensuring we always download slightly above canvas size and downscale — previously we requested below canvas size and upscaled, which is lossy
+
+---
+
 ## [1.27.3] — 2026-05-22
 
 ### Fixed
