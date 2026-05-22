@@ -72,8 +72,9 @@ services:
     volumes:
       - jellystacks_data:/data
     environment:
-      - SECRET_KEY=change-this-to-a-random-secret
-      - TZ=Europe/London        # optional — sets timezone for log timestamps
+      - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
+      - DATABASE_URL=sqlite:////data/jellystacks.db
+      - TZ=Australia/Brisbane   # set your local timezone for log timestamps
     restart: unless-stopped
 
 volumes:
@@ -94,8 +95,9 @@ docker run -d \
   --restart unless-stopped \
   -p 7284:7284 \
   -v jellystacks_data:/data \
-  -e SECRET_KEY=change-this-to-a-random-secret \
-  -e TZ=Europe/London \
+  -e SECRET_KEY=change-this-secret-key-in-production \
+  -e DATABASE_URL=sqlite:////data/jellystacks.db \
+  -e TZ=Australia/Brisbane \
   incredibad/jellystacks:latest
 ```
 
@@ -114,7 +116,8 @@ docker compose pull && docker compose up -d
 | Variable | Required | Description |
 |---|---|---|
 | `SECRET_KEY` | **Yes** | Random secret used to sign auth tokens — change this |
-| `TZ` | No | Timezone for log timestamps, e.g. `Europe/London`, `America/New_York` |
+| `DATABASE_URL` | No | SQLite path — defaults to `sqlite:////data/jellystacks.db` |
+| `TZ` | No | Timezone for log timestamps, e.g. `Australia/Brisbane`, `Europe/London` |
 
 ---
 
