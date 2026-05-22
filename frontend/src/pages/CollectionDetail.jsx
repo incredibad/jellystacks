@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon,
   CheckCircle2, Circle, AlertCircle, Pencil, X, Check, RefreshCw,
-  LayoutGrid, LayoutList, Import, Film, Settings2, Shuffle, RotateCcw, Layers,
+  LayoutGrid, LayoutList, Import, Film, Settings2, Shuffle, RotateCcw, Layers, ExternalLink,
 } from 'lucide-react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
@@ -571,24 +571,44 @@ export default function CollectionDetail() {
               </span>
             )}
             {collection.tmdb_collection_id ? (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-violet-600 text-white">
+              <a
+                href={`https://www.themoviedb.org/collection/${collection.tmdb_collection_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-violet-600 text-white hover:bg-violet-500 transition-colors"
+              >
                 <Film size={12} />
                 TMDB Collection
-              </span>
+                <ExternalLink size={10} className="opacity-70" />
+              </a>
             ) : detectionDone && !collection.mdblist_list_id && !collection.trakt_list_id ? (
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal bg-pink-600 text-white">
                 Custom Collection
               </span>
             ) : null}
             {collection.mdblist_list_id && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white" style={{ background: '#f97316' }}>
+              <a
+                href={`https://mdblist.com/lists/${collection.mdblist_list_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white hover:opacity-80 transition-opacity"
+                style={{ background: '#f97316' }}
+              >
                 MDBList
-              </span>
+                <ExternalLink size={10} className="opacity-70" />
+              </a>
             )}
             {collection.trakt_list_id && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white" style={{ background: '#ed1c24' }}>
+              <a
+                href={`https://trakt.tv/lists/${collection.trakt_list_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white hover:opacity-80 transition-opacity"
+                style={{ background: '#ed1c24' }}
+              >
                 Trakt
-              </span>
+                <ExternalLink size={10} className="opacity-70" />
+              </a>
             )}
           </div>
 
