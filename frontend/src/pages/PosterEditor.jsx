@@ -1186,6 +1186,14 @@ export default function PosterEditor() {
                         : <><Sparkles size={12} /> Generate</>
                       }
                     </button>
+                    <a
+                      href="https://pollinations.ai"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-center text-[10px] text-slate-600 hover:text-slate-400 transition-colors mt-1"
+                    >
+                      Powered by Pollinations.ai
+                    </a>
                     {aiHistory.length > 0 && (
                       <div className="mt-2">
                         <p className="text-[10px] text-slate-600 mb-1.5">Recent</p>
