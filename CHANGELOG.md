@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.27.0] — 2026-05-22
+
+### Added
+- AI background generation in Poster Studio via Pollinations.ai (free, no API key required) — enter a prompt in the Background panel to generate an image at the canvas resolution
+
+---
+
 ## [1.26.7] — 2026-05-19
 
 ### Fixed
