@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.10] — 2026-05-22
+
+### Added
+- Poster Studio AI Generate: "Powered by Pollinations.ai" link shown below the Generate button, opens pollinations.ai in a new tab
+
+---
+
 ## [1.28.9] — 2026-05-22
 
 ### Fixed
