@@ -4,6 +4,17 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.2] — 2026-05-22
+
+### Added
+- Application log viewer on the System tab in Settings — shows last 500 lines from the backend with error/warning highlighting, auto-loads on tab open, and has a Refresh button
+- Backend now writes a rotating log file to `/data/app.log` capturing scheduler events, errors, and general output with full timestamps
+
+### Changed
+- Merged "Scheduled Collection Refresh" and "Scheduled Library Sync" into a single "Schedules" section on the Sync tab
+
+---
+
 ## [1.28.1] — 2026-05-22
 
 ### Added

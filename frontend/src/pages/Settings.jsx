@@ -133,8 +133,26 @@ export default function Settings() {
     if (activeTab === 'system' && !logFetched.current) {
       logFetched.current = true
       fetchSyncLog()
+      fetchAppLog()
     }
-  }, [activeTab, fetchSyncLog])
+  }, [activeTab, fetchSyncLog, fetchAppLog])
+
+  // ── Application log ───────────────────────────────────────────────────────
+  const [appLog, setAppLog] = useState(null)
+  const [loadingAppLog, setLoadingAppLog] = useState(false)
+  const appLogRef = useRef(null)
+
+  const fetchAppLog = useCallback(async () => {
+    setLoadingAppLog(true)
+    try {
+      const { data } = await api.get('/logs')
+      setAppLog(data.lines)
+    } catch {
+      setAppLog(null)
+    } finally {
+      setLoadingAppLog(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (searchParams.get('log') === '1' && activeTab === 'system') {
@@ -529,13 +547,31 @@ export default function Settings() {
           </Section>
 
           <Section
-            title="Scheduled Collection Refresh"
-            description="Automatically update managed collections from their source on a schedule."
+            title="Schedules"
+            description="Configure automatic library syncs and collection refreshes."
             icon={Clock}
           >
             <Field
-              label="Refresh frequency"
-              hint="All managed collections are re-scanned at the chosen interval, adding newly available movies and shows from your library."
+              label="Library sync"
+              hint="Scans all Jellyfin movie and TV libraries and imports any new items into Jellystacks."
+            >
+              <select
+                value={form.library_sync_interval}
+                onChange={e => set('library_sync_interval', e.target.value)}
+                className={inputClass}
+                style={inputStyle}
+              >
+                <option value="disabled">Disabled</option>
+                <option value="6h">Every 6 hours</option>
+                <option value="12h">Every 12 hours</option>
+                <option value="24h">Every 24 hours</option>
+                <option value="weekly">Weekly</option>
+              </select>
+            </Field>
+
+            <Field
+              label="Collection refresh"
+              hint="Re-scans all managed collections at the chosen interval, adding newly available items from your library."
             >
               <select
                 value={form.collection_refresh_interval}
@@ -553,7 +589,7 @@ export default function Settings() {
 
             <div className="flex items-center justify-between gap-4 pt-1">
               <div>
-                <p className="text-sm text-slate-300 font-medium">Run now</p>
+                <p className="text-sm text-slate-300 font-medium">Refresh collections now</p>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Immediately refresh all managed collections regardless of the schedule.
                 </p>
@@ -568,30 +604,6 @@ export default function Settings() {
                 {refreshing ? 'Refreshing…' : 'Refresh Now'}
               </button>
             </div>
-          </Section>
-
-          <Section
-            title="Scheduled Library Sync"
-            description="Automatically import new movies and shows from your Jellyfin libraries on a schedule."
-            icon={Clock}
-          >
-            <Field
-              label="Sync frequency"
-              hint="Scans all Jellyfin movie and TV libraries and imports any new items into Jellystacks."
-            >
-              <select
-                value={form.library_sync_interval}
-                onChange={e => set('library_sync_interval', e.target.value)}
-                className={inputClass}
-                style={inputStyle}
-              >
-                <option value="disabled">Disabled</option>
-                <option value="6h">Every 6 hours</option>
-                <option value="12h">Every 12 hours</option>
-                <option value="24h">Every 24 hours</option>
-                <option value="weekly">Weekly</option>
-              </select>
-            </Field>
           </Section>
         </div>
         <div className="flex justify-end mt-6">
@@ -986,6 +998,38 @@ export default function Settings() {
               className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 disabled:opacity-50 transition-colors"
             >
               <RefreshCw size={11} className={loadingLog ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </Section>
+
+          <Section title="Application Log" description="Last 500 lines from the backend. Includes scheduler events and errors." icon={Terminal}>
+            <div
+              ref={appLogRef}
+              className="font-mono text-xs rounded-lg overflow-y-auto h-72 p-3 leading-relaxed"
+              style={{ background: '#07070f', border: '1px solid #1e1e30' }}
+            >
+              {loadingAppLog && !appLog ? (
+                <span className="text-slate-500">Loading…</span>
+              ) : appLog && appLog.length > 0 ? (
+                appLog.map((line, i) => {
+                  const isError = /ERROR|CRITICAL/i.test(line)
+                  const isWarn = /WARNING/i.test(line)
+                  return (
+                    <div key={i} style={{ color: isError ? '#f87171' : isWarn ? '#fb923c' : '#94a3b8' }}>
+                      {line}
+                    </div>
+                  )
+                })
+              ) : (
+                <span className="text-slate-600">No log entries yet.</span>
+              )}
+            </div>
+            <button
+              onClick={() => { fetchAppLog().then(() => { if (appLogRef.current) appLogRef.current.scrollTop = appLogRef.current.scrollHeight }) }}
+              disabled={loadingAppLog}
+              className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw size={11} className={loadingAppLog ? 'animate-spin' : ''} />
               Refresh
             </button>
           </Section>

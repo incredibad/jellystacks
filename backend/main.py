@@ -1,10 +1,22 @@
 from contextlib import asynccontextmanager
+import logging
+import logging.handlers
 from pathlib import Path
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from sqlalchemy import text, inspect as sa_inspect
+
+# ── Application-level log file ────────────────────────────────────────────────
+_LOG_FILE = Path("/data/app.log")
+_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+_file_handler = logging.handlers.RotatingFileHandler(
+    _LOG_FILE, maxBytes=2 * 1024 * 1024, backupCount=2, encoding="utf-8"
+)
+_file_handler.setFormatter(logging.Formatter("%(asctime)s [%(name)s] %(levelname)s: %(message)s"))
+logging.getLogger().addHandler(_file_handler)
+logging.getLogger().setLevel(logging.INFO)
 
 from database import Base, engine, SessionLocal
 import models
@@ -126,6 +138,16 @@ async def get_sync_log(user: models.User = Depends(get_current_user)):
     if log is None:
         return JSONResponse(status_code=404, content={"detail": "No sync log available"})
     return log
+
+
+# ── Application Log ───────────────────────────────────────────────────────────
+@app.get("/api/logs", include_in_schema=True)
+async def get_app_log(_: models.User = Depends(get_current_user)):
+    if not _LOG_FILE.exists():
+        return {"lines": []}
+    text_content = _LOG_FILE.read_text(encoding="utf-8", errors="replace")
+    lines = text_content.splitlines()
+    return {"lines": lines[-500:]}
 
 
 # ── Static Frontend ───────────────────────────────────────────────────────────
