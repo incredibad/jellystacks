@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.9] — 2026-05-22
+
+### Fixed
+- Poster Studio: numeric property fields no longer snap to 0 when the value is deleted — the field stays empty while typing and only reverts to the previous value on blur if left empty
+
+---
+
 ## [1.28.8] — 2026-05-22
 
 ### Added

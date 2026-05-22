@@ -71,6 +71,44 @@ function PropRow({ label, children }) {
   )
 }
 
+function NumericInput({ value, onChange, min, max, step, className, setter }) {
+  const [draft, setDraft] = useState(String(value ?? ''))
+  const focused = useRef(false)
+
+  useEffect(() => {
+    if (!focused.current) setDraft(String(value ?? ''))
+  }, [value])
+
+  const commit = (raw) => {
+    const n = parseFloat(raw)
+    if (raw === '' || isNaN(n)) {
+      setDraft(String(value ?? ''))
+    } else {
+      if (setter) setter(n); else onChange(n)
+    }
+  }
+
+  return (
+    <input
+      type="number"
+      value={draft}
+      min={min}
+      max={max}
+      step={step}
+      className={className}
+      onFocus={() => { focused.current = true }}
+      onChange={e => {
+        setDraft(e.target.value)
+        const n = parseFloat(e.target.value)
+        if (e.target.value !== '' && !isNaN(n)) {
+          if (setter) setter(n); else onChange(n)
+        }
+      }}
+      onBlur={() => { focused.current = false; commit(draft) }}
+    />
+  )
+}
+
 const inputCls = "w-full px-2 py-1.5 rounded-md text-xs text-slate-200 bg-[#0d0d14] border border-[var(--border)] outline-none focus:ring-1 focus:ring-violet-500"
 const numCls = "w-full px-2 py-1.5 rounded-md text-xs text-slate-200 bg-[#0d0d14] border border-[var(--border)] outline-none focus:ring-1 focus:ring-violet-500 tabular-nums"
 
@@ -192,7 +230,7 @@ function TextProps({ layer, onChange }) {
         </select>
       </PropRow>
       <PropRow label="Size">
-        <input type="number" value={p.fontSize} min={8} max={400} onChange={e => onChange('fontSize', +e.target.value)} className={numCls} />
+        <NumericInput value={p.fontSize} min={8} max={400} onChange={v => onChange('fontSize', v)} className={numCls} />
       </PropRow>
       <PropRow label="Colour">
         <ColorSwatch value={p.fill} onChange={v => onChange('fill', v)} />
@@ -208,10 +246,10 @@ function TextProps({ layer, onChange }) {
         </div>
       </PropRow>
       <PropRow label="Spacing">
-        <input type="number" value={p.letterSpacing} min={-20} max={100} onChange={e => onChange('letterSpacing', +e.target.value)} className={numCls} />
+        <NumericInput value={p.letterSpacing} min={-20} max={100} onChange={v => onChange('letterSpacing', v)} className={numCls} />
       </PropRow>
       <PropRow label="Line height">
-        <input type="number" value={p.lineHeight ?? 1.2} min={0.5} max={5} step={0.1} onChange={e => onChange('lineHeight', +e.target.value)} className={numCls} />
+        <NumericInput value={p.lineHeight ?? 1.2} min={0.5} max={5} step={0.1} onChange={v => onChange('lineHeight', v)} className={numCls} />
       </PropRow>
       <PropRow label="Opacity">
         <input type="range" min={0} max={1} step={0.01} value={p.opacity}
@@ -219,8 +257,8 @@ function TextProps({ layer, onChange }) {
       </PropRow>
       <PropRow label="X / Y">
         <div className="flex gap-1">
-          <input type="number" value={Math.round(p.x)} onChange={e => onChange('x', +e.target.value)} className={numCls} />
-          <input type="number" value={Math.round(p.y)} onChange={e => onChange('y', +e.target.value)} className={numCls} />
+          <NumericInput value={Math.round(p.x)} onChange={v => onChange('x', v)} className={numCls} />
+          <NumericInput value={Math.round(p.y)} onChange={v => onChange('y', v)} className={numCls} />
         </div>
       </PropRow>
       <div className="mt-3 mb-1">
@@ -235,12 +273,12 @@ function TextProps({ layer, onChange }) {
             <ColorSwatch value={p.shadowColor} onChange={v => onChange('shadowColor', v)} />
           </PropRow>
           <PropRow label="Blur">
-            <input type="number" value={p.shadowBlur} min={0} max={100} onChange={e => onChange('shadowBlur', +e.target.value)} className={numCls} />
+            <NumericInput value={p.shadowBlur} min={0} max={100} onChange={v => onChange('shadowBlur', v)} className={numCls} />
           </PropRow>
           <PropRow label="Offset X/Y">
             <div className="flex gap-1">
-              <input type="number" value={p.shadowOffsetX} onChange={e => onChange('shadowOffsetX', +e.target.value)} className={numCls} />
-              <input type="number" value={p.shadowOffsetY} onChange={e => onChange('shadowOffsetY', +e.target.value)} className={numCls} />
+              <NumericInput value={p.shadowOffsetX} onChange={v => onChange('shadowOffsetX', v)} className={numCls} />
+              <NumericInput value={p.shadowOffsetY} onChange={v => onChange('shadowOffsetY', v)} className={numCls} />
             </div>
           </PropRow>
           <PropRow label="Shadow opacity">
@@ -261,10 +299,10 @@ function LineProps({ layer, onChange }) {
         <ColorSwatch value={p.stroke} onChange={v => onChange('stroke', v)} />
       </PropRow>
       <PropRow label="Thickness">
-        <input type="number" value={p.strokeWidth} min={1} max={50} onChange={e => onChange('strokeWidth', +e.target.value)} className={numCls} />
+        <NumericInput value={p.strokeWidth} min={1} max={50} onChange={v => onChange('strokeWidth', v)} className={numCls} />
       </PropRow>
       <PropRow label="Length">
-        <input type="number" value={p.length} min={1} onChange={e => onChange('length', +e.target.value)} className={numCls} />
+        <NumericInput value={p.length} min={1} onChange={v => onChange('length', v)} className={numCls} />
       </PropRow>
       <PropRow label="Opacity">
         <input type="range" min={0} max={1} step={0.01} value={p.opacity}
@@ -272,8 +310,8 @@ function LineProps({ layer, onChange }) {
       </PropRow>
       <PropRow label="X / Y">
         <div className="flex gap-1">
-          <input type="number" value={Math.round(p.x)} onChange={e => onChange('x', +e.target.value)} className={numCls} />
-          <input type="number" value={Math.round(p.y)} onChange={e => onChange('y', +e.target.value)} className={numCls} />
+          <NumericInput value={Math.round(p.x)} onChange={v => onChange('x', v)} className={numCls} />
+          <NumericInput value={Math.round(p.y)} onChange={v => onChange('y', v)} className={numCls} />
         </div>
       </PropRow>
     </>
@@ -348,14 +386,14 @@ function ImageLayerProps({ layer, onChange, onBulk }) {
       </PropRow>
       <PropRow label="W / H">
         <div className="flex gap-1">
-          <input type="number" value={p.width} min={1} onChange={e => onChange('width', +e.target.value)} className={numCls} />
-          <input type="number" value={p.height} min={1} onChange={e => onChange('height', +e.target.value)} className={numCls} />
+          <NumericInput value={p.width} min={1} onChange={v => onChange('width', v)} className={numCls} />
+          <NumericInput value={p.height} min={1} onChange={v => onChange('height', v)} className={numCls} />
         </div>
       </PropRow>
       <PropRow label="X / Y">
         <div className="flex gap-1">
-          <input type="number" value={Math.round(p.x)} onChange={e => onChange('x', +e.target.value)} className={numCls} />
-          <input type="number" value={Math.round(p.y)} onChange={e => onChange('y', +e.target.value)} className={numCls} />
+          <NumericInput value={Math.round(p.x)} onChange={v => onChange('x', v)} className={numCls} />
+          <NumericInput value={Math.round(p.y)} onChange={v => onChange('y', v)} className={numCls} />
         </div>
       </PropRow>
       <PropRow label="Opacity">
@@ -1205,8 +1243,8 @@ export default function PosterEditor() {
                   </div>
                   {resMode === 'Custom' && (
                     <div className="flex gap-1 mt-2">
-                      <input type="number" value={customRes.width} min={100} onChange={e => setCustomRes(p => ({ ...p, width: +e.target.value }))} className={numCls} placeholder="W" />
-                      <input type="number" value={customRes.height} min={100} onChange={e => setCustomRes(p => ({ ...p, height: +e.target.value }))} className={numCls} placeholder="H" />
+                      <NumericInput value={customRes.width} min={100} setter={v => setCustomRes(p => ({ ...p, width: v }))} className={numCls} />
+                      <NumericInput value={customRes.height} min={100} setter={v => setCustomRes(p => ({ ...p, height: v }))} className={numCls} />
                       <button onClick={() => applyResolution('Custom')}
                         className="px-2 py-1.5 rounded-md text-xs text-white bg-violet-600 hover:bg-violet-500 transition-colors flex-shrink-0">
                         Apply
