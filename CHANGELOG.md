@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.3] — 2026-05-22
+
+### Added
+- "Download full log" link in the Application Log panel on the System tab — downloads the complete `/data/app.log` file
+
+---
+
 ## [1.28.2] — 2026-05-22
 
 ### Added

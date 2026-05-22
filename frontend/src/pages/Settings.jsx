@@ -1024,14 +1024,24 @@ export default function Settings() {
                 <span className="text-slate-600">No log entries yet.</span>
               )}
             </div>
-            <button
-              onClick={() => { fetchAppLog().then(() => { if (appLogRef.current) appLogRef.current.scrollTop = appLogRef.current.scrollHeight }) }}
-              disabled={loadingAppLog}
-              className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw size={11} className={loadingAppLog ? 'animate-spin' : ''} />
-              Refresh
-            </button>
+            <div className="mt-3 flex items-center gap-4">
+              <button
+                onClick={() => { fetchAppLog().then(() => { if (appLogRef.current) appLogRef.current.scrollTop = appLogRef.current.scrollHeight }) }}
+                disabled={loadingAppLog}
+                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw size={11} className={loadingAppLog ? 'animate-spin' : ''} />
+                Refresh
+              </button>
+              <a
+                href="/api/logs/download"
+                download="app.log"
+                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                <Download size={11} />
+                Download full log
+              </a>
+            </div>
           </Section>
 
           <Section title="Danger Zone" description="Destructive actions — use with care." icon={Trash2} danger>
