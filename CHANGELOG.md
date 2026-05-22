@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.7] — 2026-05-22
+
+### Fixed
+- Poster Studio: font and text alignment now correct on initial load — all fonts used in the project are pre-loaded via `document.fonts.load()` before the canvas renders, preventing Konva from laying out text with the wrong fallback font metrics
+
+---
+
 ## [1.28.6] — 2026-05-22
 
 ### Changed
