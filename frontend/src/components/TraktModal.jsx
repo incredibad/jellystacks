@@ -83,6 +83,7 @@ export default function TraktModal({ onClose, onCreate, onBack }) {
       const { data } = await api.post('/collections/from-trakt', {
         trakt_list_id: selected.id,
         name: name.trim(),
+        source_url: `https://trakt.tv/lists/${selected.id}`,
       })
       const owned = (preview?.movie_count || 0) + (preview?.show_count || 0)
       toast.success(`"${data.name}" created with ${owned} item${owned !== 1 ? 's' : ''}.`)

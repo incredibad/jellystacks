@@ -152,6 +152,7 @@ class CollectionResponse(BaseModel):
     mdblist_total_items: Optional[int]
     trakt_list_id: Optional[int]
     trakt_total_items: Optional[int]
+    source_url: Optional[str]
     in_jellyfin: bool
     is_jellyfin_native: bool
     jellyfin_synced_at: Optional[datetime]

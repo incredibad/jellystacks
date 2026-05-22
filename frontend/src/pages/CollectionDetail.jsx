@@ -588,7 +588,7 @@ export default function CollectionDetail() {
             ) : null}
             {collection.mdblist_list_id && (
               <a
-                href={`https://mdblist.com/?list=${collection.mdblist_list_id}`}
+                href={collection.source_url || `https://mdblist.com/lists/${collection.mdblist_list_id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal text-white hover:opacity-80 transition-opacity"

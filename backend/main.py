@@ -63,6 +63,8 @@ def _run_migrations():
             conn.execute(text("ALTER TABLE collections ADD COLUMN trakt_list_id INTEGER"))
         if "trakt_total_items" not in col_cols:
             conn.execute(text("ALTER TABLE collections ADD COLUMN trakt_total_items INTEGER"))
+        if "source_url" not in col_cols:
+            conn.execute(text("ALTER TABLE collections ADD COLUMN source_url TEXT"))
 
         # One-time fix: native collections imported before v0.2.22 have updated_at
         # a few microseconds ahead of jellyfin_synced_at due to SQLAlchemy insert

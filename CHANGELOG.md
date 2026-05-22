@@ -4,6 +4,14 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.0] — 2026-05-22
+
+### Added
+- `source_url` column stored in the database when creating MDBList or Trakt collections, so the source pill link is always correct regardless of URL format changes
+- MDBList pill now links to the exact list URL (`/lists/{user}/{slug}`) saved at creation time, with a fallback for older collections
+
+---
+
 ## [1.27.7] — 2026-05-22
 
 ### Fixed
