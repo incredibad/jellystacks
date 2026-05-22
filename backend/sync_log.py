@@ -48,7 +48,7 @@ def start(user_id: int, participant: str) -> SyncRun:
 
 def log(run: SyncRun, tag: str, message: str, level: str = "info") -> None:
     """Append a structured log entry and echo to Docker stdout."""
-    ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
+    ts = datetime.now().strftime("%H:%M:%S")
     run.lines.append({"ts": ts, "tag": tag, "level": level, "text": message})
     print(f"[sync:{tag}] {message}", flush=True)
 

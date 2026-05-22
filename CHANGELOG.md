@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.5] — 2026-05-22
+
+### Fixed
+- Log timestamps now respect the `TZ` environment variable set in docker-compose — set e.g. `TZ=Europe/London` to get local-time timestamps in both the sync log and app.log
+
+---
+
 ## [1.28.4] — 2026-05-22
 
 ### Fixed
