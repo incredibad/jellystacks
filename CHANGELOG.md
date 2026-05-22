@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.27.6] — 2026-05-22
+
+### Changed
+- TMDB, MDBList, and Trakt source pills on the collection detail page are now links that open the source collection/list in a new tab
+
+---
+
 ## [1.27.5] — 2026-05-22
 
 ### Fixed
