@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.27.3] — 2026-05-22
+
+### Fixed
+- AI-generated backgrounds no longer appear stretched — Pollinations is now requested at a FLUX-native resolution (≤1024px on the long side, multiples of 8) matching the canvas aspect ratio, rather than the exact canvas dimensions which Pollinations was stretching non-uniformly
+
+---
+
 ## [1.27.2] — 2026-05-22
 
 ### Fixed

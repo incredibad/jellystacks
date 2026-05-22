@@ -717,7 +717,14 @@ export default function PosterEditor() {
     setAiGenerating(true)
     const tid = toast.loading('Generating image…')
     try {
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=${cw}&height=${ch}&nologo=true&model=flux&seed=${Date.now()}`
+      // Request FLUX-native dimensions (≤1024 on long side, multiples of 8)
+      // so Pollinations doesn't stretch a non-native resolution to match ours.
+      // BgKonvaImage then scales/crops to fit the canvas.
+      const maxDim = 1024
+      const portrait = ch >= cw
+      const reqW = portrait ? Math.round(maxDim * (cw / ch) / 8) * 8 : maxDim
+      const reqH = portrait ? maxDim : Math.round(maxDim * (ch / cw) / 8) * 8
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=${reqW}&height=${reqH}&nologo=true&model=flux&seed=${Date.now()}`
       const response = await fetch(url)
       if (!response.ok) throw new Error('bad response')
       const blob = await response.blob()
