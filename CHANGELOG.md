@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.27.2] — 2026-05-22
+
+### Fixed
+- Text alignment no longer resets visually in the Poster Studio editor after background changes (e.g. AI generation) — a defensive effect now re-applies offsetX and width to Konva text nodes after every canvas update, bypassing React Konva's reconciliation timing
+
+---
+
 ## [1.27.1] — 2026-05-22
 
 ### Added
