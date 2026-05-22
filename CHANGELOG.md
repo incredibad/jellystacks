@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.6] — 2026-05-22
+
+### Changed
+- README.md fully rewritten to reflect current feature set: TV shows, MDBList/Trakt/TheTVDB integrations, Poster Studio, bulk artwork, scheduled syncs, log viewer, updated docker-compose with `TZ` variable, environment variable table, providers setup table, and data persistence details
+
+---
+
 ## [1.28.5] — 2026-05-22
 
 ### Fixed
