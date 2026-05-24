@@ -146,8 +146,8 @@ export default function Collections() {
       (c.mdblist_list_id && c.mdblist_total_items && (c.movie_count + (c.show_count || 0)) < c.mdblist_total_items) ||
       (c.trakt_list_id && c.trakt_total_items && (c.movie_count + (c.show_count || 0)) < c.trakt_total_items)
     )
-    else if (filter === 'custom') result = collections.filter(c => !c.is_jellyfin_native && !c.tmdb_id && !c.mdblist_list_id && !c.trakt_list_id)
-    else if (filter === 'tmdb') result = collections.filter(c => !!c.tmdb_id)
+    else if (filter === 'custom') result = collections.filter(c => !c.is_jellyfin_native && !c.tmdb_collection_id && !c.mdblist_list_id && !c.trakt_list_id)
+    else if (filter === 'tmdb') result = collections.filter(c => !!c.tmdb_collection_id)
     else if (filter === 'mdblist') result = collections.filter(c => !!c.mdblist_list_id)
     else if (filter === 'trakt') result = collections.filter(c => !!c.trakt_list_id)
     else result = collections
@@ -166,8 +166,8 @@ export default function Collections() {
     (c.movie_count === 0 && (c.show_count || 0) === 0) || (c.tmdb_total_parts && c.movie_count < c.tmdb_total_parts) ||
     (c.mdblist_list_id && c.mdblist_total_items && (c.movie_count + (c.show_count || 0)) < c.mdblist_total_items)
   ).length
-  const customCount = collections.filter(c => !c.is_jellyfin_native && !c.tmdb_id && !c.mdblist_list_id && !c.trakt_list_id).length
-  const tmdbCount = collections.filter(c => !!c.tmdb_id).length
+  const customCount = collections.filter(c => !c.is_jellyfin_native && !c.tmdb_collection_id && !c.mdblist_list_id && !c.trakt_list_id).length
+  const tmdbCount = collections.filter(c => !!c.tmdb_collection_id).length
   const mdblistCount = collections.filter(c => !!c.mdblist_list_id).length
   const traktCount = collections.filter(c => !!c.trakt_list_id).length
 
