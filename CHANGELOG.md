@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.12] — 2026-05-24
+
+### Added
+- Collections page: source type filter pills — Custom, TMDB, MDBList, Trakt — only shown when at least one collection of that type exists
+
+---
+
 ## [1.28.11] — 2026-05-24
 
 ### Fixed
