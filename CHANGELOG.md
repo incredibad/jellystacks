@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.13] — 2026-05-24
+
+### Fixed
+- TMDB filter pill now correctly identifies TMDB collections using `tmdb_collection_id` field
+
+---
+
 ## [1.28.12] — 2026-05-24
 
 ### Added
