@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.14] — 2026-05-24
+
+### Fixed
+- Collections filter pills are now hidden when their count is zero (applies to all filters, not just source types)
+
+---
+
 ## [1.28.13] — 2026-05-24
 
 ### Fixed

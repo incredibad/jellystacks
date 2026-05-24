@@ -197,15 +197,15 @@ export default function Collections() {
           {/* Filter pills — centred and horizontally scrollable on mobile */}
           <div className="flex justify-center sm:justify-start items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden">
             {[
-              { key: 'all', label: `All (${collections.length})` },
-              { key: 'jellyfin', label: `From Jellyfin (${jellyfinNative})` },
-              { key: 'local', label: `Local (${localCount})` },
-              { key: 'incomplete', label: `Incomplete (${incompleteCount})` },
-              ...(customCount > 0 ? [{ key: 'custom', label: `Custom (${customCount})` }] : []),
-              ...(tmdbCount > 0 ? [{ key: 'tmdb', label: `TMDB (${tmdbCount})` }] : []),
-              ...(mdblistCount > 0 ? [{ key: 'mdblist', label: `MDBList (${mdblistCount})` }] : []),
-              ...(traktCount > 0 ? [{ key: 'trakt', label: `Trakt (${traktCount})` }] : []),
-            ].map(({ key, label }) => (
+              { key: 'all', count: collections.length, label: `All (${collections.length})` },
+              { key: 'jellyfin', count: jellyfinNative, label: `From Jellyfin (${jellyfinNative})` },
+              { key: 'local', count: localCount, label: `Local (${localCount})` },
+              { key: 'incomplete', count: incompleteCount, label: `Incomplete (${incompleteCount})` },
+              { key: 'custom', count: customCount, label: `Custom (${customCount})` },
+              { key: 'tmdb', count: tmdbCount, label: `TMDB (${tmdbCount})` },
+              { key: 'mdblist', count: mdblistCount, label: `MDBList (${mdblistCount})` },
+              { key: 'trakt', count: traktCount, label: `Trakt (${traktCount})` },
+            ].filter(({ key, count }) => key === 'all' || count > 0).map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setFilter(key)}
