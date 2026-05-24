@@ -4,6 +4,13 @@ All notable changes are documented here, newest first.
 
 ---
 
+## [1.28.11] — 2026-05-24
+
+### Fixed
+- Collections "Incomplete" filter no longer flags TV show-only custom collections as incomplete; a collection is only considered empty if it has zero movies AND zero shows
+
+---
+
 ## [1.28.10] — 2026-05-22
 
 ### Added
